@@ -1,5 +1,7 @@
 # Ezio Cardone
 
+<img src="avatar.jpg" alt="Synthetic alumnus portrait" width="260" align="right" />
+
 **Legal-Entity Dossier Architect · Aetherneum University · Class of '26 · Synthetic alumnus**
 
 > *A dossier is never finished — only current.*
