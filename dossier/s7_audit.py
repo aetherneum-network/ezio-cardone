@@ -34,8 +34,9 @@ from . import s6_build as b
 _ORPHAN = re.compile(r"(EUR\s*[\d#\[])|(\d\s*%)|(\b\d+/\d+\b)")
 _AMOUNT_IN_QUOTE = re.compile(r"EUR\s+((?:\d[\d., ]*\d)|\d)")
 _SHARE_IN_LINE = re.compile(r"^\s*- (\S+) \(.*\): (.+)$")
-FIGURE_SECTIONS = {"facts": b.H_FACTS, "discrepancies": b.H_DISC, "cap_table": b.H_CAP, "chain": b.H_CHAIN,
-                   "history": b.H_HIST}
+FIGURE_SECTIONS = {"facts": b.H_FACTS, "discrepancies": b.H_DISC, "unconfirmed": b.H_UNCONF,
+                   "cap_table": b.H_CAP, "chain": b.H_CHAIN, "history": b.H_HIST}
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
 
 
 def _key(v) -> str:
@@ -74,8 +75,9 @@ def _holder_lines(quote: str) -> dict[str, Fraction]:
 # ----------------------------------------------------------------------------------------------
 # 3. independent re-derivation of the current values of a field
 
-def current_values(assertions: list[dict]) -> tuple[set[str], bool]:
-    """(distinct readable current values, whether any current source exists) for one field."""
+def current_values(assertions: list[dict]) -> tuple[set[str], bool, bool, str]:
+    """(distinct readable current values, any current source?, any unreadable current source?, date of
+    the latest event document) for one field."""
     events = [a for a in assertions if a["role"] == "event"]
     cutoff = max((a["source_date"] for a in events), default="")
     current = []
@@ -86,7 +88,8 @@ def current_values(assertions: list[dict]) -> tuple[set[str], bool]:
                      key=lambda a: (a["source_date"], a["edition_no"] or 0, a["source_doc"]))
         if latest["source_date"] >= cutoff:
             current.append(latest)
-    return {_key(a["value"]) for a in current if a["status"] == "STATED"}, bool(current)
+    return ({_key(a["value"]) for a in current if a["status"] == "STATED"}, bool(current),
+            any(a["status"] != "STATED" for a in current), cutoff)
 
 
 # ----------------------------------------------------------------------------------------------
@@ -155,14 +158,22 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
             if not a["field"].endswith(".previous"):
                 by_field.setdefault(a["field"], []).append(a)
         for fld, assertions in sorted(by_field.items()):
-            values, any_current = current_values(assertions)
+            values, any_current, unreadable, cutoff = current_values(assertions)
             shown = [f for f in figures if f["field"] == fld and f["section"] in ("facts", "cap_table")]
             disc = {_key(f["value"]) for f in figures if f["field"] == fld and f["section"] == "discrepancies"}
-            if len(values) >= 2:
+            unread = [u for u in record.get("unclassified_documents", [])
+                      if not cutoff or not _ISO_DATE.fullmatch(u.get("date") or "") or u["date"] >= cutoff]
+            if unread:
+                if shown or disc:
+                    problems.append(f"{fld}: shown as fact or as a conflict although an unread document may change it")
+            elif len(values) >= 2:
                 if shown:
                     problems.append(f"{fld}: sources disagree but one value is shown as fact")
                 if disc != values:
                     problems.append(f"{fld}: not every conflicting value is shown side by side")
+            elif unreadable:
+                if shown:
+                    problems.append(f"{fld}: a value is shown as fact although a current source could not be read")
             elif len(values) == 1:
                 if fld == "shareholders" and shown:
                     table = sorted(({"holder": f["holder"], "share": f["value"]} for f in shown),

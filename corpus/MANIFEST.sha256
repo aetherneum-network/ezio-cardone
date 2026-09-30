@@ -1,7 +1,7 @@
 # sha256 of every generated file of the three suites (as_of 2026-09-30):
 #   dev seed 20260930 - holdout seed 20261001 - stress seed 20261002 (perturbed)
 # check: python -m corpus.generate --check
-4b18eaafa3a897697d0e2d4cfb42f7a01b9825453addfb6f03ff5c0e547c7ffa  dev/gold.json
+e8cd569edbec6d5b1b28e429b44e19a9460050510afedb0d87a04b190f352b0c  dev/gold.json
 b2170e33059d041d19bd0b6eb638875bf1351814db4756e0b1f76ce27f625faa  dev/input/config.json
 b1e012e52ce0dce166d91b1c7a7b9b6f2eaaf4a63a24b6b3e11f9d966da879fa  dev/input/entities/E-0001/2021-09-11_deed.txt
 973dc023670bade2188d94f00e0d8a469141cfd378a3349427d284cf4d909eca  dev/input/entities/E-0001/2022-03-29_share-transfer.txt
@@ -901,7 +901,7 @@ a420f477d9537cfbd98af76c1647719e3a7a56c9e599d860a98b8971c928af8d  dev/input/enti
 819b392d013eb7b29f411a2e1b286f811ffe319e4e9930c5dd6273b64ddbd3aa  dev/input/entities/E-0150/2026-01-02_financial-summary.txt
 2c850c697582a06c531dc19d50eeee22cee2eea06c3a9adada9643a0f16c1f76  dev/input/entities/E-0150/2026-09-08_registry-extract.txt
 229939befb0d9c433c6930b7d37eba591d17cfba988b941e57d6bd55bd19b20b  dev/input/identity/persons.json
-e3d4ef325df2228ab5ae32978177b1c0dae7df96d9c260d6df2f3f57a314fbab  holdout/gold.json
+47f6e4c947a60475c4512189d32ec86df2f25755e017188092c1eeba1cd9d291  holdout/gold.json
 f9e71f14131bdfedcf958859387098ad44cda29e427436c2be22fb5c21f43d9a  holdout/input/config.json
 ee962a9acc5d0b438d0c69630a085872c6432e568633d45059d1d7d395d67e5d  holdout/input/entities/E-0001/2021-07-21_deed.txt
 1e1daa4d714679b837f0375b530deafe9f4d73e6902cc30a1ae84e1946a0cffe  holdout/input/entities/E-0001/2021-12-08_share-transfer.txt
@@ -1786,7 +1786,7 @@ bfea7c6870728918eeac3d45b3e01421a4e9dcf3c7bcfe6b25e2a7dcd024595f  holdout/input/
 ed43a65c464c4eee7fa5fb2b6d65dc67d159dcbf5f45418b40b95a375001e6e0  holdout/input/entities/E-0150/2022-11-18_holders-ledger.txt
 d0b315bd10c9160f731125171d586342e0dd7e83f12778f5c90137151d32987b  holdout/input/entities/E-0150/2025-10-20_registry-extract.txt
 5f647bb310566f92fc3fdf7b49d1d7bbdc74709a1c9efe95c2a2a15d75e2d717  holdout/input/identity/persons.json
-b491cfcae22a7948ef03e93fbbf042ed7aee42b9fec2caed2242e4bccb8bec67  stress/gold.json
+c3c54e98d016e7c3c0a67793a4cf6f20c105b4d4ea9476b05ddad4871d311691  stress/gold.json
 24cd6da1915aa3964ba80a6f5206e92cb4a6c3fc82295ed436bbeb9f9e3750c4  stress/input/config.json
 5ea842885a017e90490e7533c8249e876d3f7fefb7c2a762b2960b62f5903a6f  stress/input/entities/E-0001/2019-12-11_deed.txt
 5273425b3648d940beb14dba581b2846162ee7f180a562b0c1eaa23e227ac59e  stress/input/entities/E-0001/2020-07-27_holders-ledger.txt

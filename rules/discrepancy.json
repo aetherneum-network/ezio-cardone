@@ -1,7 +1,7 @@
 {
   "file": "discrepancy.json",
   "version": "2.0.0",
-  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition.",
+  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact.",
   "parameters": {
     "event_supersedes_earlier_state": {
       "value": true,
@@ -22,9 +22,81 @@
       "value": "none",
       "status": "[TO CONFIRM with legal]",
       "note": "No source is preferred. A human adjudicates."
+    },
+    "unread_document_blocks_fact": {
+      "note": "A document of the entity that could not be classified (unknown type, broken header) may change any field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Added after the first stress run (eval/history.json, run 2).",
+      "status": "[TO CONFIRM with legal]",
+      "value": true
+    },
+    "unreadable_current_source_blocks_fact": {
+      "note": "When one current source of a field could not be read, the value of the other current sources is not shown as fact: the unread source may disagree. Added after the first stress run (eval/history.json, run 2).",
+      "status": "[TO CONFIRM with legal]",
+      "value": true
     }
   },
   "rules": [
+    {
+      "id": "DISC-005",
+      "when": "unread_document_may_change_field",
+      "status": "TO_CONFIRM",
+      "reason": "a document of the entity could not be read and may change this field",
+      "rationale": "Exception on top of everything: a document that was not classified is not evidence of absence. If it is not older than the latest event document of the field, nothing is shown as fact for that field.",
+      "tests": [
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "50000.00"
+            ],
+            "status": "TO_CONFIRM"
+          },
+          "unread": [
+            {
+              "date": "2025-06-01",
+              "doc_id": "D9"
+            }
+          ]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "50000.00"
+            ],
+            "status": "TO_CONFIRM"
+          },
+          "unread": [
+            {
+              "date": "2019-06-01",
+              "doc_id": "D9"
+            }
+          ]
+        }
+      ]
+    },
     {
       "id": "DISC-010",
       "when": "no_current_assertion",
@@ -49,17 +121,17 @@
         {
           "assertions": [
             {
+              "date": "2024-01-10",
               "doc": "D1",
               "role": "event",
               "series": "DEED",
-              "date": "2024-01-10",
               "value": "50000.00"
             },
             {
+              "date": "2025-02-01",
               "doc": "D2",
               "role": "state",
               "series": "EXTRACT",
-              "date": "2025-02-01",
               "value": "80000.00"
             }
           ],
@@ -75,29 +147,53 @@
     },
     {
       "id": "DISC-030",
-      "when": "no_current_value",
+      "when": "current_source_unreadable",
       "status": "TO_CONFIRM",
-      "reason": "the current sources of this field could not be read",
-      "rationale": "The latest event document (or every current witness) is unreadable for this field. An older value is history and is never promoted back to current.",
+      "reason": "a current source of this field could not be read",
+      "rationale": "The latest event document or a current witness is unreadable for this field. An older value is history and is never promoted back; the value of the other current sources is listed as a statement, not shown as fact, because the unread source may disagree.",
       "tests": [
         {
           "assertions": [
             {
+              "date": "2024-01-10",
               "doc": "D1",
               "role": "event",
               "series": "DEED",
-              "date": "2024-01-10",
               "value": "50000.00"
             },
             {
+              "date": "2025-03-01",
               "doc": "D2",
               "role": "event",
               "series": "RESOLUTION",
-              "date": "2025-03-01",
               "value": null
             }
           ],
           "expect": {
+            "status": "TO_CONFIRM"
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": null
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "80000.00"
+            ],
             "status": "TO_CONFIRM"
           }
         }
@@ -112,42 +208,70 @@
         {
           "assertions": [
             {
+              "date": "2024-01-10",
               "doc": "D1",
               "role": "event",
               "series": "DEED",
-              "date": "2024-01-10",
               "value": "50000.00"
             },
             {
+              "date": "2025-03-01",
               "doc": "D2",
               "role": "event",
               "series": "RESOLUTION",
-              "date": "2025-03-01",
               "value": "80000.00"
             },
             {
+              "date": "2024-06-01",
               "doc": "D3",
               "role": "state",
               "series": "EXTRACT",
-              "date": "2024-06-01",
               "value": "50000.00"
             },
             {
+              "date": "2025-06-01",
               "doc": "D4",
               "role": "state",
               "series": "EXTRACT",
-              "date": "2025-06-01",
               "value": "80000.00"
             }
           ],
           "expect": {
-            "status": "STATED",
-            "value": "80000.00",
             "historical": [
               "50000.00",
               "50000.00"
-            ]
+            ],
+            "status": "STATED",
+            "value": "80000.00"
           }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "status": "STATED",
+            "value": "50000.00"
+          },
+          "unread": [
+            {
+              "date": "2023-06-01",
+              "doc_id": "D9"
+            }
+          ]
         }
       ]
     }
@@ -163,70 +287,69 @@
     },
     "rules": [
       {
-        "id": "SCAN-010",
-        "when": "document_dated_before_change",
         "action": "ignore",
+        "id": "SCAN-010",
         "rationale": "A document written before the change carried the value that was current on its own date.",
         "tests": [
           {
             "doc_date": "2025-11-03",
             "text": "Fornace Aurelia S.r.l. - share capital EUR 50.000,00 fully paid in"
           }
-        ]
+        ],
+        "when": "document_dated_before_change"
       },
       {
-        "id": "SCAN-020",
-        "when": "no_field_cue_in_line",
         "action": "ignore",
+        "id": "SCAN-020",
         "rationale": "The same amount without the cue of the field (an invoice, a guarantee) is another figure.",
         "tests": [
           {
             "doc_date": "2026-03-01",
             "text": "Invoice to Fornace Aurelia S.r.l., total EUR 50.000,00"
           }
-        ]
+        ],
+        "when": "no_field_cue_in_line"
       },
       {
-        "id": "SCAN-030",
-        "when": "historical_marker_before_amount",
-        "pattern": "\\b(?:from|until|was|formerly|previously|before the increase)\\b[^.;]*$",
         "action": "ignore",
+        "id": "SCAN-030",
+        "pattern": "\\b(?:from|until|was|formerly|previously|before the increase)\\b[^.;]*$",
         "rationale": "The line itself presents the amount as a past value.",
         "tests": [
           {
             "doc_date": "2026-03-01",
             "text": "Until the increase the share capital of Fornace Aurelia was EUR 50.000,00."
           }
-        ]
+        ],
+        "when": "historical_marker_before_amount"
       },
       {
-        "id": "SCAN-040",
-        "when": "line_is_about_another_entity",
         "action": "ignore",
+        "id": "SCAN-040",
         "rationale": "The nearest entity named is not the entity whose value was superseded.",
         "tests": [
           {
             "doc_date": "2026-03-01",
             "text": "Holding Aurelia Partecipazioni S.r.l. - share capital EUR 50.000,00"
           }
-        ]
+        ],
+        "when": "line_is_about_another_entity"
       },
       {
-        "id": "SCAN-050",
-        "when": "line_is_not_about_the_entity",
         "action": "ignore",
+        "id": "SCAN-050",
         "rationale": "No mention of the entity in the line or in the lines just above.",
         "tests": [
           {
             "doc_date": "2026-03-01",
             "text": "The share capital amounts to EUR 50.000,00."
           }
-        ]
+        ],
+        "when": "line_is_not_about_the_entity"
       },
       {
-        "id": "SCAN-999",
-        "when": "always",
         "action": "flag",
+        "id": "SCAN-999",
         "rationale": "Default: the superseded amount is presented as current for this entity.",
         "tests": [
           {
@@ -237,7 +360,8 @@
             "doc_date": "2026-03-01",
             "text": "Re: Fornace Aurelia S.r.l.\n\nThe share capital is 50,000.00 EUR."
           }
-        ]
+        ],
+        "when": "always"
       }
     ]
   }

@@ -51,8 +51,11 @@ def shareable_view(view: dict, salt: str) -> dict:
     for res in out["fields"].values():
         for holder_table in _tables(res):
             holder_table.sort(key=lambda r: r["holder"])
-        if isinstance(res.get("value"), list) and res["field"] == "directors":
-            res["value"].sort()
+        if res["field"] == "directors":
+            lists = [res.get("value")] + [c["value"] for c in res.get("candidates", []) + res.get("readable", [])]
+            for lst in lists + [h["value"] for h in res.get("historical", [])]:
+                if isinstance(lst, list):
+                    lst.sort()
     return out
 
 
@@ -61,7 +64,7 @@ def _tables(res: dict):
         return
     if isinstance(res.get("value"), list):
         yield res["value"]
-    for c in res.get("candidates", []):
+    for c in res.get("candidates", []) + res.get("readable", []):
         yield c["value"]
     for h in res.get("historical", []):
         yield h["value"]

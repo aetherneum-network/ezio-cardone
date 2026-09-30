@@ -8,14 +8,17 @@ For every field the assertions are ordered in time:
   year) only the latest edition counts, and only if it is not older than the baseline;
 * the baseline and those witnesses are the *current* sources.
 
-Then the ordered rules of ``rules/discrepancy.json`` decide: no current source -> ``TO_CONFIRM``;
-two or more different current values -> ``DISCREPANCY`` (all shown, none chosen); current sources
-that could not be read -> ``TO_CONFIRM``; one value -> ``STATED``.
+Then the ordered rules of ``rules/discrepancy.json`` decide: an unread document that may change the
+field -> ``TO_CONFIRM``; no current source -> ``TO_CONFIRM``; two or more different current values
+-> ``DISCREPANCY`` (all shown, none chosen); a current source that could not be read ->
+``TO_CONFIRM``; every current source readable and agreeing -> ``STATED``.
 
-An unreadable event document is still the baseline: an older value is never promoted back.
+An unreadable event document is still the baseline: an older value is never promoted back. What
+could be read of a field that is ``TO_CONFIRM`` is kept as ``readable`` statements, never as a fact.
 """
 from __future__ import annotations
 
+import datetime as _dt
 import json
 
 from .rules_engine import Rules, first_match
@@ -60,16 +63,35 @@ def split_current(assertions: list[dict], rules: Rules) -> tuple[dict | None, li
     return baseline, witnesses, history
 
 
-def resolve_field(fld: str, assertions: list[dict], rules: Rules) -> dict:
+def _valid_date(text: str) -> bool:
+    try:
+        _dt.date.fromisoformat(text)
+        return True
+    except (TypeError, ValueError):
+        return False
+
+
+def unread_that_matter(unread: list[dict], baseline: dict | None, rules: Rules) -> list[dict]:
+    """Unread documents that may change a field: undated, or not older than its latest event document."""
+    if not rules.param("discrepancy", "unread_document_blocks_fact"):
+        return []
+    return [u for u in unread if baseline is None or not _valid_date(u.get("date") or "")
+            or u["date"] >= baseline["source_date"]]
+
+
+def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[dict] | None = None) -> dict:
     baseline, witnesses, history = split_current(assertions, rules)
     current = ([baseline] if baseline else []) + witnesses
     stated = [a for a in current if a["status"] == "STATED"]
     groups: dict[str, list[dict]] = {}
     for a in stated:
         groups.setdefault(_key(a["value"]), []).append(a)
-    facts = {"no_current_assertion": not current,
+    blocking = unread_that_matter(unread or [], baseline, rules)
+    strict = rules.param("discrepancy", "unreadable_current_source_blocks_fact")
+    facts = {"unread_document_may_change_field": bool(blocking),
+             "no_current_assertion": not current,
              "two_or_more_current_values": len(groups) >= 2,
-             "no_current_value": bool(current) and not groups,
+             "current_source_unreadable": len(stated) < len(current) and bool(strict or not groups),
              "one_current_value": len(groups) == 1}
     rule = first_match(rules.discrepancy["rules"], lambda r: facts.get(r["when"], False))
     if rule is None:
@@ -81,15 +103,21 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules) -> dict:
         newest_first = sorted(stated, key=_order, reverse=True)
         res["value"] = newest_first[0]["value"]
         res["sources"] = [_src(a) for a in newest_first]
-    elif rule["status"] == "DISCREPANCY":
+    else:
         cands = []
         for k in sorted(groups, key=lambda k: (min(_order(a) for a in groups[k]), k)):
             members = sorted(groups[k], key=_order)
             cands.append({"value": members[0]["value"], "sources": [_src(a) for a in members]})
-        res["candidates"] = cands
-    else:
-        reasons = sorted({a["reason"] for a in current if a["status"] != "STATED"})
-        res["reason"] = rule["reason"] + (": " + "; ".join(reasons) if reasons else "")
+        if rule["status"] == "DISCREPANCY":
+            res["candidates"] = cands
+        else:
+            if rule["when"] == "unread_document_may_change_field":
+                reasons = sorted(f"{u.get('doc_id') or 'a document without id'} dated "
+                                 f"{u.get('date') or 'without a valid date'}" for u in blocking)
+            else:
+                reasons = sorted({a["reason"] for a in current if a["status"] != "STATED"})
+            res["reason"] = rule["reason"] + (": " + "; ".join(reasons) if reasons else "")
+            res["readable"] = cands          # statements that could be read; not facts of the dossier
     res["historical"] = []
     for old, by in sorted(history, key=lambda pair: _order(pair[0])):
         if old["status"] != "STATED":
@@ -110,7 +138,8 @@ def resolve_record(record: dict, rules: Rules) -> dict:
                 previous.append(dict(_src(a), field=a["field"], value=a["value"]))
         else:
             by_field.setdefault(a["field"], []).append(a)
-    fields = {f: resolve_field(f, by_field[f], rules) for f in sorted(by_field)}
+    unread = record.get("unclassified_documents", [])
+    fields = {f: resolve_field(f, by_field[f], rules, unread) for f in sorted(by_field)}
     return {"fields": fields, "previous_statements": sorted(previous, key=lambda p: (p["field"], p["source_date"],
                                                                                    p["source_doc"]))}
 
@@ -147,7 +176,7 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 else:
                     x["status"], x["value"] = "STATED", a["value"]
                 assertions.append(x)
-            got = resolve_field("f", assertions, rules)
+            got = resolve_field("f", assertions, rules, t.get("unread"))
             exp = t["expect"]
             ok = got["status"] == exp["status"] and got["rule"] == r["id"]
             if "value" in exp:
@@ -156,6 +185,8 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 ok = ok and sorted(c["value"] for c in got.get("candidates", [])) == sorted(exp["values"])
             if "historical" in exp:
                 ok = ok and sorted(h["value"] for h in got["historical"]) == sorted(exp["historical"])
+            if "readable" in exp:
+                ok = ok and sorted(c["value"] for c in got.get("readable", [])) == sorted(exp["readable"])
             if got["status"] != "STATED" and "value" in got:
                 ok = False
             if not ok:

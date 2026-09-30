@@ -5,7 +5,8 @@ edited by hand. The builder refuses to render (``BuildRefused``):
 
 * a figure without ``value``, ``source_doc``, ``source_date`` or ``edition``;
 * a figure whose source is not a document of the record;
-* a ``[TO CONFIRM]`` entry that carries a value, a discrepancy with fewer than two values;
+* a ``[TO CONFIRM]`` entry that carries a value, a discrepancy with fewer than two values
+  (what single documents state about a field to confirm is listed apart, as statements, not facts);
 * a float anywhere in the view;
 
 and it refuses with ``BuildBlocked`` a cap table that does not sum to exactly the whole.
@@ -33,6 +34,8 @@ SOURCE = ("source_doc", "source_date", "edition")
 H_FACTS = ["Fig.", "Field", "Value", "Nature", "Status", "Source document", "Source date", "Edition"]
 H_DISC = ["Fig.", "Field in discrepancy", "Value", "Nature", "Source document", "Source date", "Edition"]
 H_TOCONFIRM = ["Field to confirm", "Value", "Why"]
+H_UNCONF = ["Fig.", "Field to confirm", "Readable statement (not a fact)", "Nature", "Source document",
+            "Source date", "Edition"]
 H_CAP = ["Fig.", "Holder", "Share (exact)", "Source document", "Source date", "Edition"]
 H_CHAIN = ["Fig.", "Holder", "Held entity", "Share (exact)", "Source document", "Source date", "Edition"]
 H_EFF = ["Fig.", "Natural person", "Effective share (exact)", "Method", "Derived from"]
@@ -123,6 +126,9 @@ def model_from_view(view: dict) -> dict:
             if "value" in res or res.get("candidates"):
                 raise BuildRefused(f"{fld}: a field to confirm carries no value")
             to_confirm.append({"field": fld, "marker": TO_CONFIRM, "why": res.get("reason", "")})
+            for n, cand in enumerate(res.get("readable", []), 1):
+                for s in cand["sources"]:
+                    figures.append(_figure("unconfirmed", fld, "UNCONFIRMED", cand["value"], s, candidate=n))
         else:
             raise BuildRefused(f"{fld}: unknown status {status!r}")
         for u in res.get("unreadable", []):
@@ -246,6 +252,13 @@ def render_docx(path: Path, view: dict, model: dict, as_of: str, rules_assumptio
         _table(doc, H_TOCONFIRM, [[t["field"], t["marker"], t["why"]] for t in model["to_confirm"]], red_col=1)
     else:
         doc.add_paragraph("Nothing to confirm.")
+    unconf = [f for f in figs if f["section"] == "unconfirmed"]
+    if unconf:
+        doc.add_paragraph("What could be read for the fields above. These are statements of single documents, "
+                          "not facts of this dossier: a current source could not be read, or an unread document "
+                          "may change them.")
+        _table(doc, H_UNCONF, [[f["id"], f["field"], f["display"], f.get("nature", "")] + _src_cells(f)
+                               for f in unconf])
 
     doc.add_heading("4. Ownership", level=1)
     own = view["ownership"]

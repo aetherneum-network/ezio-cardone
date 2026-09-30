@@ -7,7 +7,8 @@ independently of ``dossier/``:
 
 * the latest event document that carries the field is the baseline;
 * of each series of state documents only the latest edition counts, if not older than the baseline;
-* two different readable current values -> DISCREPANCY; one -> FACT; none -> TO_CONFIRM.
+* two different readable current values -> DISCREPANCY; a current source that cannot be read ->
+  TO_CONFIRM (the others are not promoted to fact); every current source readable and agreeing -> FACT.
 
 Effective holdings come from ``reference_ownership.py`` (path enumeration).
 
@@ -108,14 +109,14 @@ def resolve(entries: list[tuple[Doc, object]]) -> dict:
     if len(values) >= 2:
         res = {"status": "DISCREPANCY", "values": values,
                "sources": sorted(d.doc_id for d, v in current if v is not None)}
-    elif len(values) == 1:
+    elif len(values) == 1 and all(v is not None for _, v in current):
         res = {"status": "FACT", "value": values[0],
                "sources": sorted(d.doc_id for d, v in current if v == values[0])}
     else:
         res = {"status": "TO_CONFIRM"}
     res["superseded"] = sorted(
         ({"old_value": v, "old_source_doc": d.doc_id} for d, v in entries
-         if d.doc_id not in current_ids and v is not None and len(values) == 1 and v != values[0]),
+         if d.doc_id not in current_ids and v is not None and res["status"] == "FACT" and v != values[0]),
         key=lambda x: x["old_source_doc"])
     return res
 
