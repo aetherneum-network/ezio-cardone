@@ -124,7 +124,7 @@
       "nature": "text",
       "kinds": ["EXTRACT"],
       "line_matches": "^Name: (?P<value>.+)$",
-      "rationale": "Extract line.",
+      "rationale": "Registry extract line 'Name:'. The whole text after the label is the name: nothing is trimmed or normalised, so a different spelling in the deed shows as a discrepancy.",
       "tests": [{"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": "Officine Montefinto S.r.l."}]
     },
     {
@@ -144,7 +144,7 @@
       "nature": "text",
       "kinds": ["EXTRACT"],
       "line_matches": "^Legal form: (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)$",
-      "rationale": "Extract line.",
+      "rationale": "Registry extract line 'Legal form:'. Only the two forms the test registry knows are accepted; any other wording is left unread rather than mapped to the nearest form.",
       "tests": [{"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": "S.p.A."}]
     },
     {
@@ -174,7 +174,7 @@
       "nature": "text",
       "kinds": ["EXTRACT"],
       "line_matches": "^Registered office: (?P<value>.+)$",
-      "rationale": "Extract line.",
+      "rationale": "Registry extract line 'Registered office:'. The address is taken as written, so an address spelled otherwise in another current source shows as a discrepancy.",
       "tests": [{"kind": "EXTRACT", "text": "Registered office: Via del Collaudo 7, Borgoprova (ZZ)", "expect": "Via del Collaudo 7, Borgoprova (ZZ)"}]
     },
     {
@@ -235,7 +235,7 @@
       "nature": "financial",
       "kinds": ["FIN"],
       "line_matches": "^Total assets: EUR\\s+(?P<amt>{amount_token})$",
-      "rationale": "Financial summary line.",
+      "rationale": "Financial summary line 'Total assets:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
       "tests": [{"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"}]
     },
     {
@@ -245,7 +245,7 @@
       "nature": "financial",
       "kinds": ["FIN"],
       "line_matches": "^Revenue: EUR\\s+(?P<amt>{amount_token})$",
-      "rationale": "Financial summary line.",
+      "rationale": "Financial summary line 'Revenue:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
       "tests": [{"kind": "FIN", "fy": "2024", "text": "Revenue: EUR [illegible]", "expect": null}]
     }
   ]

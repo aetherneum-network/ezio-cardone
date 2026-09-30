@@ -2,7 +2,7 @@
 
 * Output is sorted, two-space indented, UTF-8, LF, with a trailing newline: the same data gives the
   same bytes on every operating system.
-* Input refuses floats: a share or an amount is a string (``"1/3"``, ``"50000.00"``), never a float.
+* Input and output refuse floats: a share or an amount is a string (``"1/3"``, ``"50000.00"``), never a float.
 * A write is verified by reading the file back; a failed write raises (a failed write is a failed run).
 """
 from __future__ import annotations
@@ -26,7 +26,19 @@ def _no_float(token: str) -> Any:
     raise FloatRefused(f"floating-point literal {token!r} refused: use a decimal or fraction string")
 
 
+def _refuse_floats(obj: Any, where: str = "$") -> None:
+    if isinstance(obj, float):
+        raise FloatRefused(f"floating-point value {obj!r} at {where} refused: use a decimal or fraction string")
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            _refuse_floats(v, f"{where}.{k}")
+    elif isinstance(obj, (list, tuple)):
+        for i, v in enumerate(obj):
+            _refuse_floats(v, f"{where}[{i}]")
+
+
 def dumps(obj: Any) -> str:
+    _refuse_floats(obj)
     return json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 

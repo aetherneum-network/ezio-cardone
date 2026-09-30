@@ -83,8 +83,12 @@ def _no_float(obj, where: str = "view") -> None:
 
 
 def _figure(section: str, fld: str, status: str, value, src: dict, **extra) -> dict:
-    fig = {"section": section, "field": fld, "status": status, "value": value,
-           "display": None if value is None else display(extra.pop("display_as", fld), value)}
+    as_field = extra.pop("display_as", fld)
+    try:
+        shown = None if value is None else display(as_field, value)
+    except (ValueError, TypeError, KeyError, ZeroDivisionError) as exc:
+        raise BuildRefused(f"{fld}: value {value!r} is not in canonical form ({exc})") from exc
+    fig = {"section": section, "field": fld, "status": status, "value": value, "display": shown}
     for k in ("nature", "source_doc", "source_file", "source_date", "edition", "line", "line_end", "quote"):
         if k in src:
             fig[k] = src[k]

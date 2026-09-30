@@ -39,27 +39,32 @@ def _order(a: dict) -> tuple:
 
 
 def split_current(assertions: list[dict], rules: Rules) -> tuple[dict | None, list[dict], list[tuple[dict, dict]]]:
-    """(baseline, witnesses, [(historical assertion, the assertion that superseded it)])."""
+    """(baseline, witnesses, [(historical assertion, the assertion that superseded it)]).
+
+    A tie is never broken by a guess: event documents of the same day are all current (their order within
+    the day is not known), and so are two documents that carry the same edition of the same series.
+    """
     same_day = rules.param("discrepancy", "same_day_state_is_current")
     events = sorted((a for a in assertions if a["role"] == "event"), key=_order)
     baseline = events[-1] if events else None
-    history: list[tuple[dict, dict]] = [(e, baseline) for e in events[:-1]]
-    witnesses: list[dict] = []
+    witnesses: list[dict] = [e for e in events[:-1] if e["source_date"] == baseline["source_date"]]
+    history: list[tuple[dict, dict]] = [(e, baseline) for e in events[:-1]
+                                        if e["source_date"] != baseline["source_date"]]
     series: dict[str, list[dict]] = {}
     for a in assertions:
         if a["role"] == "state":
             series.setdefault(a["series"], []).append(a)
     for name in sorted(series):
         editions = sorted(series[name], key=_order)
-        latest = editions[-1]
-        history.extend((e, latest) for e in editions[:-1])
+        top = _order(editions[-1])[:2]
+        latest = [e for e in editions if _order(e)[:2] == top]
+        history.extend((e, latest[-1]) for e in editions if _order(e)[:2] != top)
         if baseline is None:
-            witnesses.append(latest)
-        elif latest["source_date"] > baseline["source_date"] or (
-                same_day and latest["source_date"] == baseline["source_date"]):
-            witnesses.append(latest)
+            witnesses.extend(latest)
+        elif top[0] > baseline["source_date"] or (same_day and top[0] == baseline["source_date"]):
+            witnesses.extend(latest)
         else:
-            history.append((latest, baseline))
+            history.extend((e, baseline) for e in latest)
     return baseline, witnesses, history
 
 
@@ -169,9 +174,10 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             n += 1
             assertions = []
             for i, a in enumerate(t["assertions"]):
-                x = {"field": "f", "role": a["role"], "series": a["series"], "edition_no": i + 1,
+                no = a.get("edition_no", i + 1)
+                x = {"field": "f", "role": a["role"], "series": a["series"], "edition_no": no,
                      "source_doc": a["doc"], "source_file": a["doc"], "source_date": a["date"],
-                     "edition": f"{a['series']}/{i + 1}", "line": 1, "line_end": 1, "quote": "q",
+                     "edition": f"{a['series']}/{no}", "line": 1, "line_end": 1, "quote": "q",
                      "nature": "resolved", "rule": "T"}
                 if a["value"] is None:
                     x["status"], x["reason"] = "TO_CONFIRM", "unreadable"
@@ -187,6 +193,8 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 ok = ok and sorted(c["value"] for c in got.get("candidates", [])) == sorted(exp["values"])
             if "historical" in exp:
                 ok = ok and sorted(h["value"] for h in got["historical"]) == sorted(exp["historical"])
+            if "sources" in exp:
+                ok = ok and len(got.get("sources", [])) == exp["sources"]
             if "readable" in exp:
                 ok = ok and sorted(c["value"] for c in got.get("readable", [])) == sorted(exp["readable"])
             if got["status"] != "STATED" and "value" in got:

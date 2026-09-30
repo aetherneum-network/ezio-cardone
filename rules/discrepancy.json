@@ -1,7 +1,7 @@
 {
   "file": "discrepancy.json",
   "version": "2.0.0",
-  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact.",
+  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
   "parameters": {
     "event_supersedes_earlier_state": {
       "value": true,
@@ -116,7 +116,7 @@
       "id": "DISC-020",
       "when": "two_or_more_current_values",
       "status": "DISCREPANCY",
-      "rationale": "Exception above every single-value rule: current sources disagree. Every value is kept with its sources; none is chosen.",
+      "rationale": "Exception above every single-value rule: current sources disagree. Every value is kept with its sources; none is chosen. This includes two event documents of the same day and two documents that carry the same edition of the same series: neither is taken as the later one.",
       "tests": [
         {
           "assertions": [
@@ -140,6 +140,79 @@
             "values": [
               "50000.00",
               "80000.00"
+            ]
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "80000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D3",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "90000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "80000.00",
+              "90000.00"
+            ],
+            "historical": [
+              "50000.00"
+            ]
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-02-01",
+              "doc": "D1",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 2,
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 2,
+              "value": "80000.00"
+            },
+            {
+              "date": "2024-02-01",
+              "doc": "D0",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 1,
+              "value": "10000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "50000.00",
+              "80000.00"
+            ],
+            "historical": [
+              "10000.00"
             ]
           }
         }
@@ -272,6 +345,29 @@
               "doc_id": "D9"
             }
           ]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "80000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D3",
+              "role": "event",
+              "series": "APPOINTMENT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "status": "STATED",
+            "value": "80000.00",
+            "sources": 2
+          }
         }
       ]
     }

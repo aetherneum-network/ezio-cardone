@@ -422,6 +422,12 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
         if doc.date > as_of:
             b["ignored_after_as_of"].append(doc.doc_id)
             continue
+        twin = next((d for d in b["documents"] if d["doc_id"] == doc.doc_id), None)
+        if twin is not None:
+            # two files under one document id: which one is "the" document is not ours to choose
+            b["rejected_documents"].append({"file": rel, "reason": f"document id {doc.doc_id} is already used by "
+                                                                   f"{twin['file'].rsplit('/', 1)[-1]}"})
+            continue
         assertions = extract_document(doc, rules)
         b["documents"].append(doc.summary())
         b["assertions"].extend(assertions)

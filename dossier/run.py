@@ -93,7 +93,11 @@ def run(input_dir: Path | str | None, work_dir: Path | str, as_of: str | None = 
             try:
                 records[eid] = s2_record.build_record(raw, as_of)
             except s2_record.RecordInvalid as exc:
-                fail(eid, str(exc))
+                rejected = "; ".join(f"{d['file'].rsplit('/', 1)[-1]}: {d['reason']}"
+                                     for d in raw["rejected_documents"])
+                fail(eid, f"{rejected}; {exc}" if rejected else str(exc))
+    if not records and not status:
+        raise RunError("nothing to build: no source document and no entity record was found")
     for eid, record in records.items():
         jsonio.write(work / "records" / f"{eid}.json", record)
         if record["rejected_documents"]:
