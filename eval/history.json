@@ -1,5 +1,6 @@
 {
   "blind": {
+    "date": "2026-09-30",
     "frozen_at": {
       "commit": "d1769d555934ca5eaf4717bafe8135105caffd43",
       "date": "2026-09-30",
@@ -8,7 +9,8 @@
     },
     "note": "The author does not choose the blind seed, does not generate a blind corpus and does not run the blind protocol. Whoever runs it appends the outcome to \"runs\" and sets this status, with a name and a date. After the tag the author ran two checks of the scorer paths on data already known: --seed on the development seed 20260930 (same line as run 4, dev) and --corpus/--gold on the generated development corpus and on scenario S01 with a hand-written gold. They are not blind runs and are not listed under \"runs\".",
     "protocol": "eval/BLIND_PROTOCOL.md",
-    "status": "not run"
+    "run_by": "evaluator (Claude Opus 5.5), not the builder",
+    "status": "run"
   },
   "reading": "Every measurement taken while the pack was written, in order and verbatim, the bad ones included. All numbers measure internal consistency on synthetic data (generator, gold and rules share an author); none measures accuracy on real companies. Blind runs are appended by whoever runs them (see eval/BLIND_PROTOCOL.md).",
   "runs": [
@@ -669,6 +671,223 @@
         }
       ],
       "run_by": "the author (Claude Opus 5.5, build session)"
+    },
+    {
+      "code": "tag v2.0.0-freeze, commit d1769d5",
+      "command": "python -m eval.score --seed 20261011 --label blind --json build/blind/blind-20261011.json ; python -m eval.score --seed 20261011 --perturb --label blind-perturbed --json build/blind/blind-20261011-perturbed.json ; python -m eval.score --corpus <oop>/input --gold <oop>/gold.json --label out-of-pool --json build/blind/out-of-pool-20261011.json",
+      "date": "2026-09-30",
+      "n": 5,
+      "note": "Exit codes: 3a 0, 3b 1, out-of-pool 1. Each command run once, in a fresh clone of the tag, after section 2 (commit d1769d5, no output from git diff, 'manifest OK'). Seed 20261011 given to the evaluator by the coordinator; searched in the tag and in every commit and tag message before the run: not found. Section 4 of the protocol (ten documents and a gold written by hand) was NOT run. In its place, third result: the plain corpus of the same seed (python -m corpus.generate --seed 20261011) with wordings written by the evaluator and absent from corpus/perturb.py (22 clause rewrites, 5 amount forms, 3 share and person-line forms, 8 document-type labels, the document date in words), applied to 633 of 896 documents with the evaluator's script oop_rewrite.py (sha256 34e163bd..., written before any blind result was seen, extraction rules not read); the gold is the generator's own for that seed, unchanged (sha256 63997e76...). The scorer prints seed=None for this result because it was given --corpus. Never-events: 3a 0; 3b 1 (E-0123: the deed whose holders sum to 9999/10000 carries the type label 'Articles of incorporation', is not classified, and the dossier is published with holders and ownership [TO CONFIRM] instead of BLOCKED - seen in a separate diagnostic build of that entity only); out-of-pool 12: five are capital figures shown as fact a thousand times too small (E-0065, E-0112, E-0114: 'EUR 150'000.00' read as 150.00), seven are entities that the gold blocks and the run publishes. By the criterion declared in section 1.5 the blind run does not pass.",
+      "results": [
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 12,
+            "blocked_gold": 12,
+            "blocked_wrongly": 0,
+            "conflict_abstained": 0,
+            "conflict_found": 50,
+            "cycles_found": 17,
+            "cycles_gold": 17,
+            "effective_abstained": 0,
+            "effective_exact": 90,
+            "effective_gold": 90,
+            "entities": 150,
+            "fact_abstained": 0,
+            "fact_exact": 1350,
+            "fact_false_conflict": 0,
+            "fact_source_ok": 1350,
+            "failed": 0,
+            "fields_gold_conflict": 50,
+            "fields_gold_fact": 1350,
+            "fields_gold_to_confirm": 43,
+            "figures_total": 3569,
+            "figures_with_source": 3569,
+            "filename_extra": 0,
+            "filename_found": 9,
+            "filename_gold": 9,
+            "published": 138,
+            "superseded_gold": 507,
+            "superseded_linked": 507,
+            "to_confirm_kept": 43
+          },
+          "exit_code": 2,
+          "label": "blind",
+          "metrics": {
+            "blocked_correct": "12/12",
+            "conflicts_precision": "50/50",
+            "conflicts_recall": "50/50",
+            "cycles_found": "17/17",
+            "effective_holdings_exact": "90/90",
+            "fact_source_among_gold_sources": "1350/1350",
+            "fields_abstained": "0/1443",
+            "fields_exact": "1350/1350",
+            "figures_with_source": "3569/3569",
+            "filename_divergences_found": "9/9",
+            "never_events": 0,
+            "superseded_linked": "507/507",
+            "to_confirm_kept": "43/43"
+          },
+          "never_event_list": [],
+          "perturbed": false,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 12,
+              "FAILED": 0,
+              "OK": 138
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": 20261011,
+          "source_documents": 896
+        },
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 11,
+            "blocked_gold": 12,
+            "blocked_wrongly": 0,
+            "conflict_abstained": 26,
+            "conflict_found": 24,
+            "cycles_found": 2,
+            "cycles_gold": 17,
+            "effective_abstained": 71,
+            "effective_exact": 19,
+            "effective_gold": 90,
+            "entities": 150,
+            "fact_abstained": 770,
+            "fact_exact": 580,
+            "fact_false_conflict": 0,
+            "fact_source_ok": 580,
+            "failed": 0,
+            "fields_gold_conflict": 50,
+            "fields_gold_fact": 1350,
+            "fields_gold_to_confirm": 43,
+            "figures_total": 2709,
+            "figures_with_source": 2709,
+            "filename_extra": 0,
+            "filename_found": 6,
+            "filename_gold": 9,
+            "published": 138,
+            "superseded_gold": 507,
+            "superseded_linked": 162,
+            "to_confirm_kept": 43
+          },
+          "exit_code": 2,
+          "label": "blind-perturbed",
+          "metrics": {
+            "blocked_correct": "11/12",
+            "conflicts_precision": "24/24",
+            "conflicts_recall": "24/50",
+            "cycles_found": "2/17",
+            "effective_holdings_exact": "19/90",
+            "fact_source_among_gold_sources": "580/580",
+            "fields_abstained": "796/1443",
+            "fields_exact": "580/1350",
+            "figures_with_source": "2709/2709",
+            "filename_divergences_found": "6/9",
+            "never_events": 1,
+            "superseded_linked": "162/507",
+            "to_confirm_kept": "43/43"
+          },
+          "never_event_list": [
+            "E-0123: cap table does not sum to the whole, run status OK, dossier published: True"
+          ],
+          "perturbed": true,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 11,
+              "FAILED": 0,
+              "OK": 139
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": 20261011,
+          "source_documents": 896
+        },
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 5,
+            "blocked_gold": 12,
+            "blocked_wrongly": 0,
+            "conflict_abstained": 39,
+            "conflict_found": 10,
+            "cycles_found": 2,
+            "cycles_gold": 17,
+            "effective_abstained": 85,
+            "effective_exact": 5,
+            "effective_gold": 90,
+            "entities": 150,
+            "fact_abstained": 1053,
+            "fact_exact": 289,
+            "fact_false_conflict": 4,
+            "fact_source_ok": 289,
+            "failed": 0,
+            "fields_gold_conflict": 50,
+            "fields_gold_fact": 1350,
+            "fields_gold_to_confirm": 43,
+            "figures_total": 2171,
+            "figures_with_source": 2171,
+            "filename_extra": 0,
+            "filename_found": 7,
+            "filename_gold": 9,
+            "published": 138,
+            "superseded_gold": 507,
+            "superseded_linked": 77,
+            "to_confirm_kept": 43
+          },
+          "exit_code": 2,
+          "label": "out-of-pool",
+          "metrics": {
+            "blocked_correct": "5/12",
+            "conflicts_precision": "10/14",
+            "conflicts_recall": "10/50",
+            "cycles_found": "2/17",
+            "effective_holdings_exact": "5/90",
+            "fact_source_among_gold_sources": "289/289",
+            "fields_abstained": "1092/1443",
+            "fields_exact": "289/1350",
+            "figures_with_source": "2171/2171",
+            "filename_divergences_found": "7/9",
+            "never_events": 12,
+            "superseded_linked": "77/507",
+            "to_confirm_kept": "43/43"
+          },
+          "never_event_list": [
+            "E-0001: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0035: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0061: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0065 share_capital.resolved: shown '150.00', gold '150000.00'",
+            "E-0083: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0112 share_capital.resolved: conflict shown with values that are not the gold's",
+            "E-0114 share_capital.paid_in: shown '220.00', gold '220000.00'",
+            "E-0114 share_capital.resolved: shown '280.00', gold '280000.00'",
+            "E-0114 share_capital.subscribed: shown '260.00', gold '260000.00'",
+            "E-0115: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0123: cap table does not sum to the whole, run status OK, dossier published: True",
+            "E-0141: cap table does not sum to the whole, run status OK, dossier published: True"
+          ],
+          "perturbed": false,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 5,
+              "FAILED": 0,
+              "OK": 145
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": null,
+          "source_documents": 896
+        }
+      ],
+      "run_by": "evaluator (Claude Opus 5.5), not the builder"
     }
   ],
   "schema": "eval-history/2.0.0"
