@@ -1,14 +1,21 @@
 {
   "file": "extract.json",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
     "header_keys": ["Document id", "Document type", "Document date", "Edition", "Entity", "Financial year"],
     "entity_pattern": "^(?P<name>.+) \\(test registry no\\. TEST-REG-(?P<num>\\d{6})\\)$",
     "edition_pattern": "^(?P<series>[A-Z][A-Z0-9-]*)/(?P<no>[1-9]\\d*)$",
-    "amount_token": "(?:\\[illegible\\]|[0-9#][0-9#., ]*[0-9#]|[0-9#])",
-    "currency_prefix": "EUR\\s+",
+    "amount_separator": "(?:[.,'\\u2019\\u2018\\u02bc\\u2032\\u00b4`]|[^\\S\\n])",
+    "amount_token": "(?:\\[illegible\\]|[0-9#](?:[0-9#]|{amount_separator}(?=[0-9#]))*)",
+    "amount_token_note": "The token is the whole run of digits and of every character that can group digits (dot, comma, apostrophes and their look-alikes, any space) when it stands between two digits. It is never cut at a separator the reader does not know: before v2.0.1 it stopped at an apostrophe and EUR 150'000.00 was read as 150.00 (finding T16, blind run of 2026-09-30, eval/history.json run 5). Which groupings are read is decided by dossier/lib/numbers.py; any other abstains.",
+    "currency_prefix": "\\bEUR\\s+",
+    "magnitude_words": "thousands?|millions?|billions?|trillions?|k|m|bn|mn|mln|mio|mrd|tsd|mila|milion[ei]|miliard[oi]|lakhs?|crores?",
+    "amount_uncertain_after": "^(?:{amount_separator}+[0-9#]|[^\\s.,;:!?)\\]}\"'\\u2019\\u201d\\u00bb]|\\s*(?:{magnitude_words})\\.?(?![a-z]))",
+    "amount_uncertain_before": "(?<![a-z])(?:{magnitude_words})\\.?\\s*$",
+    "scale_statement": "\\b(?:in|of)\\s+(?:(?:EUR|euros?)\\s+)?(?:thousands?|millions?|billions?)\\b|\\b(?:thousands?|millions?|billions?)\\s+of\\s+(?:EUR|euros?)\\b|\\b(?:TEUR|KEUR|MEUR|TSD\\s*EUR)\\b|\\bEUR\\s*['\\u2019]000\\b|\\bEUR\\s*(?:k|m|mn|bn|mln|mio|mrd|thousands?|millions?)\\s*[)\\]:]",
+    "amount_guards_note": "An amount whose reading is not certain is left unread ([TO CONFIRM]), never shown as fact: when the figure goes on past the token (two separators, a character attached to it), when a magnitude word stands next to it (EUR 150 thousand, Mio. EUR 150), and for every amount of a document that states a scale (in thousands of EUR, TEUR, EUR '000). Added with v2.0.1 (finding T16).",
     "filename_pattern": "^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
@@ -187,7 +194,13 @@
       "tests": [
         {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "expect": {"resolved": "50000.00", "subscribed": "50000.00", "paid_in": "50000.00"}},
         {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
-        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 8#.###,00; subscribed EUR 80.000,00; paid in EUR 80.000,00", "expect": {"resolved": null, "subscribed": "80000.00", "paid_in": "80000.00"}}
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 8#.###,00; subscribed EUR 80.000,00; paid in EUR 80.000,00", "expect": {"resolved": null, "subscribed": "80000.00", "paid_in": "80000.00"}},
+        {"kind": "RESOLUTION", "text": "The meeting resolved to increase the share capital from EUR 200'000.00 to EUR 280'000.00; after the increase the subscribed capital is EUR 260'000.00 and the paid-in capital is EUR 220'000.00.", "expect": {"resolved": "280000.00", "subscribed": "260000.00", "paid_in": "220000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120’000,00; subscribed EUR 100 000.00; paid in EUR 75 000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150‘000,00; subscribed EUR 150·000,00; paid in EUR 150  000,00", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150 thousand; subscribed EUR 100.000,00; paid in EUR 100.000,00", "expect": {"resolved": null, "subscribed": "100000.00", "paid_in": "100000.00"}},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is Mio. EUR 1, fully subscribed and fully paid in.", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
+        {"kind": "DEED", "text": "Amounts in thousands of EUR.\n3. Share capital. The share capital is EUR 50,00, fully subscribed and fully paid in.", "expect": {"resolved": null, "subscribed": null, "paid_in": null}}
       ]
     },
     {
@@ -226,7 +239,11 @@
       "kinds": ["FIN"],
       "line_matches": "^Net equity: EUR\\s+(?P<amt>{amount_token})$",
       "rationale": "Financial summary line; the field is keyed by the financial year of the header.",
-      "tests": [{"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 123.456,00", "expect": "123456.00"}]
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 123.456,00", "expect": "123456.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 150'000.00", "expect": "150000.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Figures in EUR thousands.\nNet equity: EUR 150,00", "expect": null}
+      ]
     },
     {
       "id": "EXT-FIN-020",
@@ -236,7 +253,10 @@
       "kinds": ["FIN"],
       "line_matches": "^Total assets: EUR\\s+(?P<amt>{amount_token})$",
       "rationale": "Financial summary line 'Total assets:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
-      "tests": [{"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"}]
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1 000 000,00", "expect": "1000000.00"}
+      ]
     },
     {
       "id": "EXT-FIN-030",
@@ -246,7 +266,11 @@
       "kinds": ["FIN"],
       "line_matches": "^Revenue: EUR\\s+(?P<amt>{amount_token})$",
       "rationale": "Financial summary line 'Revenue:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
-      "tests": [{"kind": "FIN", "fy": "2024", "text": "Revenue: EUR [illegible]", "expect": null}]
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR [illegible]", "expect": null},
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR 1’9#9’000.00", "expect": null},
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR 1’234’567.89", "expect": "1234567.89"}
+      ]
     }
   ]
 }

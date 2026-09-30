@@ -344,9 +344,9 @@ class ResolutionNeverInvents(unittest.TestCase):
 
 
 class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
-    def _fields(self, docs, as_of="2026-06-30"):
+    def _fields(self, docs, as_of="2026-06-30", **kw):
         work = s.tmp()
-        code, _, _ = s.run(s.tiny(docs, as_of), work)
+        code, _, _ = s.run(s.tiny(docs, as_of), work, **kw)
         view = jsonio.load(work / "views" / "E-0001.json")
         prov = jsonio.load(work / "dossiers" / "E-0001" / "provenance.json")
         return code, view["fields"], prov
@@ -358,7 +358,11 @@ class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
                                   "The meeting resolved to increase the share capital from EUR 50.000,00 to "
                                   "EUR 80.000,00. The increase has been fully subscribed and fully paid in.")
         unknown = (rel, text.replace("Resolution on share capital", "Minutes about the capital"))
-        code, fields, prov = self._fields([deed, unknown])
+        work = s.tmp()
+        code, _, report = s.run(s.tiny([deed, unknown], "2026-06-30"), work)
+        self.assertEqual((code, report["entities"]["E-0001"]["status"]), (2, "BLOCKED"))   # v2.0.1: OWN-015
+        self.assertFalse((work / "dossiers" / "E-0001").exists())
+        code, fields, prov = self._fields([deed, unknown], rules_dir=s.rules_report_unverified())
         self.assertEqual(code, 0)
         self.assertEqual({f["status"] for f in fields.values()}, {"TO_CONFIRM"})
         self.assertEqual([f for f in prov["figures"] if f["section"] in ("facts", "cap_table")], [])

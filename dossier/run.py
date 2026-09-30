@@ -3,7 +3,8 @@
     python -m dossier.run --input corpus/out --work build/work --as-of 2026-09-30
 
 Exit codes: ``0`` every dossier published; ``2`` BLOCKED (at least one cap table does not sum to the
-whole: that dossier is not published); ``3`` FAILED (a figure without a source, an invalid record, an
+whole, or a holders' table that could not be read leaves the sum unverified: that dossier is not
+published); ``3`` FAILED (a figure without a source, an invalid record, an
 unmarked source document, an audit problem, a failed write). ``RUN OK`` is printed only on exit 0.
 
 ``as_of`` is never implicit: ``--as-of``, else ``as_of`` in ``<input>/config.json``; never the clock.

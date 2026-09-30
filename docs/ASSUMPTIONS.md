@@ -2,7 +2,7 @@
 
 SYNTHETIC - written from the rule files by `tools/assumptions.py`; do not edit by hand.
 
-The pack makes 9 assumptions that only a qualified professional can confirm. The author is a
+The pack makes 10 assumptions that only a qualified professional can confirm. The author is a
 synthetic AI agent: not a lawyer, a notary, an accountant or an auditor. None of these assumptions is
 legal advice and none has been reviewed by a legal professional. Each one is a parameter of a rule file,
 is printed in every dossier, and carries the status `[TO CONFIRM with legal]` until someone qualified
@@ -79,6 +79,14 @@ The holders of an entity must sum to exactly the whole. 99.99% and 100.01% are b
 - Status: [TO CONFIRM with legal]
 
 With cross-holdings the look-through to natural persons depends on a rule. 'abstain' reports the cycle and writes the effective holding [TO CONFIRM]. 'closure' computes the exact limit of the look-through (the solution of x = direct + cross * x, in fractions) and says so next to each figure.
+
+## 10. `unverified_holders_table`
+
+- File: `rules/ownership.json`
+- Value in v2.0: `block`
+- Status: [TO CONFIRM with legal]
+
+A holders' table of the entity that could not be summed (a table not read, a document expected to state the holders where no table was found, a document not classified or rejected) leaves the sum to the whole unverified. 'block' (default) blocks the build of that entity, as a table that does not sum would: the unread table may be the one that does not sum. 'report' publishes the dossier with the holders [TO CONFIRM], as v2.0.0 did. Added after the blind run of 2026-09-30 (eval/history.json, run 5): 8 dossiers whose unread table did not sum were published. The price is coverage: every entity with an unread holders' table is blocked.
 
 ## Not modelled at all
 

@@ -14,13 +14,13 @@ def _deed(capital=None, office=mk.OFFICE_A, holders=H):
     return mk.deed("E-0001", 1, "2025-03-10", office, capital or mk.FULL.format(a="50.000,00"), holders, ["P-001"])
 
 
-def _run(docs, as_of="2026-06-30", crlf=False):
+def _run(docs, as_of="2026-06-30", crlf=False, **kw):
     inp = s.tiny(docs, as_of)
     if crlf:
         for p in (inp / "entities").rglob("*.txt"):
             p.write_bytes(p.read_bytes().replace(b"\n", b"\r\n"))
     work = s.tmp()
-    code, out, report = s.run(inp, work)
+    code, out, report = s.run(inp, work, **kw)
     record = jsonio.load(work / "records" / "E-0001.json") if (work / "records" / "E-0001.json").exists() else None
     view = jsonio.load(work / "views" / "E-0001.json") if (work / "views" / "E-0001.json").exists() else None
     return code, report, record, view, work
@@ -86,8 +86,16 @@ class NotGuessed(unittest.TestCase):
         self.assertEqual(got["name"][0], "STATED")
 
     def test_illegible_share(self):
-        _, _, _, view, _ = _run([_deed(holders=[("P-001", "6#%"), ("P-002", "40%")])])
+        # v2.0.1: a holders' table that cannot be summed blocks the build (OWN-015, unverified_holders_table 'block')
+        code, report, _, view, work = _run([_deed(holders=[("P-001", "6#%"), ("P-002", "40%")])])
         self.assertEqual(_status(view)["shareholders"], ("TO_CONFIRM", None))
+        self.assertEqual((view["ownership"]["outcome"], view["ownership"]["rule"]), ("BLOCKED", "OWN-015"))
+        self.assertIsNone(view["ownership"]["effective"])
+        self.assertEqual((code, report["entities"]["E-0001"]["status"]), (2, "BLOCKED"))
+        self.assertFalse((work / "dossiers" / "E-0001").exists())
+        # under 'report' (the v2.0.0 behaviour) the dossier is published with the holders [TO CONFIRM]
+        _, _, _, view, _ = _run([_deed(holders=[("P-001", "6#%"), ("P-002", "40%")])],
+                                rules_dir=s.rules_report_unverified())
         self.assertEqual(view["ownership"]["outcome"], "TO_CONFIRM")
         self.assertIsNone(view["ownership"]["effective"])
 
@@ -101,6 +109,10 @@ class NotGuessed(unittest.TestCase):
                 self.assertEqual(len(record["unclassified_documents"]), 1)
                 self.assertEqual(record["documents"], [])
                 self.assertEqual(view["fields"], {})
+                # v2.0.1: the unread deed may hold a table that does not sum: the build is blocked (OWN-015)
+                self.assertEqual((code, view["ownership"]["rule"]), (2, "OWN-015"))
+                self.assertFalse((work / "dossiers" / "E-0001").exists())
+                code, report, record, view, work = _run([(rel, bad)], rules_dir=s.rules_report_unverified())
                 prov = jsonio.load(work / "dossiers" / "E-0001" / "provenance.json")
                 self.assertEqual(prov["figures"], [])
 

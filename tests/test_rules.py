@@ -38,7 +38,7 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 46)
+        self.assertEqual(len(ids), 47)
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
@@ -54,14 +54,14 @@ class RuleFiles(unittest.TestCase):
 
     def test_legal_assumptions_are_parameters_to_confirm(self):
         got = s.rules().legal_assumptions()
-        self.assertEqual(len(got), 9)
+        self.assertEqual(len(got), 10)
         for a in got:
             self.assertEqual(a["status"], "[TO CONFIRM with legal]", a["parameter"])
             self.assertGreater(len(a["note"]), 20)
         listed = (ROOT / "docs" / "ASSUMPTIONS.md").read_text(encoding="utf-8")
         for a in got:
             self.assertIn(f"`{a['parameter']}`", listed)
-        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 9 + 1)
+        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 10 + 1)
 
     def test_rule_files_carry_a_version(self):
         r = s.rules()
@@ -102,7 +102,7 @@ class RuleFilesRefuse(unittest.TestCase):
 
     def test_a_run_refuses_rules_whose_tests_fail(self):
         d = _copy_rules()
-        _edit(d, "ownership.json", lambda o: o["rules"].insert(0, o["rules"].pop(1)))
+        _edit(d, "ownership.json", lambda o: o["rules"].insert(0, o["rules"].pop(2)))   # OWN-020 above OWN-010
         self.assertTrue(rules_engine.self_test(rules_engine.load(d)))
         work = s.tmp()
         got = s.child(["-m", "dossier.run", "--input", str(ROOT / "scenarios" / "S01" / "input"),

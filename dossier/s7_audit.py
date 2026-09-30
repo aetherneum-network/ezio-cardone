@@ -32,7 +32,13 @@ from .rules_engine import Rules, first_match, rx
 from . import s6_build as b
 
 _ORPHAN = re.compile(r"(EUR\s*[\d#\[])|(\d\s*%)|(\b\d+/\d+\b)")
-_AMOUNT_IN_QUOTE = re.compile(r"EUR\s+((?:\d[\d., ]*\d)|\d)")
+# The audit's own reading of an amount in a quote (not the extraction rules): the whole run of digits and of
+# any character that may group digits, so that a figure is never cut short at a separator (finding T16).
+_GROUPING = r"(?:[.,'’‘ʼ′´`]|[^\S\n])"
+_DIGIT_RUN = rf"\d(?:\d|{_GROUPING}(?=\d))*"
+_AMOUNT_IN_QUOTE = re.compile(
+    rf"(?<![A-Za-z])EUR\s+({_DIGIT_RUN})"
+    rf"(?!{_GROUPING}+[\d#]|[\dA-Za-z#]|\s*(?:thousand|million|billion|k|m|bn|mn|mln|mio|mrd)(?![A-Za-z]))", re.I)
 _SHARE_IN_LINE = re.compile(r"^\s*- (\S+) \(.*\): (.+)$")
 FIGURE_SECTIONS = {"facts": b.H_FACTS, "discrepancies": b.H_DISC, "unconfirmed": b.H_UNCONF,
                    "cap_table": b.H_CAP, "chain": b.H_CHAIN, "history": b.H_HIST}
@@ -57,8 +63,14 @@ def supported_by_quote(fig: dict) -> bool:
         return sorted(ids) == sorted(value)
     if isinstance(value, str) and re.fullmatch(r"\d+\.\d{2}", value) and (
             fld.startswith(("share_capital", "fin."))):
-        return value in {parse_amount(t)[0] for t in _AMOUNT_IN_QUOTE.findall(quote)}
+        return any(parse_amount(t)[0] == value and _same_digits(t, value) for t in _AMOUNT_IN_QUOTE.findall(quote))
     return isinstance(value, str) and value in quote
+
+
+def _same_digits(token: str, value: str) -> bool:
+    """Every digit of the quoted figure is in the value, in order: no group was dropped or added."""
+    written = re.sub(r"\D", "", token)
+    return value.replace(".", "") in (written, written + "00")
 
 
 def _holder_lines(quote: str) -> dict[str, Fraction]:
@@ -238,8 +250,8 @@ _DOC_DATE = re.compile(r"^(?:Document date|Date):\s*(\d{4}-\d{2}-\d{2})\s*$", re
 def _amounts_in(line: str, currency: str) -> list[tuple[int, str]]:
     """(position, canonical amount) of every currency amount in a line, whatever its format."""
     out = []
-    num = r"\d[\d., ]*\d|\d"
-    for m in re.finditer(rf"(?:{currency})\s*({num})|({num})\s*(?:{currency})", line, flags=re.I):
+    num = _DIGIT_RUN
+    for m in re.finditer(rf"(?<![A-Za-z])(?:{currency})\s*({num})|({num})\s*(?:{currency})", line, flags=re.I):
         token = (m.group(1) or m.group(2)).strip(" .,")
         value, _ = parse_amount(token)
         if value is None and re.fullmatch(r"\d{1,3}(\.\d{3})+", token):   # 50.000 next to a currency marker

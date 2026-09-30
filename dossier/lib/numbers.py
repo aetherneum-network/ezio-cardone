@@ -2,6 +2,13 @@
 
 ``parse_amount`` and ``parse_share`` return ``(canonical, None)`` or ``(None, reason)``: a token that is
 illegible, ambiguous or in a form this module does not know is *not* guessed.
+
+Grouping read by ``parse_amount`` (one separator throughout the token, groups of exactly three digits):
+dot with comma decimals (``50.000,00``), comma with dot decimals (``50,000.00``), apostrophe ASCII or
+typographic (``50'000.00``, ``50’000,00``) and space - ASCII, no-break U+00A0, figure U+2007, thin U+2009,
+narrow no-break U+202F - with dot or comma decimals. Apostrophe and space are never a decimal mark, so
+without decimals they still read (``50'000``); dot or comma without decimals is ambiguous and abstains.
+Any other grouping character (a look-alike apostrophe, a hair space, a middle dot...) abstains.
 """
 from __future__ import annotations
 
@@ -13,9 +20,11 @@ _IT = re.compile(r"^\d{1,3}(\.\d{3})+,\d{2}$")          # 50.000,00
 _IT_PLAIN = re.compile(r"^\d+,\d{2}$")                   # 50000,00
 _EN = re.compile(r"^\d{1,3}(,\d{3})+\.\d{2}$")           # 50,000.00
 _EN_PLAIN = re.compile(r"^\d+\.\d{2}$")                  # 50000.00
-_SPACE = re.compile(r"^\d{1,3}( \d{3})+,\d{2}$")         # 50 000,00
+_APOS = re.compile(r"^\d{1,3}(['’])\d{3}(?:\1\d{3})*(?:[.,]\d{2})?$")                   # 50'000.00
+_SPACE = re.compile(r"^\d{1,3}([     ])\d{3}(?:\1\d{3})*(?:[.,]\d{2})?$")  # 50 000,00
 _INT = re.compile(r"^\d+$")                              # 50000
 _AMBIGUOUS = re.compile(r"^\d{1,3}([.,]\d{3})+$")        # 50.000 or 50,000: thousands or decimals?
+_KNOWN_CHARS = re.compile(r"^[\d.,'’     ]*$")
 
 AMOUNT_CANON = re.compile(r"^\d+\.\d{2}$")
 FRACTION_CANON = re.compile(r"^\d+/[1-9]\d*$")
@@ -36,12 +45,16 @@ def parse_amount(token: str) -> tuple[str | None, str | None]:
         return _canon(t.replace(",", "")), None
     if _EN_PLAIN.match(t):
         return _canon(t), None
-    if _SPACE.match(t):
-        return _canon(t.replace(" ", "").replace(",", ".")), None
+    m = _APOS.match(t) or _SPACE.match(t)
+    if m:
+        return _canon(t.replace(m.group(1), "").replace(",", ".")), None
     if _AMBIGUOUS.match(t):
         return None, "ambiguous separator (thousands or decimals)"
     if _INT.match(t):
         return _canon(t), None
+    odd = sorted({c for c in t if not c.isalnum() and c not in "+-" and not _KNOWN_CHARS.match(c)})
+    if odd:
+        return None, "grouping character not recognised: " + ", ".join(f"U+{ord(c):04X}" for c in odd)
     return None, "amount in a form that is not recognised"
 
 

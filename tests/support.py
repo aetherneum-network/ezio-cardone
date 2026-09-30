@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import io
+import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -40,6 +42,19 @@ def run(input_dir, work, as_of=None, **kw) -> tuple[int, str, dict]:
 @lru_cache(maxsize=None)
 def rules():
     return rules_engine.load()
+
+
+@lru_cache(maxsize=None)
+def rules_report_unverified() -> Path:
+    """A copy of the rule files with unverified_holders_table 'report' (the v2.0.0 behaviour): it lets a test
+    look at the field-level abstention that the default 'block' keeps behind a blocked build."""
+    dst = tmp("ezio-rules-") / "rules"
+    shutil.copytree(ROOT / "rules", dst)
+    path = dst / "ownership.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    obj["parameters"]["unverified_holders_table"]["value"] = "report"
+    path.write_text(json.dumps(obj, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    return dst
 
 
 @lru_cache(maxsize=None)
@@ -95,7 +110,7 @@ def nodes_of(tables: dict, whole: Fraction = Fraction(1)) -> dict[str, dict]:
     nodes = {}
     for eid, table in tables.items():
         node = {"status": "TO_CONFIRM", "why": "unreadable", "table": [], "source": None, "checks": [],
-                "violations": []}
+                "violations": [], "unverified": []}
         if table is not None:
             total = sum((sh for _, sh in table), Fraction(0))
             src = {"source_doc": f"DOC-{eid}", "source_date": "2026-01-01", "edition": "T/1"}

@@ -5,7 +5,8 @@ line) and a body. Each rule of ``rules/extract.json`` turns one place of one doc
 assertion ``{field, value, source_doc, source_date, edition, ...}``. What a rule cannot read is an
 assertion with status ``TO_CONFIRM`` and a reason - never a guess:
 
-* an illegible figure, an amount in an unknown or ambiguous form;
+* an illegible figure, an amount in an unknown or ambiguous form, an amount whose reading is not certain
+  (the figure goes on past the token, a magnitude word next to it, a document that states a scale);
 * a holders' table or a directors' list with one line that cannot be read (the whole table abstains);
 * an amount whose nature (resolved, subscribed, paid in) the text does not give;
 * a field that the kind of document is expected to state and no rule found.
@@ -50,6 +51,7 @@ class Document:
     kind_rule: str = ""
     role: str = ""
     fy: str = ""
+    scale: str = ""           # a scale statement of the document ("in thousands of EUR"): no amount is read
     problems: list[str] = field(default_factory=list)
 
     def summary(self) -> dict:
@@ -117,6 +119,8 @@ def parse_document(text: str, file: str, rules: Rules, sha256: str = "") -> Docu
         doc.series = f"FIN-FY{doc.fy}" if doc.kind == "FIN" else doc.kind
         if not doc.edition:
             doc.problems.append("no edition in the header")
+    scale = _param_rx(rules, "scale_statement")
+    doc.scale = next((m.group(0) for line in lines[doc.body_start:] for m in [scale.search(line)] if m), "")
     return doc
 
 
@@ -139,8 +143,35 @@ def _field_name(template: str, doc: Document) -> str:
     return template.replace("{fy}", doc.fy)
 
 
+def _expand(text: str, rules: Rules) -> str:
+    """Substitute the shared pieces of rules/extract.json parameters into a pattern."""
+    p = rules.extract["parameters"]
+    for key in ("amount_token", "amount_separator", "magnitude_words"):
+        text = text.replace("{" + key + "}", p[key])
+    return text
+
+
+def _param_rx(rules: Rules, name: str) -> re.Pattern:
+    return rx(_expand(_expand(rules.extract["parameters"][name], rules), rules))
+
+
 def _pattern(rule: dict, rules: Rules) -> re.Pattern:
-    return rx(rule["line_matches"].replace("{amount_token}", rules.extract["parameters"]["amount_token"]))
+    return rx(_expand(_expand(rule["line_matches"], rules), rules))
+
+
+def read_amount(doc: Document, line: str, start: int, end: int, token: str,
+                rules: Rules) -> tuple[str | None, str | None]:
+    """The canonical value of the amount ``token`` that ends at ``line[end]`` (``line[:start]`` is the text
+    before it and its currency marker), or ``(None, reason)`` when the reading is not certain. Nothing
+    uncertain is ever returned as a value."""
+    if doc.scale:
+        return None, f"the document states a scale ({doc.scale!r}): its amounts are not read as units"
+    if _param_rx(rules, "amount_uncertain_before").search(line[:start]):
+        return None, "a magnitude word stands before the amount"
+    if _param_rx(rules, "amount_uncertain_after").search(line[end:]):
+        return None, ("the figure goes on past what can be read as one amount "
+                      "(a further separator, an attached character or a magnitude word)")
+    return parse_amount(token)
 
 
 def _body(doc: Document) -> list[tuple[int, str]]:
@@ -174,7 +205,7 @@ def _extract_amount(doc: Document, rule: dict, rules: Rules) -> list[dict] | Non
         m = pat.search(text)
         if not m:
             continue
-        value, why = parse_amount(m.group("amt"))
+        value, why = read_amount(doc, text, m.start("amt"), m.end("amt"), m.group("amt"), rules)
         return [_assertion(doc, _field_name(rule["field"], doc), rule["nature"], rule["id"], value=value,
                            reason=why, line=no, quote=text)]
     return None
@@ -183,7 +214,7 @@ def _extract_amount(doc: Document, rule: dict, rules: Rules) -> list[dict] | Non
 def amount_spans(clause: str, rules: Rules) -> list[tuple[int, int, str]]:
     """(start of the currency marker, end of the token, token) of every amount in a clause."""
     p = rules.extract["parameters"]
-    pat = rx(p["currency_prefix"] + "(?P<amt>" + p["amount_token"] + ")")
+    pat = rx(_expand(p["currency_prefix"] + "(?P<amt>" + p["amount_token"] + ")", rules))
     return [(m.start(), m.end(), m.group("amt")) for m in pat.finditer(clause)]
 
 
@@ -194,7 +225,7 @@ def classify_natures(clause: str, rules: Rules) -> list[dict]:
     for i, (start, end, token) in enumerate(spans):
         pre = clause[spans[i - 1][1] if i else 0:start]
         post = clause[end:spans[i + 1][0] if i + 1 < len(spans) else len(clause)]
-        segs.append({"token": token, "pre": pre, "post": post})
+        segs.append({"token": token, "pre": pre, "post": post, "start": start, "end": end})
     group = rules.figure_nature["rules"]
 
     def applies(r: dict, s: dict, current: int | None) -> bool:
@@ -215,7 +246,8 @@ def classify_natures(clause: str, rules: Rules) -> list[dict]:
         r = first_match(group, lambda r, s=s: applies(r, s, current))
         natures = [n.replace("{bare_capital_nature}", rules.param("figure_nature", "bare_capital_nature"))
                    for n in (r["natures"] if r else [])]
-        out.append({"token": s["token"], "natures": natures, "rule": r["id"] if r else ""})
+        out.append({"token": s["token"], "natures": natures, "rule": r["id"] if r else "",
+                    "start": s["start"], "end": s["end"]})
     return out
 
 
@@ -235,7 +267,7 @@ def _extract_capital(doc: Document, rule: dict, rules: Rules) -> list[dict] | No
     unknown = 0
     out: list[dict] = []
     for amt in classify_natures(text, rules):
-        value, why = parse_amount(amt["token"])
+        value, why = read_amount(doc, text, amt["start"], amt["end"], amt["token"], rules)
         if not amt["natures"]:
             unknown += 1
             continue
