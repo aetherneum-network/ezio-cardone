@@ -120,6 +120,7 @@
             ]
           },
           "target": "E-0001",
+          "cycle_policy": "abstain",
           "expect": {
             "outcome": "TO_CONFIRM",
             "cycles": [

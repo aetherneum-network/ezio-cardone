@@ -249,6 +249,14 @@ def _amounts_in(line: str, currency: str) -> list[tuple[int, str]]:
     return out
 
 
+def _has_cue(line: str, field_root: str, params: dict) -> bool:
+    """The cue of the field is in the line, outside the expressions that only look like it."""
+    excluded = params.get("field_cue_exclusions", {}).get(field_root)
+    if excluded:
+        line = rx(excluded).sub(" ", line)
+    return rx(params["field_cues"][field_root]).search(line) is not None
+
+
 def scan_outgoing(outgoing_dir: Path | str, superseded: list[dict], entity_names: dict[str, str],
                   target: str, rules: Rules) -> dict:
     """Find, in outgoing text documents, amounts of the target entity that were superseded.
@@ -279,7 +287,7 @@ def scan_outgoing(outgoing_dir: Path | str, superseded: list[dict], entity_names
                     nearest = _nearest_entity(lines, no, pos, entity_names, lookback)
                     facts = {
                         "document_dated_before_change": bool(doc_date) and doc_date < entry["since"],
-                        "no_field_cue_in_line": not rx(cue).search(line),
+                        "no_field_cue_in_line": not _has_cue(line, field_root, p),
                         "historical_marker_before_amount": False,
                         "line_is_about_another_entity": nearest is not None and nearest != target,
                         "line_is_not_about_the_entity": nearest is None,
@@ -289,7 +297,8 @@ def scan_outgoing(outgoing_dir: Path | str, superseded: list[dict], entity_names
                     hit = {"file": rel, "line": no, "text": line.strip(), "field": field_root,
                            "old_value": entry["old_value"], "new_value": entry["new_value"],
                            "new_edition": entry["new_edition"], "new_source_doc": entry["new_source_doc"],
-                           "rule": rule["id"]}
+                           "changed_on": entry["since"], "changed_by_doc": entry.get("changed_by_doc", ""),
+                           "changed_by_edition": entry.get("changed_by_edition", ""), "rule": rule["id"]}
                     (findings if rule["action"] == "flag" else ignored).append(hit)
     uniq = {(h["file"], h["line"]): h for h in findings}
     return {"files_scanned": len(files), "findings": [uniq[k] for k in sorted(uniq)],
@@ -343,7 +352,7 @@ def run_scan_tests(rules: Rules) -> tuple[int, list[str]]:
                         continue
                     nearest = _nearest_entity(lines, no, pos, names, int(cfg["parameters"]["entity_lookback_lines"]))
                     facts = {"document_dated_before_change": bool(doc_date) and doc_date < entry["since"],
-                             "no_field_cue_in_line": not rx(cfg["parameters"]["field_cues"]["share_capital"]).search(line),
+                             "no_field_cue_in_line": not _has_cue(line, "share_capital", cfg["parameters"]),
                              "historical_marker_before_amount": False,
                              "line_is_about_another_entity": nearest is not None and nearest != "E-0001",
                              "line_is_not_about_the_entity": nearest is None, "always": True}

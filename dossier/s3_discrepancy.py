@@ -156,7 +156,9 @@ def superseded_register(resolution: dict) -> list[dict]:
                 out.append({"field": fld, "old_value": h["value"], "old_source_doc": h["source_doc"],
                             "old_edition": h["edition"], "old_source_date": h["source_date"],
                             "new_value": res["value"], "new_source_doc": new["source_doc"],
-                            "new_edition": new["edition"], "since": h["superseded_by"]["source_date"]})
+                            "new_edition": new["edition"], "since": h["superseded_by"]["source_date"],
+                            "changed_by_doc": h["superseded_by"]["source_doc"],
+                            "changed_by_edition": h["superseded_by"]["edition"]})
     return out
 
 

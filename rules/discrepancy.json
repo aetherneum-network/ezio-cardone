@@ -283,6 +283,9 @@
       "field_cues": {
         "share_capital": "\\bcapital\\b"
       },
+      "field_cue_exclusions": {
+        "share_capital": "\\bcapital (?:expenditures?|goods|gains?|markets?|account|city)\\b"
+      },
       "entity_lookback_lines": 3
     },
     "rules": [
@@ -301,11 +304,15 @@
       {
         "action": "ignore",
         "id": "SCAN-020",
-        "rationale": "The same amount without the cue of the field (an invoice, a guarantee) is another figure.",
+        "rationale": "The same amount without the cue of the field (an invoice, a guarantee) is another figure. The cue inside another expression (capital expenditure, capital goods) is not a cue: added after the first run of scenario S04 flagged such a line.",
         "tests": [
           {
             "doc_date": "2026-03-01",
             "text": "Invoice to Fornace Aurelia S.r.l., total EUR 50.000,00"
+          },
+          {
+            "doc_date": "2026-03-01",
+            "text": "Capital expenditure plan of Fornace Aurelia S.r.l.: EUR 50.000,00 for the new kiln."
           }
         ],
         "when": "no_field_cue_in_line"
