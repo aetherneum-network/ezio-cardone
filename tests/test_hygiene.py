@@ -135,6 +135,16 @@ class DeclaredFiles(unittest.TestCase):
         self.assertLessEqual(len(re.findall(r"^    python ", pack, re.MULTILINE)), 5, "under five commands")
         self.assertIsNone(re.search(r"https?://", pack))
 
+    def test_the_never_event_definition_is_the_scorers(self):
+        """D29 (v2.0.2): the README states the never-event with the list that eval/score.py counts, word for word."""
+        doc = (ROOT / "eval" / "score.py").read_text(encoding="utf-8").split('"""')[1]
+        kinds = re.findall(r"^\* (.+?)[;.]$", doc, re.MULTILINE)
+        self.assertEqual(len(kinds), 8, kinds)
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        pack = readme[readme.index("# Proof pack v2.0"):readme.index("\n# Ezio Cardone\n")]
+        for kind in kinds:
+            self.assertIn(f"- {kind}", pack)
+
     def test_claims_file(self):
         text = (ROOT / "CLAIMS.md").read_text(encoding="utf-8")
         for claim in ("A1", "A2", "A3", "A4", "A5", "A6"):

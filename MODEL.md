@@ -13,6 +13,11 @@
   after reading the evaluator's results of the blind run of v2.0.0, failing documents included. The fixed
   code has seen those corpora; only a new blind run, by a different hand, measures it on wording it has
   not seen.
+- **The change of v2.0.2** (owner decisions D26 and D29: more holders'-table forms read, `OWN-015` kept at
+  `block`; the never-event definition aligned) was written with the same model, in a separate session on
+  2026-09-30, as the builder's hand, after reading the results of the blind run of v2.0.1 (run 7, seed
+  20261012) and reproducing its wrong blocks on that seed and on seeds already recorded. The same limit
+  applies: the code has seen those corpora, and its numbers (run 8) are not blind.
 
 ## What runs at runtime
 

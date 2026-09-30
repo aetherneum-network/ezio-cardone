@@ -18,16 +18,28 @@ The full map, sentence by sentence, is `CLAIMS.md`.
 |---|---|---|
 | A1 - every figure carries its source document and date | S03, S04, S10 | document, date and edition on every figure; a superseded figure in outgoing text is traced; the nature of an amount (historical, resolved, subscribed, paid-in) is classified before it is shown; since v2.0.1 an amount is read whole or abstained, and the audit compares its digits with the quote (`tests/test_amount_grouping.py`) |
 | A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled |
-| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`) |
+| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`) |
 | A4 - the dossier is a build artefact | S09 | same inputs, same bytes, DOCX included; a rule change moves only the expected field |
 | A5 - no snapshot is ever overwritten | S05 | the state at an earlier date is answered from the snapshots |
 | A6 - identity data is separated from the graph | S08 | the shareable layer holds no string of the identity layer (separation only: no access control) |
 
-The never-event of this pack is a figure rendered as fact that differs from the gold or has no source.
-`tests/test_never_event.py` tries to make it happen - tampered records, tampered provenance, tampered
-output, unread documents, ties between sources - and requires a refusal each time. A field that cannot be
-decided is written `[TO CONFIRM]`; when two current sources disagree both values are shown with their sources.
-The blind run of `v2.0.0-freeze` found this never-event anyway (finding T16, below); v2.0.1 is the fix.
+A never-event of this pack is any one of the following. The list is the one `eval/score.py` counts; since
+v2.0.2 (decision D29) it is also, word for word, the definition of section 1.5 of `eval/BLIND_PROTOCOL.md`:
+
+- a field shown as one fact whose value differs from the gold;
+- a planted conflict shown as one value, or shown with values that are not the gold's;
+- a field the gold says cannot be read, shown with a value;
+- a field shown with a value that is not in the gold;
+- an entity whose cap table does not sum to the whole that is not blocked, or whose dossier is published;
+- a published cap table that does not sum to the whole;
+- an effective holding shown where the gold abstains, or different from the gold;
+- a figure without source document, source date or edition.
+
+`tests/test_never_event.py` tries to make them happen - tampered records, tampered provenance, tampered
+output, unread documents, ties between sources - and requires a refusal each time; it also checks that the
+scorer counts every kind of the list. A field that cannot be decided is written `[TO CONFIRM]`; when two
+current sources disagree both values are shown with their sources. The blind run of `v2.0.0-freeze` found
+never-events anyway (finding T16, below); v2.0.1 is the fix.
 
 ## Re-run it
 
@@ -38,55 +50,69 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 179 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
+Expected last lines: `OK` after 209 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 6, code at commit `058e8ac` (the code of the tag `v2.0.1-freeze`), measured on
-2026-09-30 by the hand that wrote the fix, reference date of every corpus as of 2026-09-30. 150 entities per suite.
+Source: `eval/history.json`, run 8, code at commit `4b2dbaa` (pipeline, rules and scorer of the tag
+`v2.0.2-freeze`; the tag adds one documentation test and the manifest), measured on 2026-09-30 by the builder's
+hand, not blind: every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
 Command: `python -m eval.score --suite dev --suite holdout --suite stress`.
 
 | Suite | Never-events | Dossiers published | Conflicts found | Conflicts reported that are real | Facts exact | Fields left `[TO CONFIRM]` | Blocks correct | Figures with source |
 |---|---|---|---|---|---|---|---|---|
 | development, seed 20260930 (inspected while the rules were written) | 0 | 139/150 | 50/50 | 50/50 | 1386/1386 | 0/1472 | 9/9 | 3694/3694 |
 | holdout, seed 20261001 (scored, never inspected) | 0 | 137/150 | 45/45 | 45/45 | 1285/1285 | 0/1378 | 11/11 | 3521/3521 |
-| stress, seed 20261002 (wording perturbed) | 0 | 45/150 | 6/18 | 6/6 | 331/415 | 96/456 | 12/12 | 887/887 |
+| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 16/47 | 16/16 | 711/1285 | 605/1372 | 12/12 | 2838/2838 |
 
 How to read them:
 
 - They measure **internal consistency** on synthetic data: generator, gold labels and rules have one author
   and one model. They are not accuracy on real companies, and no such accuracy is claimed.
 - Facts, fields, conflicts and figures are counted over the dossiers that are published. Since v2.0.1 an
-  entity whose holders' table could not be read is blocked (`OWN-015`): on the stress suite 105 of 150
-  entities are blocked, 12 of them rightly, so the stress row counts 45 entities and cannot be compared with
-  v2.0.0 (run 4: 138 published, 677/1293 facts exact, 647/1380 fields left `[TO CONFIRM]`, 16/47 conflicts
-  found). On development and holdout the same rule blocks 2 more entities each (a share planted as illegible).
+  entity whose holders' table could not be read is blocked (`OWN-015`). In v2.0.1 that blocked 105 of 150
+  entities of the stress suite, 12 of them rightly (run 6: 45 published, 331/415 facts exact, 96/456 fields
+  left `[TO CONFIRM]`, 6/18 conflicts found, 887/887 figures with source). v2.0.2 keeps the rule at `block`
+  (owner decision D26) and reads more forms of the table: on the stress suite 13 entities are blocked, 12 of
+  them rightly; the other one has a share planted as illegible, where the gold abstains on the holders and
+  `OWN-015` blocks by decision. On development and holdout the same rule blocks 2 more entities each, for the
+  same reason. For comparison, v2.0.0 (run 4) published 138, with 677/1293 facts exact, 647/1380 fields left
+  `[TO CONFIRM]`, 16/47 conflicts found.
 - The first stress run (run 2, commit `9a50ea3`) had **32 never-events**. It was fixed in the rule files, not in
   the outputs; the price was abstention: the rules read one wording and abstain on the others. Every run,
   the bad ones included, is in `eval/history.json`.
-- The holdout was scored four times (runs 2, 3, 4, 6) and is no longer a clean holdout.
+- The holdout was scored five times (runs 2, 3, 4, 6, 8) and is no longer a clean holdout.
 - The blind run of `v2.0.0-freeze` (run 5, by the evaluator, not the author) found **13 never-events**: 0 in the
   plain corpus, 1 in the perturbed one, 12 in the out-of-pool one. Five were capital figures read a thousand
   times too small (`EUR 150'000.00` read as `150.00`, finding T16); eight were dossiers published for
   entities whose holders' table, not read, does not sum to the whole. v2.0.1 fixes both (`CHANGELOG.md`,
   `CLAIMS.md` section 6). On those same corpora, now known, v2.0.1 has 0 never-events and publishes 135, 42
-  and 9 dossiers of 150 (run 6): that is not a blind result. The blind run of `v2.0.1-freeze` is for a
-  different hand, as written in `eval/BLIND_PROTOCOL.md`.
+  and 9 dossiers of 150 (run 6): that is not a blind result.
+- The blind run of `v2.0.1-freeze` (run 7, by the evaluator, seed 20261012) found **0 never-events**, and
+  published 134 plain, 48 perturbed and 1 of 2 hand-written dossiers (the other blocked rightly); on the
+  perturbed corpus 89 entities
+  were blocked wrongly, most of them because their holders' table was worded in a form the rules did not
+  read. v2.0.2 is the answer to that finding. On the corpora already seen it has 0 never-events and publishes
+  135 and 134 perturbed dossiers of seeds 20261011 and 20261012 and 44 of the out-of-pool corpus of run 5
+  (run 8): that is not a blind result. The blind run of `v2.0.2-freeze` is for a different hand, as written in
+  `eval/BLIND_PROTOCOL.md`.
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-09-30 on commit `058e8ac`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-09-30 on the code of commit `4b2dbaa`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `2784f651c481bf80ab75a9b263528033e693779086f5a36d6695a79c6bbe1752` |
-| S03, `dossier_shareable.docx` of E-0004 | `874a6e325a6b9142ec904253360f7fc4b68257f6d7d5fb491cc78988e6a3e138` |
-| S03, whole build (11 files) | `eb82d38ceecaafc0b0fb5f53811b431213b3b402687183b6d62bbd7b50f81645` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `210df3672c0ac8759272745dabb1d8f98caf0b2e672b86aa8444996ee41696cb` |
+| S03, `dossier.docx` of E-0004 | `6b8824ea8f7a049a6bf3311a1c59d412104b2cfd9527240aca3face546525887` |
+| S03, `dossier_shareable.docx` of E-0004 | `f3d5f1fb33e4c858d0c5a06e254b51087593fc2b6ab40d23d08209ad344e8f00` |
+| S03, whole build (11 files) | `d2272228bf73f9b96282b8794e75dec6feedc18db987d79e7c15cf7a2142b263` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `8b3d5d6ab1d817b4f8714f8c8c58d87ea8eb26420169fbd7e005424a61b2540b` |
 
-The hashes differ from those of v2.0.0: the dossier names its generator (`dossier 2.0.1`) and lists the new
-legal assumption, and two entities of the development corpus are now blocked.
+The hashes differ from those of v2.0.1 only because the dossier names its generator (`dossier 2.0.2`): no
+document of these two builds has an unrecognised type, and the same entities are blocked. The v2.0.1 hashes
+differed from those of v2.0.0 because the dossier named `dossier 2.0.1`, listed the new legal assumption and
+two entities of the development corpus became blocked.
 Verified on Windows only (Windows 11, Python 3.12.10). Identity between operating systems is not verified
 and not claimed. The CI workflow in this repository was written and has never been executed.
 
