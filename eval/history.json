@@ -1,4 +1,15 @@
 {
+  "blind": {
+    "frozen_at": {
+      "commit": "d1769d555934ca5eaf4717bafe8135105caffd43",
+      "date": "2026-09-30",
+      "tag": "v2.0.0-freeze",
+      "tag_object": "0c26555916701c4a81ea6490c32d5e7162edcdc8"
+    },
+    "note": "The author does not choose the blind seed, does not generate a blind corpus and does not run the blind protocol. Whoever runs it appends the outcome to \"runs\" and sets this status, with a name and a date. After the tag the author ran two checks of the scorer paths on data already known: --seed on the development seed 20260930 (same line as run 4, dev) and --corpus/--gold on the generated development corpus and on scenario S01 with a hand-written gold. They are not blind runs and are not listed under \"runs\".",
+    "protocol": "eval/BLIND_PROTOCOL.md",
+    "status": "not run"
+  },
   "reading": "Every measurement taken while the pack was written, in order and verbatim, the bad ones included. All numbers measure internal consistency on synthetic data (generator, gold and rules share an author); none measures accuracy on real companies. Blind runs are appended by whoever runs them (see eval/BLIND_PROTOCOL.md).",
   "runs": [
     {
