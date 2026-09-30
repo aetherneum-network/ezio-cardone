@@ -1,0 +1,45 @@
+# Offline CI of the proof pack. After the one install step from the hashed lockfile nothing touches the
+# network: the tests block sockets, no model and no API is called, and the job carries no credential.
+#
+# Status, said plainly: this workflow was written on 2026-09-30 and HAS NEVER BEEN EXECUTED - the branch
+# was not pushed. The Linux leg in particular is unverified: byte identity of the DOCX across operating
+# systems is not claimed anywhere in this repository until this workflow has run and compared the hashes.
+# The two actions are referenced by tag; their commit digests are [TO CONFIRM] before the first run.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install from the hashed lockfile (the only step that uses the network)
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Pack manifest, generated documents, synthetic corpus
+        run: |
+          python tools/manifest.py --check
+          python tools/assumptions.py --check
+          python scenarios/make_inputs.py --check
+          python -m corpus.generate --check
+      - name: Test suite (stdlib unittest, sockets blocked)
+        run: python -m unittest discover -s tests -t .
+      - name: Scenarios S01-S10 (one line each)
+        run: python scenarios/run_all.py --json reports/scenarios.json
+      - name: Evaluation on the development suite (internal consistency on synthetic data)
+        run: python -m eval.score --suite dev --json reports/eval-dev.json
+      - name: Hashes of one rebuilt dossier, to compare between the two operating systems
+        run: python tools/rebuild.py
