@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-01
+Document type: Deed of incorporation
+Document date: 2023-11-06
+Edition: DEED/1
+Entity: Cooperativa Agricola Valinventata S.p.A. (test registry no. TEST-REG-000002)
+
+1. Name and form. The company is named Cooperativa Agricola Valinventata S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Piazza dei Modelli 9, Valinventata (ZZ).
+3. Share capital. The share capital is EUR 250.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-003 (Zeno Provetti): 50%
+- P-004 (Ada Campionari): 30%
+- P-005 (Bruno Segnaposto): 20%
+
+5. Directors.
+- P-003 (Zeno Provetti)
+- P-004 (Ada Campionari)

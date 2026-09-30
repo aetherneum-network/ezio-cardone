@@ -1,0 +1,329 @@
+{
+  "schema": "gold/2.0.0",
+  "as_of": "2026-09-30",
+  "seed": null,
+  "perturbed": false,
+  "cycle_policy": "abstain",
+  "summary": {},
+  "entities": {
+    "E-0001": {
+      "entity": "E-0001",
+      "build": "OK",
+      "blocked_by": [],
+      "fault": "HAND",
+      "documents": 5,
+      "fields": {
+        "name": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-03"
+          ],
+          "superseded": [],
+          "value": "Vetreria Sperimentale Borgofinto S.r.l."
+        },
+        "legal_form": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-03"
+          ],
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "registered_office": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-03"
+          ],
+          "superseded": [],
+          "value": "Via delle Fornaci Finte 14, Borgofinto (ZZ)"
+        },
+        "share_capital.resolved": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-02",
+            "DOC-E0001-03"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0001-01",
+              "old_value": "90000.00"
+            }
+          ],
+          "value": "150000.00"
+        },
+        "share_capital.subscribed": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-02",
+            "DOC-E0001-03"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0001-01",
+              "old_value": "90000.00"
+            }
+          ],
+          "value": "120000.00"
+        },
+        "share_capital.paid_in": {
+          "status": "DISCREPANCY",
+          "sources": [
+            "DOC-E0001-02",
+            "DOC-E0001-03"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0001-01",
+              "old_value": "90000.00"
+            }
+          ],
+          "values": [
+            "90000.00",
+            "100000.00"
+          ]
+        },
+        "shareholders": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-03"
+          ],
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-001",
+              "share": "11/20"
+            },
+            {
+              "holder": "P-002",
+              "share": "9/20"
+            }
+          ]
+        },
+        "directors": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-05"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0001-01",
+              "old_value": [
+                "P-001"
+              ]
+            },
+            {
+              "old_source_doc": "DOC-E0001-03",
+              "old_value": [
+                "P-001"
+              ]
+            }
+          ],
+          "value": [
+            "P-002"
+          ]
+        },
+        "fin.FY2025.net_equity": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-04"
+          ],
+          "superseded": [],
+          "value": "210450.00"
+        },
+        "fin.FY2025.total_assets": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-04"
+          ],
+          "superseded": [],
+          "value": "1302000.00"
+        },
+        "fin.FY2025.revenue": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0001-04"
+          ],
+          "superseded": [],
+          "value": "987654.32"
+        }
+      },
+      "filename_divergences": [
+        {
+          "doc_id": "DOC-E0001-04",
+          "aspect": "date"
+        }
+      ],
+      "ownership": {
+        "outcome": "RESOLVED",
+        "cycles": [],
+        "effective": {
+          "P-001": "11/20",
+          "P-002": "9/20"
+        }
+      }
+    },
+    "E-0002": {
+      "entity": "E-0002",
+      "build": "BLOCKED",
+      "blocked_by": [
+        {
+          "source_doc": "DOC-E0002-03",
+          "sum": "19/20"
+        },
+        {
+          "source_doc": "DOC-E0002-04",
+          "sum": "19/20"
+        }
+      ],
+      "fault": "HAND",
+      "documents": 5,
+      "fields": {
+        "name": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": "Cooperativa Agricola Valinventata S.p.A."
+        },
+        "legal_form": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": "S.p.A."
+        },
+        "registered_office": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-02",
+            "DOC-E0002-04"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0002-01",
+              "old_value": "Piazza dei Modelli 9, Valinventata (ZZ)"
+            }
+          ],
+          "value": "Corso dei Prototipi 88, Campofinto (ZZ)"
+        },
+        "share_capital.resolved": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": "250000.00"
+        },
+        "share_capital.subscribed": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": "250000.00"
+        },
+        "share_capital.paid_in": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": "250000.00"
+        },
+        "shareholders": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-03",
+            "DOC-E0002-04"
+          ],
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0002-01",
+              "old_value": [
+                {
+                  "holder": "P-003",
+                  "share": "1/2"
+                },
+                {
+                  "holder": "P-004",
+                  "share": "3/10"
+                },
+                {
+                  "holder": "P-005",
+                  "share": "1/5"
+                }
+              ]
+            }
+          ],
+          "value": [
+            {
+              "holder": "P-003",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-004",
+              "share": "3/10"
+            },
+            {
+              "holder": "P-006",
+              "share": "3/20"
+            }
+          ]
+        },
+        "directors": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-04"
+          ],
+          "superseded": [],
+          "value": [
+            "P-003",
+            "P-004"
+          ]
+        },
+        "fin.FY2025.net_equity": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-05"
+          ],
+          "superseded": [],
+          "value": "1234500.00"
+        },
+        "fin.FY2025.total_assets": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-05"
+          ],
+          "superseded": [],
+          "value": "4100200.00"
+        },
+        "fin.FY2025.revenue": {
+          "status": "FACT",
+          "sources": [
+            "DOC-E0002-05"
+          ],
+          "superseded": [],
+          "value": "3050000.00"
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "outcome": "BLOCKED",
+        "cycles": [],
+        "effective": null
+      }
+    }
+  }
+}

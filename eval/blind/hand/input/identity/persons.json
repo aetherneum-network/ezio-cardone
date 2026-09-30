@@ -1,0 +1,38 @@
+{
+  "P-001": {
+    "name": "Ugo Fintini",
+    "born": "1963-05-14",
+    "email": "ugo.fintini@persons.example",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "name": "Vera Simulata",
+    "born": "1971-09-02",
+    "email": "vera.simulata@persons.example",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "name": "Zeno Provetti",
+    "born": "1958-12-21",
+    "email": "zeno.provetti@persons.example",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "name": "Ada Campionari",
+    "born": "1975-03-30",
+    "email": "ada.campionari@persons.example",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "name": "Bruno Segnaposto",
+    "born": "1969-07-07",
+    "email": "bruno.segnaposto@persons.example",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "name": "Clea Inventari",
+    "born": "1982-01-19",
+    "email": "clea.inventari@persons.example",
+    "tax_code": "SYN-CF-P006"
+  }
+}

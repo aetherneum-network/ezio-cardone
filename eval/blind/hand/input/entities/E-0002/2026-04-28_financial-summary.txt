@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-05
+Document type: Financial statements summary
+Document date: 2026-04-28
+Edition: FIN-FY2025/1
+Entity: Cooperativa Agricola Valinventata S.p.A. (test registry no. TEST-REG-000002)
+Financial year: 2025
+
+Net equity: EUR 1.234.500,00
+Total assets: EUR 4.100.200,00
+Revenue: EUR 3.050.000,00

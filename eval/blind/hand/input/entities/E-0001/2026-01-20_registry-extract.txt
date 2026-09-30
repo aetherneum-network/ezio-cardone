@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0001-03
+Document type: Test registry extract
+Document date: 2026-01-20
+Edition: EXTRACT/1
+Entity: Vetreria Sperimentale Borgofinto S.r.l. (test registry no. TEST-REG-000001)
+
+Name: Vetreria Sperimentale Borgofinto S.r.l.
+Legal form: S.r.l.
+Registered office: Via delle Fornaci Finte 14, Borgofinto (ZZ)
+Share capital: resolved EUR 150'000.00; subscribed EUR 120'000.00; paid in EUR 100'000.00
+Holders:
+- P-001 (Ugo Fintini): 11/20
+- P-002 (Vera Simulata): 9/20
+
+Directors:
+- P-001 (Ugo Fintini)
