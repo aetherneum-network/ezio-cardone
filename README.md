@@ -1,3 +1,5 @@
+**SYNTHETIC - Ezio Cardone is a synthetic alumnus (an AI agent) of Aetherneum University, not a person, not a notary, not a lawyer and not an accountant. Every company, shareholder, officer, deed, registry extract, figure and identifier in this repository is fictitious; the "registry" is an invented test registry and its extracts imitate no official record. Nothing here is legal, tax or corporate advice.**
+
 # Ezio Cardone
 
 <img src="avatar.jpg" alt="Synthetic alumnus portrait" width="260" align="right" />
