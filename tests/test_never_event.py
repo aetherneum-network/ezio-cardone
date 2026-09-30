@@ -358,15 +358,20 @@ class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
                                   "The meeting resolved to increase the share capital from EUR 50.000,00 to "
                                   "EUR 80.000,00. The increase has been fully subscribed and fully paid in.")
         unknown = (rel, text.replace("Resolution on share capital", "Minutes about the capital"))
+        # v2.0.1 blocked this entity (OWN-015). Since v2.0.2 the body of the unknown document is checked: it holds
+        # no holders' table and no line that may state a holding, so the dossier is published - with no fact.
+        for rules_dir in (None, s.rules_report_unverified()):
+            code, fields, prov = self._fields([deed, unknown], rules_dir=rules_dir)
+            self.assertEqual(code, 0)
+            self.assertEqual({f["status"] for f in fields.values()}, {"TO_CONFIRM"})
+            self.assertEqual([f for f in prov["figures"] if f["section"] in ("facts", "cap_table")], [])
+            self.assertTrue(all(t["marker"] == "[TO CONFIRM]" and "value" not in t for t in prov["to_confirm"]))
+        # the same document with a holding in its text may hide a table: blocked, as in v2.0.1 (OWN-015)
+        said = (rel, unknown[1].replace("The increase has been", "P-003 now holds 20%. The increase has been"))
         work = s.tmp()
-        code, _, report = s.run(s.tiny([deed, unknown], "2026-06-30"), work)
-        self.assertEqual((code, report["entities"]["E-0001"]["status"]), (2, "BLOCKED"))   # v2.0.1: OWN-015
+        code, _, report = s.run(s.tiny([deed, said], "2026-06-30"), work)
+        self.assertEqual((code, report["entities"]["E-0001"]["status"]), (2, "BLOCKED"))
         self.assertFalse((work / "dossiers" / "E-0001").exists())
-        code, fields, prov = self._fields([deed, unknown], rules_dir=s.rules_report_unverified())
-        self.assertEqual(code, 0)
-        self.assertEqual({f["status"] for f in fields.values()}, {"TO_CONFIRM"})
-        self.assertEqual([f for f in prov["figures"] if f["section"] in ("facts", "cap_table")], [])
-        self.assertTrue(all(t["marker"] == "[TO CONFIRM]" and "value" not in t for t in prov["to_confirm"]))
 
     def test_illegible_latest_event_does_not_promote_the_older_value(self):
         h = [("P-001", "60%"), ("P-002", "40%")]
@@ -453,6 +458,65 @@ class ScorerSeesNeverEvents(unittest.TestCase):
         eid = self._first_fact(gold)
         gold["entities"][eid]["fields"]["share_capital.resolved"] = {"status": "TO_CONFIRM", "superseded": []}
         self.assertEqual(score.score(self.work, gold)["metrics"]["never_events"], 1)
+
+    # D29 (v2.0.2): every kind of the never-event definition (eval/score.py docstring, README, protocol 1.5)
+    # is counted by the scorer; the kinds below had no test until v2.0.2.
+
+    def _one(self, got, words):
+        self.assertEqual(got["metrics"]["never_events"], 1, got["never_event_list"])
+        self.assertIn(words, got["never_event_list"][0])
+
+    def test_field_shown_that_is_not_in_the_gold(self):
+        gold = copy.deepcopy(self.gold)
+        eid = self._first_fact(gold)
+        del gold["entities"][eid]["fields"]["share_capital.resolved"]
+        self._one(score.score(self.work, gold), "shown but not in the gold")
+
+    def test_conflict_shown_with_values_that_are_not_the_golds(self):
+        gold = copy.deepcopy(self.gold)
+        for eid, g in sorted(gold["entities"].items()):
+            fld = next((f for f, gf in sorted(g["fields"].items()) if gf["status"] == "DISCREPANCY"), None)
+            if g["build"] == "OK" and fld and (self.work / "dossiers" / eid / "provenance.json").exists():
+                g["fields"][fld]["values"] = g["fields"][fld]["values"][:-1] + ["1.00"]
+                break
+        else:
+            self.fail("no published conflict in the small corpus")
+        self._one(score.score(self.work, gold), "conflict shown with values that are not the gold's")
+
+    def _copy_work(self):
+        work = s.tmp()
+        jsonio.write_bytes(work / "run_report.json", (self.work / "run_report.json").read_bytes())
+        for p in (self.work / "dossiers").rglob("provenance.json"):
+            jsonio.write_bytes(work / p.relative_to(self.work), p.read_bytes())
+        return work
+
+    def test_published_cap_table_that_does_not_sum(self):
+        work = self._copy_work()
+        for path in sorted((work / "dossiers").rglob("provenance.json")):
+            prov = jsonio.load(path)
+            cap = [f for f in prov["figures"] if f["section"] == "cap_table"]
+            if cap:
+                cap[0]["value"] = "1/1000" if cap[0]["value"] != "1/1000" else "1/999"
+                jsonio.write(path, prov)
+                break
+        else:
+            self.fail("no published cap table in the small corpus")
+        got = score.score(work, self.gold)
+        self.assertTrue(any("the published cap table sums to" in t for t in got["never_event_list"]),
+                        got["never_event_list"])
+
+    def test_effective_holdings_where_the_reference_abstains(self):
+        work = self._copy_work()
+        for eid, g in sorted(self.gold["entities"].items()):
+            path = work / "dossiers" / eid / "provenance.json"
+            if g["build"] == "OK" and g["ownership"]["outcome"] != "RESOLVED" and path.exists():
+                prov = jsonio.load(path)
+                prov["derived"] = [{"person": "P-001", "value": "1/2"}]
+                jsonio.write(path, prov)
+                break
+        else:
+            self.fail("no published dossier whose reference abstains in the small corpus")
+        self._one(score.score(work, self.gold), "effective holdings shown where the reference abstains")
 
 
 if __name__ == "__main__":

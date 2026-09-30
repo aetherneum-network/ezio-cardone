@@ -13,6 +13,10 @@ assertion with status ``TO_CONFIRM`` and a reason - never a guess:
 
 Facts come from the content. The file name is compared with the content and a divergence is
 reported; it is never a source.
+
+A document whose type is not recognised gives no assertion. Since v2.0.2 its body is still checked for
+holders' tables (``holders_check``, rules/extract.json ``holders_evidence``), so that stage 4 can tell a
+document with no table, or with tables read whole, from one that may hide a table it could not read.
 """
 from __future__ import annotations
 
@@ -146,7 +150,8 @@ def _field_name(template: str, doc: Document) -> str:
 def _expand(text: str, rules: Rules) -> str:
     """Substitute the shared pieces of rules/extract.json parameters into a pattern."""
     p = rules.extract["parameters"]
-    for key in ("amount_token", "amount_separator", "magnitude_words"):
+    for key in ("holders_heading", "holders_heading_current", "holders_heading_nouns",
+                "amount_token", "amount_separator", "magnitude_words"):
         text = text.replace("{" + key + "}", p[key])
     return text
 
@@ -309,41 +314,99 @@ def _block(doc: Document, heading_no: int) -> list[tuple[int, str]]:
     return out
 
 
+def _read_items(block: list[tuple[int, str]], item: re.Pattern, extractor: str) -> tuple[list | None, str]:
+    """(value, "") of a list read whole, or (None, why) at the first line that cannot be read."""
+    if not block:
+        return None, "the list is empty"
+    ids: list[str] = []
+    rows: list[dict] = []
+    for _, line in block:
+        m = item.match(line)
+        if not m:
+            return None, "a line of the list could not be read"
+        if m.group("id") in ids:
+            return None, f"{m.group('id')} is listed twice"
+        ids.append(m.group("id"))
+        if extractor == "holders":
+            share, why = parse_share(m.group("share"))
+            if share is None:
+                return None, f"share of {m.group('id')}: {why}"
+            if share <= 0:
+                return None, f"share of {m.group('id')} is not positive"
+            rows.append({"holder": m.group("id"), "share": frac_str(share)})
+    return (sorted(rows, key=lambda r: r["holder"]) if extractor == "holders" else sorted(ids)), ""
+
+
 def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
     heading = _pattern(rule, rules)
     item = rx(rule["item_matches"])
     fld = _field_name(rule["field"], doc)
+    found = [(no, text) for no, text in _body(doc) if heading.search(text.strip())]
+    if not found:
+        return None
+    no, text = found[0]
+    block = _block(doc, no)
+    quote = "\n".join([text] + [t for _, t in block])
+    end = block[-1][0] if block else no
+
+    def abstain(why: str) -> list[dict]:
+        return [_assertion(doc, fld, rule["nature"], rule["id"], reason=why, line=no, line_end=end, quote=quote)]
+
+    if rule["extractor"] == "holders" and len(found) > 1:
+        lines = ", ".join(str(n) for n, _ in found)
+        return abstain(f"{len(found)} holders' tables in one document (lines {lines}): which one is current "
+                       "is not ours to choose")
+    value, why = _read_items(block, item, rule["extractor"])
+    if value is None:
+        return abstain(why)
+    return [_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, line_end=end, quote=quote)]
+
+
+def holders_evidence(line: str, rules: Rules) -> dict:
+    """The rule of rules/extract.json holders_evidence that decides one body line (first match wins)."""
+    cfg = rules.extract["holders_evidence"]
+    text = rx(_expand(cfg["parameters"]["neutral_phrases"], rules)).sub(" ", line)
+    return first_match(cfg["rules"], lambda r: r["when"] == "always"
+                       or rx(_expand(r["pattern"], rules)).search(text) is not None)
+
+
+def holders_check(doc: Document, rules: Rules) -> dict:
+    """What a document that was not classified says about its holders, without reading any other fact.
+
+    ``read``: every holders' table in it was read whole (they are summed by stage 4, OWN-010);
+    ``no_table``: no heading, no table and no line of rules/extract.json holders_evidence;
+    ``not_read``: anything else - the document blocks the entity as an unread table would (OWN-015).
+    """
+    other = [p for p in doc.problems if not p.startswith("document type not recognised")]
+    if other:
+        return {"status": "not_read", "why": "the header of the document could not be read (" + "; ".join(other)
+                + "): a table in it could not carry its source and date"}
+    rule = next(r for r in rules.extract["field_rules"] if r["extractor"] == "holders")
+    heading, item = _pattern(rule, rules), rx(rule["item_matches"])
+    covered: set[int] = set()
+    tables = []
     for no, text in _body(doc):
         if not heading.search(text.strip()):
             continue
         block = _block(doc, no)
-        quote = "\n".join([text] + [t for _, t in block])
-        end = block[-1][0] if block else no
-
-        def abstain(why: str) -> list[dict]:
-            return [_assertion(doc, fld, rule["nature"], rule["id"], reason=why, line=no, line_end=end, quote=quote)]
-
-        if not block:
-            return abstain("the list is empty")
-        ids: list[str] = []
-        rows: list[dict] = []
-        for _, line in block:
-            m = item.match(line)
-            if not m:
-                return abstain("a line of the list could not be read")
-            if m.group("id") in ids:
-                return abstain(f"{m.group('id')} is listed twice")
-            ids.append(m.group("id"))
-            if rule["extractor"] == "holders":
-                share, why = parse_share(m.group("share"))
-                if share is None:
-                    return abstain(f"share of {m.group('id')}: {why}")
-                if share <= 0:
-                    return abstain(f"share of {m.group('id')} is not positive")
-                rows.append({"holder": m.group("id"), "share": frac_str(share)})
-        value = sorted(rows, key=lambda r: r["holder"]) if rule["extractor"] == "holders" else sorted(ids)
-        return [_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, line_end=end, quote=quote)]
-    return None
+        value, why = _read_items(block, item, "holders")
+        if value is None:
+            return {"status": "not_read", "why": f"the holders' table at line {no} could not be read ({why})"}
+        covered.update([no] + [n for n, _ in block])
+        tables.append({"line": no, "line_end": block[-1][0], "value": value})
+    if len(tables) > 1:
+        return {"status": "not_read", "why": f"{len(tables)} holders' tables in one document: which one is current "
+                                             "is not ours to choose"}
+    for no, text in _body(doc):
+        if no in covered or not text.strip():
+            continue
+        hit = holders_evidence(text, rules)
+        if hit["outcome"] != "none":
+            return {"status": "not_read", "why": f"line {no} may state a holding outside a table that could be read "
+                                                 f"(rule {hit['id']})"}
+    if tables:
+        return {"status": "read", "why": "", "edition": doc.edition, "tables": tables}
+    return {"status": "no_table", "why": "no holders' table and no line that may state a holding"}
 
 
 _EXTRACTORS = {"text": _extract_text, "amount": _extract_amount, "capital": _extract_capital,
@@ -449,7 +512,8 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
             continue
         if doc.problems:
             b["unclassified_documents"].append({"file": rel, "reason": "; ".join(doc.problems),
-                                                "doc_id": doc.doc_id, "date": doc.date})
+                                                "doc_id": doc.doc_id, "date": doc.date,
+                                                "holders_check": holders_check(doc, rules)})
             continue
         if doc.date > as_of:
             b["ignored_after_as_of"].append(doc.doc_id)
@@ -505,6 +569,12 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 seen = [a.get("value") for a in got]
             if not ok:
                 bad.append(f"{r['id']}: got {seen}, expected {t['expect']}")
+    for r in rules.extract["holders_evidence"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            got = holders_evidence(t["text"], rules)["id"]
+            if got != t["expect"] or got != r["id"]:
+                bad.append(f"{r['id']}: line {t['text']!r} decided by {got}, expected {t['expect']}")
     for r in rules.figure_nature["rules"]:
         for t in r.get("tests", []):
             n += 1

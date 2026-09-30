@@ -8,12 +8,15 @@ What is read is what was *published*: ``dossiers/<entity>/provenance.json`` and 
 Everything measured is internal consistency on synthetic data (generator, gold and rules share an
 author); nothing here measures accuracy on real companies.
 
-Never-events counted (the pack's claim is that this number is zero):
+Never-events counted (the pack's claim is that this number is zero). Since v2.0.2 (decision D29) this list
+is the definition of a never-event, word for word, in README.md and in section 1.5 of eval/BLIND_PROTOCOL.md:
 
 * a field shown as one fact whose value differs from the gold;
 * a planted conflict shown as one value, or shown with values that are not the gold's;
 * a field the gold says cannot be read, shown with a value;
-* a dossier published for an entity whose cap table does not sum to the whole;
+* a field shown with a value that is not in the gold;
+* an entity whose cap table does not sum to the whole that is not blocked, or whose dossier is published;
+* a published cap table that does not sum to the whole;
 * an effective holding shown where the gold abstains, or different from the gold;
 * a figure without source document, source date or edition.
 """

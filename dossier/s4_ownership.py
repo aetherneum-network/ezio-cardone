@@ -41,7 +41,11 @@ def unverified_tables(record: dict) -> list[dict]:
         date = u.get("date") or ""
         if _ISO_DATE.fullmatch(date) and date > record["as_of"]:
             continue                      # dated after as_of: it cannot hold a table of the dossier
-        out.append({"source_doc": u.get("doc_id") or u["file"], "why": f"document not read: {u['reason']}"})
+        check = u.get("holders_check") or {}
+        if check.get("status") in ("no_table", "read"):
+            continue                      # its body was checked: no table, or every table read whole (sum_checks)
+        why = f"document not read: {u['reason']}" + (f"; {check['why']}" if check.get("why") else "")
+        out.append({"source_doc": u.get("doc_id") or u["file"], "why": why})
     for r in record.get("rejected_documents", []):
         out.append({"source_doc": r["file"], "why": f"document not read: {r['reason']}"})
     return sorted(out, key=lambda x: (x["source_doc"], x["why"]))
@@ -55,6 +59,15 @@ def sum_checks(record: dict, rules: Rules) -> list[dict]:
         if a["field"] == "shareholders" and a["status"] == "STATED":
             total = sum((parse_frac(r["share"]) for r in a["value"]), Fraction(0))
             out.append({"source_doc": a["source_doc"], "source_date": a["source_date"], "edition": a["edition"],
+                        "sum": frac_str(total), "whole": total == whole})
+    for u in record.get("unclassified_documents", []):
+        check = u.get("holders_check") or {}
+        date = u.get("date") or ""
+        if check.get("status") != "read" or not _ISO_DATE.fullmatch(date) or date > record["as_of"]:
+            continue
+        for t in check["tables"]:
+            total = sum((parse_frac(r["share"]) for r in t["value"]), Fraction(0))
+            out.append({"source_doc": u["doc_id"], "source_date": date, "edition": check.get("edition", ""),
                         "sum": frac_str(total), "whole": total == whole})
     return sorted(out, key=lambda c: (c["source_date"], c["source_doc"]))
 

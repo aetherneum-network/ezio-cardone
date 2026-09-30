@@ -1,6 +1,6 @@
 {
   "file": "extract.json",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
@@ -16,6 +16,10 @@
     "amount_uncertain_before": "(?<![a-z])(?:{magnitude_words})\\.?\\s*$",
     "scale_statement": "\\b(?:in|of)\\s+(?:(?:EUR|euros?)\\s+)?(?:thousands?|millions?|billions?)\\b|\\b(?:thousands?|millions?|billions?)\\s+of\\s+(?:EUR|euros?)\\b|\\b(?:TEUR|KEUR|MEUR|TSD\\s*EUR)\\b|\\bEUR\\s*['\\u2019]000\\b|\\bEUR\\s*(?:k|m|mn|bn|mln|mio|mrd|thousands?|millions?)\\s*[)\\]:]",
     "amount_guards_note": "An amount whose reading is not certain is left unread ([TO CONFIRM]), never shown as fact: when the figure goes on past the token (two separators, a character attached to it), when a magnitude word stands next to it (EUR 150 thousand, Mio. EUR 150), and for every amount of a document that states a scale (in thousands of EUR, TEUR, EUR '000). Added with v2.0.1 (finding T16).",
+    "holders_heading_nouns": "(?:share-?\\s?holders?|stock-?\\s?holders?|quota-?\\s?holders?|holders?|members?|partners?)",
+    "holders_heading_current": "(?:after|following)\\s+(?:the|this)\\s+(?:transfer|assignment)|(?:as\\s+)?(?:at|of|on)\\s+(?:the\\s+)?(?:document\\s+date|date\\s+of\\s+(?:the|this)\\s+document)|currently|now|at\\s+present",
+    "holders_heading": "^(?:\\d+[.)]\\s*)?(?:(?:{holders_heading_current}),?\\s+)?(?:the\\s+)?(?:(?:current|present|sole)\\s+)?(?:{holders_heading_nouns})(?:\\s+(?:{holders_heading_current}))?(?:\\s+(?:are|is))?\\s*[.:]$",
+    "holders_heading_note": "The heading of a holders' table is a grammar, not a list of phrasings: a holder noun (holders, shareholders, quotaholders, members, partners), optionally numbered, optionally with a qualifier that says the table is current (after the transfer, as at the document date, now), before or after the noun. A qualifier that is not known to mean 'current' (before the transfer, former, as at another date) is not a heading, and the document then abstains on the holders as before. Owners, beneficial owners and directors are not holder nouns. Two headings in one document abstain: which table is current is not ours to choose. Added with v2.0.2 (decision D26 of 2026-09-30: OWN-015 stays 'block'; reworded headings were the first cause of entities blocked wrongly on the stress suite).",
     "filename_pattern": "^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
@@ -209,12 +213,16 @@
       "extractor": "holders",
       "nature": "share",
       "kinds": ["DEED", "EXTRACT", "LEDGER", "TRANSFER"],
-      "line_matches": "^(?:\\d+\\. )?Holders(?: after the transfer| as at the document date)?[.:]$",
+      "line_matches": "{holders_heading}",
       "item_matches": "^\\s*- (?P<id>P-\\d{3}|E-\\d{4}) \\((?P<label>.*)\\): (?P<share>.+)$",
-      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table.",
+      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table. The heading is the grammar of the parameter holders_heading (since v2.0.2); two headings in one document make the table [TO CONFIRM].",
       "tests": [
         {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "expect": [{"holder": "E-0002", "share": "2/5"}, {"holder": "P-001", "share": "3/5"}]},
-        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "expect": null}
+        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Members at the document date:\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "4. Shareholders.\n- P-001 (Aldo Finti): 1/2\n- P-002 (Bice Provetti): 1/2", "expect": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+        {"kind": "TRANSFER", "text": "Holders before the transfer:\n- P-001 (Aldo Finti): 100%\n\nFollowing the transfer, the members are:\n- P-001 (Aldo Finti): 70%\n- P-003 (Carla Esempi): 30%", "expect": [{"holder": "P-001", "share": "7/10"}, {"holder": "P-003", "share": "3/10"}]},
+        {"kind": "EXTRACT", "text": "Holders:\n- P-001 (Aldo Finti): 100%\n\nMembers:\n- P-002 (Bice Provetti): 100%", "expect": null}
       ]
     },
     {
@@ -272,5 +280,110 @@
         {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR 1’234’567.89", "expect": "1234567.89"}
       ]
     }
-  ]
+  ],
+  "holders_evidence": {
+    "reading": "A document whose type is not recognised is not read for facts (DISC-005 keeps every field it may change [TO CONFIRM]). Its body is still checked for holders' tables, so that it does not block the entity for nothing (OWN-015): every table under a holders' heading (parameter holders_heading) is read with the item grammar of EXT-HOLD-010 and summed; every other body line goes through these rules, first match wins, after the phrases of neutral_phrases are removed. One line decided as evidence, one table not read whole, two tables, or a header that cannot be read, and the document stays 'not read': it blocks the entity as before. The rules err on the side of evidence: a line wrongly taken as evidence costs coverage, a line wrongly passed could hide a table that does not sum. Added with v2.0.2 (decision D26 of 2026-09-30).",
+    "parameters": {
+      "neutral_phrases": "\\b(?:{holders_heading_nouns})(?:['\\u2019]s?)?\\s+(?:general\\s+)?meetings?\\b|\\bmeetings?\\s+of\\s+(?:the\\s+)?(?:{holders_heading_nouns})\\b|\\bgeneral\\s+meetings?\\b|\\b(?:{holders_heading_nouns})(?:['\\u2019]s?)?\\s+equity\\b"
+    },
+    "rules": [
+      {
+        "id": "HEV-010",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "%|‰|\\bper\\s*-?\\s*cent\\b|\\bpercent(?:age)?s?\\b|\\bpct\\b|(?<![\\d/])\\d+\\s*/\\s*[1-9]\\d*(?![\\d/])|\\b(?:half|halves|thirds?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?|hundredths?|thousandths?)\\b",
+        "rationale": "A share in any written form: per cent sign or word, per mille, a fraction n/d (a date d/m/y is not a fraction), a fraction in words.",
+        "tests": [
+          {"text": "- Aldo Finti (P-001): 59,99 per cent", "expect": "HEV-010"},
+          {"text": "Bice Provetti holds one third of the capital.", "expect": "HEV-010"}
+        ]
+      },
+      {
+        "id": "HEV-020",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\bE-\\d{4}\\b",
+        "rationale": "An entity identifier in the body names an entity that may hold shares; the header names the entity itself without its identifier.",
+        "tests": [
+          {"text": "- E-0002 (Holding Aurelia Partecipazioni S.r.l.)", "expect": "HEV-020"}
+        ]
+      },
+      {
+        "id": "HEV-030",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\b(?:{holders_heading_nouns}|owners?|subscribers?|allottees?|transferees?|assignees?|transferors?|assignors?)\\b",
+        "rationale": "A holder noun outside a table that was read: a heading in a form the grammar does not read, or a sentence about who holds the shares.",
+        "tests": [
+          {"text": "The members before the transfer were:", "expect": "HEV-030"},
+          {"text": "Owners of the company", "expect": "HEV-030"}
+        ]
+      },
+      {
+        "id": "HEV-040",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\b(?:holds?|held|owns?|owned|belongs?\\s+to|belonged\\s+to|stakes?|quotas?|participations?|(?:equity\\s+)?interests?\\s+in)\\b",
+        "rationale": "A word of holding: a sentence that says who holds, owns or has a stake.",
+        "tests": [
+          {"text": "The whole capital is held by Aldo Finti.", "expect": "HEV-040"}
+        ]
+      },
+      {
+        "id": "HEV-050",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "(?:\\d|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))\\s+(?:\\w+\\s+)?(?:shares?|stocks?|units?|votes?)\\b",
+        "rationale": "A number of shares, quotas or votes: a holding stated as a count, which is not a fraction the reader can sum.",
+        "tests": [
+          {"text": "Aldo Finti: 600 ordinary shares", "expect": "HEV-050"}
+        ]
+      },
+      {
+        "id": "HEV-060",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\bP-\\d{3}\\b.*(?<![-\\d])\\d|(?<![-\\d])\\d.*\\bP-\\d{3}\\b",
+        "rationale": "A person identifier with a figure on the same line (the digits of an identifier do not count): a holder line in a form the item grammar does not read.",
+        "tests": [
+          {"text": "P-001 (Aldo Finti) 600", "expect": "HEV-060"}
+        ]
+      },
+      {
+        "id": "HEV-070",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "^\\s*[-*•–—·]\\s.*(?<![-\\d])\\d|[|\\t].*(?<![-\\d])\\d|(?<![-\\d])\\d.*[|\\t]",
+        "rationale": "A list item or a table row with a figure: a holders' table without a heading, or with a heading in another form.",
+        "tests": [
+          {"text": "- Aldo Finti: 600", "expect": "HEV-070"},
+          {"text": "Aldo Finti | 600", "expect": "HEV-070"}
+        ]
+      },
+      {
+        "id": "HEV-080",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "^(?!.*(?:EUR|€|euros?)\\s*[-−+]?[\\d.,'’    ]+[.;]?\\s*$).*(?<![-\\d])\\d[\\d.,'’]*\\s*[.;]?\\s*$",
+        "rationale": "A line that ends with a bare figure (not an amount in EUR): a name followed by its holding.",
+        "tests": [
+          {"text": "Aldo Finti 600", "expect": "HEV-080"}
+        ]
+      },
+      {
+        "id": "HEV-999",
+        "when": "always",
+        "outcome": "none",
+        "rationale": "Default: nothing on the line speaks of a holding (a directors' list, an address, an amount in EUR, a meeting of the holders).",
+        "tests": [
+          {"text": "Minutes of the holders' meeting (synthetic).", "expect": "HEV-999"},
+          {"text": "- P-006 (Elio Collaudi)", "expect": "HEV-999"},
+          {"text": "Total assets: EUR 8.663.187,25", "expect": "HEV-999"},
+          {"text": "Net result: EUR -12.000,00", "expect": "HEV-999"},
+          {"text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": "HEV-999"},
+          {"text": "The registered office is transferred from Corso dei Modelli 52, Valcollaudo (ZZ) to Largo Simulato 20, Serrafinta (ZZ).", "expect": "HEV-999"}
+        ]
+      }
+    ]
+  }
 }

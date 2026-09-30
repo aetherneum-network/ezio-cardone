@@ -109,6 +109,14 @@ class NotGuessed(unittest.TestCase):
                 self.assertEqual(len(record["unclassified_documents"]), 1)
                 self.assertEqual(record["documents"], [])
                 self.assertEqual(view["fields"], {})
+                if label == "type":
+                    # v2.0.2: only the type is wrong, so the body is checked for holders' tables; its one table
+                    # is read whole and sums to the whole: the entity is not blocked, and no fact is shown
+                    self.assertEqual(record["unclassified_documents"][0]["holders_check"]["status"], "read")
+                    self.assertEqual(code, 0)
+                    prov = jsonio.load(work / "dossiers" / "E-0001" / "provenance.json")
+                    self.assertEqual(prov["figures"], [])
+                    continue
                 # v2.0.1: the unread deed may hold a table that does not sum: the build is blocked (OWN-015)
                 self.assertEqual((code, view["ownership"]["rule"]), (2, "OWN-015"))
                 self.assertFalse((work / "dossiers" / "E-0001").exists())

@@ -83,7 +83,8 @@ def _validate(rules: Rules) -> None:
 
 
 def rule_groups(rules: Rules) -> list[list[dict]]:
-    return [rules.extract["doc_kinds"], rules.extract["field_rules"], rules.figure_nature["rules"],
+    return [rules.extract["doc_kinds"], rules.extract["field_rules"], rules.extract["holders_evidence"]["rules"],
+            rules.figure_nature["rules"],
             rules.discrepancy["rules"], rules.discrepancy["outgoing_scan"]["rules"], rules.ownership["rules"]]
 
 

@@ -38,11 +38,12 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 47)
+        self.assertEqual(len(ids), 56)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
         self.assertEqual(r.extract["doc_kinds"][-1]["id"], "KIND-999")
+        self.assertEqual(r.extract["holders_evidence"]["rules"][-1]["id"], "HEV-999")
         self.assertEqual(r.figure_nature["rules"][-1]["id"], "NAT-999")
         self.assertEqual(r.discrepancy["outgoing_scan"]["rules"][-1]["id"], "SCAN-999")
         self.assertEqual(r.ownership["rules"][-1]["when"], "always")
@@ -125,6 +126,7 @@ class InlineTestsBite(unittest.TestCase):
     def test_order_matters_in_every_group(self):
         groups = {
             "doc_kinds": lambda d: d["extract"]["doc_kinds"],
+            "holders_evidence": lambda d: d["extract"]["holders_evidence"]["rules"],
             "nature": lambda d: d["figure_nature"]["rules"],
             "discrepancy": lambda d: d["discrepancy"]["rules"],
             "scan": lambda d: d["discrepancy"]["outgoing_scan"]["rules"],
