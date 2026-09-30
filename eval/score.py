@@ -24,6 +24,7 @@ import io
 import json
 import sys
 import tempfile
+from fractions import Fraction
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -100,6 +101,9 @@ def score(work: Path, gold: dict) -> dict:
             else:
                 ne(f"{eid} {f.get('id')}: figure without source, date or edition")
         shown = published_fields(prov)
+        cap = [Fraction(f["value"]) for f in prov["figures"] if f["section"] == "cap_table"]
+        if cap and sum(cap, Fraction(0)) != 1:
+            ne(f"{eid}: the published cap table sums to {sum(cap, Fraction(0))}, not to the whole")
         for fld, gf in sorted(g["fields"].items()):
             p = shown.get(fld, {"status": "ABSENT"})
             if gf["status"] == "FACT":
