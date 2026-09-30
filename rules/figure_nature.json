@@ -1,0 +1,79 @@
+{
+  "file": "figure_nature.json",
+  "version": "2.0.0",
+  "reading": "Classify the nature of an amount before counting it. Resolved, subscribed, paid-in and historical capital are different natures. Ordered rules, first match wins, exceptions on top. 'pre' is the text between the previous amount (or the start of the clause) and this amount; 'post' is the text between this amount and the next one (or the end of the clause). An amount no rule recognises has no nature and is [TO CONFIRM]: it is never counted.",
+  "parameters": {
+    "bare_capital_nature": {
+      "value": "resolved",
+      "status": "[TO CONFIRM with legal]",
+      "note": "A clause that gives one amount as 'the share capital' with no other cue is read as the resolved (nominal) capital only. Whether that amount is also subscribed or paid in is not inferred."
+    }
+  },
+  "rules": [
+    {
+      "id": "NAT-010",
+      "when": {"pre_matches": "\\bfrom\\s*$"},
+      "natures": ["historical"],
+      "rationale": "Exception on top: 'from EUR A to EUR B' - A is the value before the event. It is history, not a current figure.",
+      "tests": [{"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00.", "amount_index": 0, "expect": ["historical"]}]
+    },
+    {
+      "id": "NAT-020",
+      "when": {"post_matches": "^[\\s.,;]*(?:the increase has been )?fully subscribed and fully paid[- ]in\\b"},
+      "natures": ["resolved", "subscribed", "paid_in"],
+      "rationale": "The clause itself says that the amount is fully subscribed and fully paid in: one amount, three natures.",
+      "tests": [
+        {"clause": "The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "amount_index": 0, "expect": ["resolved", "subscribed", "paid_in"]},
+        {"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00. The increase has been fully subscribed and fully paid in.", "amount_index": 1, "expect": ["resolved", "subscribed", "paid_in"]}
+      ]
+    },
+    {
+      "id": "NAT-030",
+      "when": {"pre_matches": "\\bsubscribed and (?:fully )?paid[- ]in\\b[^.;]*$"},
+      "natures": ["subscribed", "paid_in"],
+      "rationale": "Exception above the single cues: one amount named as both subscribed and paid in.",
+      "tests": [{"clause": "Share capital: resolved EUR 120.000,00; subscribed and paid in EUR 100.000,00", "amount_index": 1, "expect": ["subscribed", "paid_in"]}]
+    },
+    {
+      "id": "NAT-040",
+      "when": {"pre_matches": "\\bpaid[- ]in\\b[^.;]*$"},
+      "natures": ["paid_in"],
+      "rationale": "Cue 'paid in' in the words that introduce the amount.",
+      "tests": [{"clause": "after the increase the subscribed capital is EUR 100.000,00 and the paid-in capital is EUR 75.000,00.", "amount_index": 1, "expect": ["paid_in"]}]
+    },
+    {
+      "id": "NAT-050",
+      "when": {"pre_matches": "\\bsubscribed\\b[^.;]*$"},
+      "natures": ["subscribed"],
+      "rationale": "Cue 'subscribed' in the words that introduce the amount.",
+      "tests": [{"clause": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "amount_index": 1, "expect": ["subscribed"]}]
+    },
+    {
+      "id": "NAT-060",
+      "when": {"pre_matches": "\\bresolved\\s*$|\\bto\\s*$"},
+      "natures": ["resolved"],
+      "rationale": "Cue 'resolved', or the target of 'from ... to ...'.",
+      "tests": [
+        {"clause": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "amount_index": 0, "expect": ["resolved"]},
+        {"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00; after the increase the subscribed capital is EUR 70.000,00 and the paid-in capital is EUR 55.000,00.", "amount_index": 1, "expect": ["resolved"]}
+      ]
+    },
+    {
+      "id": "NAT-070",
+      "when": {"pre_matches": "\\bshare capital(?: is|:)?\\s*$", "single_current_amount": true},
+      "natures": ["{bare_capital_nature}"],
+      "rationale": "One amount, introduced as 'the share capital' and nothing else: see the parameter bare_capital_nature [TO CONFIRM with legal].",
+      "tests": [{"clause": "The share capital is EUR 50.000,00.", "amount_index": 0, "expect": ["resolved"]}]
+    },
+    {
+      "id": "NAT-999",
+      "when": {},
+      "natures": [],
+      "rationale": "Default: the text does not say what the amount is. No nature is assigned and the amount is [TO CONFIRM].",
+      "tests": [
+        {"clause": "The share capital is EUR 120.000,00, of which EUR 100.000,00 and EUR 75.000,00.", "amount_index": 0, "expect": []},
+        {"clause": "The share capital is EUR 120.000,00, of which EUR 100.000,00 and EUR 75.000,00.", "amount_index": 2, "expect": []}
+      ]
+    }
+  ]
+}

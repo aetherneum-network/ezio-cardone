@@ -1,0 +1,252 @@
+{
+  "file": "extract.json",
+  "version": "2.0.0",
+  "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
+  "parameters": {
+    "synthetic_marker_required": true,
+    "header_keys": ["Document id", "Document type", "Document date", "Edition", "Entity", "Financial year"],
+    "entity_pattern": "^(?P<name>.+) \\(test registry no\\. TEST-REG-(?P<num>\\d{6})\\)$",
+    "edition_pattern": "^(?P<series>[A-Z][A-Z0-9-]*)/(?P<no>[1-9]\\d*)$",
+    "amount_token": "(?:\\[illegible\\]|[0-9#][0-9#., ]*[0-9#]|[0-9#])",
+    "currency_prefix": "EUR\\s+",
+    "filename_pattern": "^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
+    "filename_slugs": {
+      "deed": "DEED",
+      "capital-resolution": "RESOLUTION",
+      "share-transfer": "TRANSFER",
+      "appointment": "APPOINTMENT",
+      "office-transfer": "OFFICE",
+      "registry-extract": "EXTRACT",
+      "holders-ledger": "LEDGER",
+      "financial-summary": "FIN"
+    }
+  },
+  "roles": {
+    "DEED": "event",
+    "RESOLUTION": "event",
+    "TRANSFER": "event",
+    "APPOINTMENT": "event",
+    "OFFICE": "event",
+    "EXTRACT": "state",
+    "LEDGER": "state",
+    "FIN": "state"
+  },
+  "expected_fields": {
+    "DEED": ["name", "legal_form", "registered_office", "share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in", "shareholders", "directors"],
+    "EXTRACT": ["name", "legal_form", "registered_office", "share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in", "shareholders", "directors"],
+    "RESOLUTION": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+    "TRANSFER": ["shareholders"],
+    "APPOINTMENT": ["directors"],
+    "OFFICE": ["registered_office"],
+    "LEDGER": ["shareholders"],
+    "FIN": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]
+  },
+  "doc_kinds": [
+    {
+      "id": "KIND-010",
+      "kind": "FIN",
+      "type_matches": "^financial statements summary$",
+      "rationale": "A financial summary is keyed by financial year, not by document date: it goes first so that no later rule can take it for a state document of the entity.",
+      "tests": [{"type": "Financial statements summary", "expect": "FIN"}]
+    },
+    {
+      "id": "KIND-020",
+      "kind": "DEED",
+      "type_matches": "^deed of incorporation$",
+      "rationale": "The founding instrument: the first event of every field.",
+      "tests": [{"type": "Deed of incorporation", "expect": "DEED"}]
+    },
+    {
+      "id": "KIND-030",
+      "kind": "RESOLUTION",
+      "type_matches": "^resolution on share capital$",
+      "rationale": "An event that changes the share capital only.",
+      "tests": [{"type": "Resolution on share capital", "expect": "RESOLUTION"}]
+    },
+    {
+      "id": "KIND-040",
+      "kind": "TRANSFER",
+      "type_matches": "^share transfer notice$",
+      "rationale": "An event that changes the holders only.",
+      "tests": [{"type": "Share transfer notice", "expect": "TRANSFER"}]
+    },
+    {
+      "id": "KIND-050",
+      "kind": "APPOINTMENT",
+      "type_matches": "^appointment of directors$",
+      "rationale": "An event that changes the directors only.",
+      "tests": [{"type": "Appointment of directors", "expect": "APPOINTMENT"}]
+    },
+    {
+      "id": "KIND-060",
+      "kind": "OFFICE",
+      "type_matches": "^transfer of registered office$",
+      "rationale": "An event that changes the registered office only.",
+      "tests": [{"type": "Transfer of registered office", "expect": "OFFICE"}]
+    },
+    {
+      "id": "KIND-070",
+      "kind": "EXTRACT",
+      "type_matches": "^test registry extract$",
+      "rationale": "A state document of the invented test registry.",
+      "tests": [{"type": "Test registry extract", "expect": "EXTRACT"}]
+    },
+    {
+      "id": "KIND-080",
+      "kind": "LEDGER",
+      "type_matches": "^holders' ledger$",
+      "rationale": "A state document that lists the holders.",
+      "tests": [{"type": "Holders' ledger", "expect": "LEDGER"}]
+    },
+    {
+      "id": "KIND-999",
+      "kind": "UNKNOWN",
+      "type_matches": ".*",
+      "rationale": "Default: a document whose kind is not recognised is never read as one of the kinds above.",
+      "tests": [{"type": "Minutes of something else", "expect": "UNKNOWN"}]
+    }
+  ],
+  "field_rules": [
+    {
+      "id": "EXT-NAME-010",
+      "field": "name",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "The company is named (?P<value>.+?); its legal form is ",
+      "rationale": "Deed clause on name and form.",
+      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "Officine Montefinto S.r.l."}]
+    },
+    {
+      "id": "EXT-NAME-020",
+      "field": "name",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Name: (?P<value>.+)$",
+      "rationale": "Extract line.",
+      "tests": [{"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": "Officine Montefinto S.r.l."}]
+    },
+    {
+      "id": "EXT-FORM-010",
+      "field": "legal_form",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "; its legal form is (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)$",
+      "rationale": "Deed clause on name and form. Only the two forms used by the synthetic world are accepted.",
+      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "S.r.l."}]
+    },
+    {
+      "id": "EXT-FORM-020",
+      "field": "legal_form",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Legal form: (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)$",
+      "rationale": "Extract line.",
+      "tests": [{"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": "S.p.A."}]
+    },
+    {
+      "id": "EXT-OFFICE-010",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["OFFICE"],
+      "line_matches": "The registered office is transferred from (?P<previous>.+?) to (?P<value>.+)\\.$",
+      "rationale": "Exception on top: in a transfer the first address is the previous one (historical) and only the second is the office after the event.",
+      "tests": [{"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": "Piazza del Campione 3, Montefinto (ZZ)", "expect_previous": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-OFFICE-020",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "The registered office is at (?P<value>.+)\\.$",
+      "rationale": "Deed clause on the registered office.",
+      "tests": [{"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).", "expect": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-OFFICE-030",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Registered office: (?P<value>.+)$",
+      "rationale": "Extract line.",
+      "tests": [{"kind": "EXTRACT", "text": "Registered office: Via del Collaudo 7, Borgoprova (ZZ)", "expect": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-CAP-010",
+      "field": "share_capital",
+      "extractor": "capital",
+      "kinds": ["DEED", "RESOLUTION", "EXTRACT"],
+      "line_matches": "share capital",
+      "rationale": "The capital clause is the line that names the share capital. The nature of each amount in it (resolved, subscribed, paid in, historical) is decided by rules/figure_nature.json before anything is counted.",
+      "tests": [
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "expect": {"resolved": "50000.00", "subscribed": "50000.00", "paid_in": "50000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 8#.###,00; subscribed EUR 80.000,00; paid in EUR 80.000,00", "expect": {"resolved": null, "subscribed": "80000.00", "paid_in": "80000.00"}}
+      ]
+    },
+    {
+      "id": "EXT-HOLD-010",
+      "field": "shareholders",
+      "extractor": "holders",
+      "nature": "share",
+      "kinds": ["DEED", "EXTRACT", "LEDGER", "TRANSFER"],
+      "line_matches": "^(?:\\d+\\. )?Holders(?: after the transfer| as at the document date)?[.:]$",
+      "item_matches": "^\\s*- (?P<id>P-\\d{3}|E-\\d{4}) \\((?P<label>.*)\\): (?P<share>.+)$",
+      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table.",
+      "tests": [
+        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "expect": [{"holder": "E-0002", "share": "2/5"}, {"holder": "P-001", "share": "3/5"}]},
+        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "expect": null}
+      ]
+    },
+    {
+      "id": "EXT-DIR-010",
+      "field": "directors",
+      "extractor": "directors",
+      "nature": "person",
+      "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+      "line_matches": "^(?:\\d+\\. )?Directors(?: in office after this appointment)?[.:]$",
+      "item_matches": "^\\s*- (?P<id>P-\\d{3}) \\((?P<label>.*)\\)$",
+      "rationale": "The directors are a list of person identifiers, read whole or not at all.",
+      "tests": [
+        {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)", "expect": ["P-034"]},
+        {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- someone not identified", "expect": null}
+      ]
+    },
+    {
+      "id": "EXT-FIN-010",
+      "field": "fin.FY{fy}.net_equity",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Net equity: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line; the field is keyed by the financial year of the header.",
+      "tests": [{"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 123.456,00", "expect": "123456.00"}]
+    },
+    {
+      "id": "EXT-FIN-020",
+      "field": "fin.FY{fy}.total_assets",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Total assets: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line.",
+      "tests": [{"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"}]
+    },
+    {
+      "id": "EXT-FIN-030",
+      "field": "fin.FY{fy}.revenue",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Revenue: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line.",
+      "tests": [{"kind": "FIN", "fy": "2024", "text": "Revenue: EUR [illegible]", "expect": null}]
+    }
+  ]
+}

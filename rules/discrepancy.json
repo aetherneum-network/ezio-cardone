@@ -1,0 +1,244 @@
+{
+  "file": "discrepancy.json",
+  "version": "2.0.0",
+  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition.",
+  "parameters": {
+    "event_supersedes_earlier_state": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "A later event document (deed, resolution, transfer, appointment, office transfer) makes every earlier value of the field historical. What an event document proves against a registry extract is a legal question: the pack only orders documents by date."
+    },
+    "later_edition_supersedes_same_series": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "Within one series of state documents (registry extracts, holders' ledger, the financial summary of one year) only the latest edition is a current witness; earlier editions are history."
+    },
+    "same_day_state_is_current": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "A state document dated on the same day as the latest event is treated as current: if it differs, the difference is shown rather than assumed away."
+    },
+    "adjudication": {
+      "value": "none",
+      "status": "[TO CONFIRM with legal]",
+      "note": "No source is preferred. A human adjudicates."
+    }
+  },
+  "rules": [
+    {
+      "id": "DISC-010",
+      "when": "no_current_assertion",
+      "status": "TO_CONFIRM",
+      "reason": "no current source for this field",
+      "rationale": "Nothing to show: the field is written [TO CONFIRM], never filled.",
+      "tests": [
+        {
+          "assertions": [],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-020",
+      "when": "two_or_more_current_values",
+      "status": "DISCREPANCY",
+      "rationale": "Exception above every single-value rule: current sources disagree. Every value is kept with its sources; none is chosen.",
+      "tests": [
+        {
+          "assertions": [
+            {
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "date": "2024-01-10",
+              "value": "50000.00"
+            },
+            {
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "date": "2025-02-01",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "50000.00",
+              "80000.00"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-030",
+      "when": "no_current_value",
+      "status": "TO_CONFIRM",
+      "reason": "the current sources of this field could not be read",
+      "rationale": "The latest event document (or every current witness) is unreadable for this field. An older value is history and is never promoted back to current.",
+      "tests": [
+        {
+          "assertions": [
+            {
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "date": "2024-01-10",
+              "value": "50000.00"
+            },
+            {
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "date": "2025-03-01",
+              "value": null
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-040",
+      "when": "one_current_value",
+      "status": "STATED",
+      "rationale": "Every readable current source gives the same value. It is shown once, with the latest source first and the others listed.",
+      "tests": [
+        {
+          "assertions": [
+            {
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "date": "2024-01-10",
+              "value": "50000.00"
+            },
+            {
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "date": "2025-03-01",
+              "value": "80000.00"
+            },
+            {
+              "doc": "D3",
+              "role": "state",
+              "series": "EXTRACT",
+              "date": "2024-06-01",
+              "value": "50000.00"
+            },
+            {
+              "doc": "D4",
+              "role": "state",
+              "series": "EXTRACT",
+              "date": "2025-06-01",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "status": "STATED",
+            "value": "80000.00",
+            "historical": [
+              "50000.00",
+              "50000.00"
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "outgoing_scan": {
+    "reading": "Scanner for outgoing documents that still carry a superseded value. Ordered guards, first match wins, exceptions on top; the default flags the line.",
+    "parameters": {
+      "currency_markers": "(?:EUR|€|euro)",
+      "field_cues": {
+        "share_capital": "\\bcapital\\b"
+      },
+      "entity_lookback_lines": 3
+    },
+    "rules": [
+      {
+        "id": "SCAN-010",
+        "when": "document_dated_before_change",
+        "action": "ignore",
+        "rationale": "A document written before the change carried the value that was current on its own date.",
+        "tests": [
+          {
+            "doc_date": "2025-11-03",
+            "text": "Fornace Aurelia S.r.l. - share capital EUR 50.000,00 fully paid in"
+          }
+        ]
+      },
+      {
+        "id": "SCAN-020",
+        "when": "no_field_cue_in_line",
+        "action": "ignore",
+        "rationale": "The same amount without the cue of the field (an invoice, a guarantee) is another figure.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Invoice to Fornace Aurelia S.r.l., total EUR 50.000,00"
+          }
+        ]
+      },
+      {
+        "id": "SCAN-030",
+        "when": "historical_marker_before_amount",
+        "pattern": "\\b(?:from|until|was|formerly|previously|before the increase)\\b[^.;]*$",
+        "action": "ignore",
+        "rationale": "The line itself presents the amount as a past value.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Until the increase the share capital of Fornace Aurelia was EUR 50.000,00."
+          }
+        ]
+      },
+      {
+        "id": "SCAN-040",
+        "when": "line_is_about_another_entity",
+        "action": "ignore",
+        "rationale": "The nearest entity named is not the entity whose value was superseded.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Holding Aurelia Partecipazioni S.r.l. - share capital EUR 50.000,00"
+          }
+        ]
+      },
+      {
+        "id": "SCAN-050",
+        "when": "line_is_not_about_the_entity",
+        "action": "ignore",
+        "rationale": "No mention of the entity in the line or in the lines just above.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "The share capital amounts to EUR 50.000,00."
+          }
+        ]
+      },
+      {
+        "id": "SCAN-999",
+        "when": "always",
+        "action": "flag",
+        "rationale": "Default: the superseded amount is presented as current for this entity.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Fornace Aurelia S.r.l. - share capital EUR 50.000,00 fully paid in"
+          },
+          {
+            "doc_date": "2026-03-01",
+            "text": "Re: Fornace Aurelia S.r.l.\n\nThe share capital is 50,000.00 EUR."
+          }
+        ]
+      }
+    ]
+  }
+}
