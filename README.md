@@ -94,8 +94,15 @@ How to read them:
   were blocked wrongly, most of them because their holders' table was worded in a form the rules did not
   read. v2.0.2 is the answer to that finding. On the corpora already seen it has 0 never-events and publishes
   135 and 134 perturbed dossiers of seeds 20261011 and 20261012 and 44 of the out-of-pool corpus of run 5
-  (run 8): that is not a blind result. The blind run of `v2.0.2-freeze` is for a different hand, as written in
-  `eval/BLIND_PROTOCOL.md`.
+  (run 8): that is not a blind result.
+- The blind run of `v2.0.2-freeze` (run 9, by the evaluator, not the author, seed 20261013) found
+  **0 never-events**. Entities blocked wrongly: 0 of 150 plain, 0 of 150 perturbed, 4 of 9 hand-written
+  (`eval/blind/hand-9/`); blocked rightly 6, 6 and 1. The four are tables a careful human reads; they block,
+  none is read wrongly. Two of them use forms that `CHANGELOG.md` 2.0.2 does not list among the known
+  limits: a heading with a parenthesised qualifier or "of record", and numbered holder lines with a dash
+  (a pipe table, in a third, is not listed either). On the perturbed corpus 54 of the 144 published dossiers
+  carry the holders `[TO CONFIRM]` and 780 fields are `[TO CONFIRM]` in all: by the evaluator's reading, a
+  table read from a document of unrecognised type leaves the other fields undecided (rule DISC-005).
 
 ## Two rebuilds, same bytes
 
