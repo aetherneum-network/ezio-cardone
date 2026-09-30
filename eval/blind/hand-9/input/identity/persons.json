@@ -1,0 +1,62 @@
+{
+  "P-001": {
+    "name": "Nino Nessuno",
+    "born": "1965-04-11",
+    "email": "nino.nessuno@persons.example",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "name": "Lia Inesistente",
+    "born": "1972-09-30",
+    "email": "lia.inesistente@persons.example",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "name": "Oreste Immaginari",
+    "born": "1958-12-02",
+    "email": "oreste.immaginari@persons.example",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "name": "Vera Fantasia",
+    "born": "1980-06-21",
+    "email": "vera.fantasia@persons.example",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "name": "Tito Simulanti",
+    "born": "1969-01-15",
+    "email": "tito.simulanti@persons.example",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "name": "Rosa Finzione",
+    "born": "1975-03-08",
+    "email": "rosa.finzione@persons.example",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "name": "Ugo Apparenti",
+    "born": "1962-10-27",
+    "email": "ugo.apparenti@persons.example",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "name": "Ida Fantoccio",
+    "born": "1983-02-14",
+    "email": "ida.fantoccio@persons.example",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "name": "Gina Presunti",
+    "born": "1977-07-07",
+    "email": "gina.presunti@persons.example",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "name": "Elmo Ipotetici",
+    "born": "1959-11-19",
+    "email": "elmo.ipotetici@persons.example",
+    "tax_code": "SYN-CF-P010"
+  }
+}

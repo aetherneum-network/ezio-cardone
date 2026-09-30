@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0007-03
+Document type: Test registry extract
+Document date: 2026-05-05
+Edition: EXTRACT/1
+Entity: Lanificio Ipotetico S.p.A. (test registry no. TEST-REG-000007)
+
+Name: Lanificio Ipotetico S.p.A.
+Legal form: S.p.A.
+Registered office: Largo dei Presunti 6, Borgofinto (ZZ)
+Share capital: resolved EUR 500.000,00; subscribed and paid in EUR 500.000,00
+Shareholders of record:
+- P-009 (Gina Presunti): 30%
+- P-010 (Elmo Ipotetici): 70%
+
+Directors:
+- P-009 (Gina Presunti)
