@@ -9,6 +9,10 @@
 - The generator, the extraction rules, the scenarios and the tests share this one author. That is why
   the development and holdout numbers measure internal consistency and why the blind run is assigned
   to a different hand (`eval/BLIND_PROTOCOL.md`).
+- **The fix of v2.0.1** (finding T16) was written with the same model, in a separate session on 2026-09-30,
+  after reading the evaluator's results of the blind run of v2.0.0, failing documents included. The fixed
+  code has seen those corpora; only a new blind run, by a different hand, measures it on wording it has
+  not seen.
 
 ## What runs at runtime
 

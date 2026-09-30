@@ -15,9 +15,9 @@ Three statuses are used, and only these three:
 
 | # | Sentence of the profile (README) | Status | Where it would fail |
 |---|---|---|---|
-| A1 | "Every figure in the rendered dossier carries the source document it came from and that document's date." | demonstrated | `scenarios/S03` (every figure of a valid dossier has document, date and edition; four tampered records are refused), `scenarios/S04` (a superseded figure in outgoing text is traced to the edition that replaced it), `scenarios/S10` (boundary: the nature of each amount), `tests/test_never_event.py` |
+| A1 | "Every figure in the rendered dossier carries the source document it came from and that document's date." | demonstrated | `scenarios/S03` (every figure of a valid dossier has document, date and edition; four tampered records are refused), `scenarios/S04` (a superseded figure in outgoing text is traced to the edition that replaced it), `scenarios/S10` (boundary: the nature of each amount), `tests/test_never_event.py`, `tests/test_amount_grouping.py` (since v2.0.1: an amount is read whole or abstained; the audit refuses a figure whose digits are not those of its quote) |
 | A2 | "Conflicting sources are surfaced side by side rather than silently reconciled" | demonstrated | `scenarios/S01` (deed vs registry extract on share capital), `scenarios/S06` (file name vs content), `tests/test_never_event.py` (a discrepancy collapsed to one value is refused by the builder and caught by the audit; ties are never broken by a guess) |
-| A3 | "a cap table that does not resolve to 100% per entity is blocked, not footnoted" | demonstrated | `scenarios/S02` (3 x 33,33% = 9999/10000 is blocked, 3 x 1/3 builds), `scenarios/S07` (cross-holding: reported, never silently resolved), `tests/test_ownership.py` (exact fractions against an independent reference) |
+| A3 | "a cap table that does not resolve to 100% per entity is blocked, not footnoted" | demonstrated | `scenarios/S02` (3 x 33,33% = 9999/10000 is blocked, 3 x 1/3 builds), `scenarios/S07` (cross-holding: reported, never silently resolved), `tests/test_ownership.py` (exact fractions against an independent reference), `tests/test_amount_grouping.py` (since v2.0.1: a holders' table that could not be read blocks the entity, rule `OWN-015`) |
 | A4 | "the dossier is a build artifact regenerated from the entity-record JSON, never hand-assembled" | demonstrated | `scenarios/S09` (a rule change moves only the expected field; the diff is reported), `tests/test_determinism.py` (same inputs, same bytes, DOCX included; a rebuild from the records gives the same dossier), `tools/rebuild.py` |
 | A5 | "\"what did this entity look like in March\" is always answerable, because no snapshot is ever overwritten" | demonstrated | `scenarios/S05`, `tests/test_snapshot.py` |
 | A6 | "Identity-data separation — ... the graph structure stays shareable" | demonstrated, **in part** | `scenarios/S08`, `tests/test_shareable.py`: the shareable layer contains no string of the identity layer and keeps the graph under opaque identifiers. See row N3 for the part that is not demonstrated. |
@@ -74,3 +74,19 @@ who wrote the extraction rules. Clean numbers on the development and holdout sui
 gold labels and rules agree with each other - internal consistency - and nothing more. The stress suite
 and the blind protocol (eval/BLIND_PROTOCOL.md, written after the freeze tag and run by a different hand) exist because
 of that limit.
+
+## 6. The blind run of `v2.0.0-freeze`, and what it downgraded
+
+Run once by the evaluator, not by the author, on 2026-09-30 (`eval/history.json`, run 5). By the only
+criterion declared before it - no never-event in any result - it does not pass: 0 never-events in the plain
+corpus, 1 in the perturbed one, 12 in the out-of-pool one. As `eval/BLIND_PROTOCOL.md` requires, the rows
+it touches are downgraded here for the tag `v2.0.0-freeze`; the tag itself is not moved.
+
+| # | At `v2.0.0-freeze` | In v2.0.1 (tag `v2.0.1-freeze`) |
+|---|---|---|
+| A1 | Held for the source, not for the figure: five figures carried their source document and date, but the figure was read a thousand times too small (`EUR 150'000.00` read as `150.00`, finding T16) and the audit confirmed it. A right source next to a wrong figure is not what A1 promises. | Amounts grouped by an apostrophe or a space are read whole; an amount whose reading is not certain is abstained with its reason; the audit compares the digits of the figure with those of its quote. |
+| A3 | Held only for holders' tables the rules could read: eight entities whose table does not sum were published with the holders `[TO CONFIRM]`, because their table had not been read. | A holders' table that could not be read blocks the entity (`OWN-015`, parameter `unverified_holders_table`, `[TO CONFIRM with legal]`). The price is coverage, stated in `CHANGELOG.md`: on reworded corpora most entities are blocked. |
+
+The v2.0.1 column rests on the tests named in section 1 and on data already seen (the evaluator's corpora
+of run 5 and the author's suites, `eval/history.json` run 6). It has not been run blind. Nothing here says
+that v2.0.1 passes a blind run until a different hand has run `eval/BLIND_PROTOCOL.md` on `v2.0.1-freeze`.
