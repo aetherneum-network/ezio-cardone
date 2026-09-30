@@ -196,7 +196,7 @@
         {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
         {"kind": "EXTRACT", "text": "Share capital: resolved EUR 8#.###,00; subscribed EUR 80.000,00; paid in EUR 80.000,00", "expect": {"resolved": null, "subscribed": "80000.00", "paid_in": "80000.00"}},
         {"kind": "RESOLUTION", "text": "The meeting resolved to increase the share capital from EUR 200'000.00 to EUR 280'000.00; after the increase the subscribed capital is EUR 260'000.00 and the paid-in capital is EUR 220'000.00.", "expect": {"resolved": "280000.00", "subscribed": "260000.00", "paid_in": "220000.00"}},
-        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120’000,00; subscribed EUR 100 000.00; paid in EUR 75 000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120’000,00; subscribed EUR 100\u00a0000.00; paid in EUR 75\u202f000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
         {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150‘000,00; subscribed EUR 150·000,00; paid in EUR 150  000,00", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
         {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150 thousand; subscribed EUR 100.000,00; paid in EUR 100.000,00", "expect": {"resolved": null, "subscribed": "100000.00", "paid_in": "100000.00"}},
         {"kind": "DEED", "text": "3. Share capital. The share capital is Mio. EUR 1, fully subscribed and fully paid in.", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
@@ -255,7 +255,7 @@
       "rationale": "Financial summary line 'Total assets:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
       "tests": [
         {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"},
-        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1 000 000,00", "expect": "1000000.00"}
+        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1\u2009000\u2009000,00", "expect": "1000000.00"}
       ]
     },
     {

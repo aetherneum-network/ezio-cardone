@@ -21,10 +21,10 @@ _IT_PLAIN = re.compile(r"^\d+,\d{2}$")                   # 50000,00
 _EN = re.compile(r"^\d{1,3}(,\d{3})+\.\d{2}$")           # 50,000.00
 _EN_PLAIN = re.compile(r"^\d+\.\d{2}$")                  # 50000.00
 _APOS = re.compile(r"^\d{1,3}(['’])\d{3}(?:\1\d{3})*(?:[.,]\d{2})?$")                   # 50'000.00
-_SPACE = re.compile(r"^\d{1,3}([     ])\d{3}(?:\1\d{3})*(?:[.,]\d{2})?$")  # 50 000,00
+_SPACE = re.compile(r"^\d{1,3}([ \u00a0\u2007\u2009\u202f])\d{3}(?:\1\d{3})*(?:[.,]\d{2})?$")  # 50 000,00
 _INT = re.compile(r"^\d+$")                              # 50000
 _AMBIGUOUS = re.compile(r"^\d{1,3}([.,]\d{3})+$")        # 50.000 or 50,000: thousands or decimals?
-_KNOWN_CHARS = re.compile(r"^[\d.,'’     ]*$")
+_KNOWN_CHARS = re.compile(r"^[\d.,'’ \u00a0\u2007\u2009\u202f]*$")
 
 AMOUNT_CANON = re.compile(r"^\d+\.\d{2}$")
 FRACTION_CANON = re.compile(r"^\d+/[1-9]\d*$")
