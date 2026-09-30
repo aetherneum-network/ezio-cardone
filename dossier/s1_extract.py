@@ -485,12 +485,12 @@ def line_fields(line: str, rules: Rules) -> tuple[list[str], list[str]]:
     fields: set[str] = set()
     ids: list[str] = []
     for r in group:
-        if r["when"] == "topic" and rx(r["pattern"]).search(line):
+        if r["when"] == "topic" and rx(_expand(r["pattern"], rules)).search(line):
             fields.update(r["fields"])
             ids.append(r["id"])
     if not ids:
         r = first_match([r for r in group if r["when"] != "topic"],
-                        lambda r: r["when"] == "always" or rx(r["pattern"]).search(line) is not None)
+                        lambda r: r["when"] == "always" or rx(_expand(r["pattern"], rules)).search(line) is not None)
         fields.update(r["fields"])
         ids.append(r["id"])
     return ([EVERY_FIELD] if EVERY_FIELD in fields else sorted(fields)), ids

@@ -204,6 +204,14 @@ class C6_UnreadDocumentScope(_Published):
         doc = _doc(3, "2025-05-05", "Memorandum", "MEMO/1", ["The resolution of 3 March is annulled."])
         self.assertPublished([DEED, doc], table=None, to_confirm=OTHER_FIELDS + ("shareholders",))
 
+    def test_a_sentence_no_rule_explains_keeps_every_field(self):
+        # FEV-999: no topic word, no figure, no identifier - a person named without identifier. The word lists
+        # never close, so what they do not know keeps every field [TO CONFIRM].
+        for line in ("Ugo Apparenti now runs the company.", "Lia Inesistente sold everything to Ugo Apparenti."):
+            with self.subTest(line=line):
+                doc = _doc(3, "2025-05-05", "Memorandum", "MEMO/1", [line])
+                self.assertPublished([DEED, doc], table=None, to_confirm=OTHER_FIELDS + ("shareholders",))
+
     def test_fields_check_of_a_header_problem_is_every_field(self):
         rel, text = _reword(_doc(3, "2025-05-05", "Memorandum", "MEMO/1", ["Nothing."]),
                             "Document date: 2025-05-05", "Document date: fifth of May 2025")

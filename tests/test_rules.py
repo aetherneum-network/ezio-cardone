@@ -38,7 +38,7 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 64)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900, FEV-999 in v2.0.3
+        self.assertEqual(len(ids), 67)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()

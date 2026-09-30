@@ -412,7 +412,7 @@
     ]
   },
   "unread_fields": {
-    "reading": "Which fields a document whose type is not recognised may change (DISC-005, parameter unread_document_scope of rules/discrepancy.json). Checked only when the type is the header's only problem; a document with any other header problem may change every field. Every body line outside a holders' table read whole goes through these rules. The rules marked 'topic' are all tried: a line may speak of several fields, and every field it may speak of is kept. Only when no topic rule applies are the others tried, in order, first match wins: a figure, an identifier, an amount or a label that no topic explains makes the document one that may change every field. The shareholders are decided by the holders' check (holders_evidence): a table read whole may change them, 'no_table' does not. The rules err on the side of evidence: a word wrongly taken as a topic costs coverage (the field stays [TO CONFIRM]), a line wrongly passed could let a fact be shown that the unread document contradicts. Added with v2.0.3 (D30: on the perturbed corpus of seed 20261013 a document of unrecognised type left every field of its entity [TO CONFIRM], including fields it does not speak of).",
+    "reading": "Which fields a document whose type is not recognised may change (DISC-005, parameter unread_document_scope of rules/discrepancy.json). Checked only when the type is the header's only problem; a document with any other header problem may change every field. Every body line outside a holders' table read whole goes through these rules. The rules marked 'topic' are all tried: a line may speak of several fields, and every field it may speak of is kept. Only when no topic rule applies are the others tried, in order, first match wins: a figure, an identifier, an amount or a label that no topic explains makes the document one that may change every field; a holders' heading, a title marked as invented and a closing sentence saying the document states nothing more state no field; any other line may change every field (default FEV-999). The shareholders are decided by the holders' check (holders_evidence): a table read whole may change them, 'no_table' does not. The rules err on the side of evidence: a word wrongly taken as a topic costs coverage (the field stays [TO CONFIRM]), a line wrongly passed could let a fact be shown that the unread document contradicts. Added with v2.0.3 (D30: on the perturbed corpus of seed 20261013 a document of unrecognised type left every field of its entity [TO CONFIRM], including fields it does not speak of).",
     "rules": [
       {
         "id": "FEV-010",
@@ -495,14 +495,48 @@
         ]
       },
       {
-        "id": "FEV-999",
-        "when": "always",
+        "id": "FEV-910",
+        "when": "no_topic_and_pattern_found",
         "fields": [],
-        "rationale": "Default: a line with no topic, no figure, no identifier and no label states no field (a title, the synthetic marker, a sentence about the document itself).",
+        "pattern": "{holders_heading}",
+        "rationale": "A holders' heading, the whole line: the holders are decided by the holders' check (holders_evidence), and the heading states no other field.",
+        "tests": [
+          {"text": "Holders as at the document date:", "expect": []},
+          {"text": "After the transfer the members are:", "expect": []},
+          {"text": "Shareholders following the transfer:", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-920",
+        "when": "no_topic_and_pattern_found",
+        "fields": [],
+        "pattern": "^(?:the\\s+)?(?:minutes|notice|entries|entry|register|ledger|statement|certificate|memorandum|summary|record|report|letter|declaration)\\b[^.:;!?]{0,100}\\((?:synthetic|fictitious)\\)\\s*[.:]?$",
+        "rationale": "A title, the whole line: a title noun, one phrase with no sentence in it, marked as invented. It names the document and states no field.",
         "tests": [
           {"text": "Entries of the ledger as at the document date (synthetic).", "expect": []},
           {"text": "Minutes of the holders' meeting (synthetic).", "expect": []},
           {"text": "Notice of a transfer of shares (synthetic).", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-930",
+        "when": "no_topic_and_pattern_found",
+        "fields": [],
+        "pattern": "^(?:nothing\\s+(?:else|more)|no\\s+other\\s+(?:fact|matter|data|information))\\s+is\\s+(?:certified|stated|recorded|declared|attested)\\s*\\.?$",
+        "rationale": "A closing sentence, the whole line, saying that the document states nothing more: it states no field.",
+        "tests": [
+          {"text": "Nothing else is certified.", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-999",
+        "when": "always",
+        "fields": ["*"],
+        "rationale": "Default: a line that no rule above explains may state any field - for example a person named without identifier who 'now runs the company', or a holding told in a sentence. A word list never closes; what it does not know keeps every field [TO CONFIRM].",
+        "tests": [
+          {"text": "Ugo Apparenti now runs the company.", "expect": ["*"]},
+          {"text": "Lia Inesistente sold everything to Ugo Apparenti.", "expect": ["*"]},
+          {"text": "Minutes of the holders' meeting (synthetic). Ugo Apparenti takes over from Lia Inesistente.", "expect": ["*"]}
         ]
       }
     ]
