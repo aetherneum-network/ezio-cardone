@@ -18,6 +18,13 @@
   2026-09-30, as the builder's hand, after reading the results of the blind run of v2.0.1 (run 7, seed
   20261012) and reproducing its wrong blocks on that seed and on seeds already recorded. The same limit
   applies: the code has seen those corpora, and its numbers (run 8) are not blind.
+- **The change of v2.0.3** (owner decision D30: the holders'-table forms of the blind run of v2.0.2 read or
+  declared as known limits, `DISC-005` scoped to the fields an unread document may state, the never-event
+  list of the scorer no longer capped) was written with the same model, in a separate session on 2026-09-30
+  (UTC; 2026-10-01 Italian time), as the builder's hand, after reading the results and the hand-written
+  documents of the blind run of v2.0.2 (run 9, seed 20261013, `eval/blind/hand-9/`) and regenerating its
+  corpora. The same limit applies: the code has seen those corpora and those wordings, and its numbers
+  (run 10) are not blind.
 
 ## What runs at runtime
 

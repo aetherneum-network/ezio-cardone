@@ -2,6 +2,111 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.3] - 2026-10-01 (freeze tag `v2.0.3-freeze`; not yet run blind)
+
+### D30 - forms found by the blind run of v2.0.2, run 9; DISC-005 over-reach; never_event_list cap
+
+Source: the evaluator's blind run of `v2.0.2-freeze`, `eval/history.json` run 9, seed 20261013 and the hand
+corpus `eval/blind/hand-9/`: 0 never-events on every corpus; 4 of 9 hand-written entities blocked wrongly
+(E-0003, E-0007, E-0008, E-0009); on the perturbed corpus 54 of the 144 published dossiers with the holders
+`[TO CONFIRM]` and 761 of 1482 fields abstained. Owner decision D30 (2026-10-01): classify the forms by class,
+generalise the rules first and the code second; counts and nominal amounts are read only with a total stated
+in the same document; an ambiguous form stays blocked. `OWN-015` and `unverified_holders_table` stay `block`
+(D26). The asymmetry is unchanged: a wrong published figure is worse than any number of blocks.
+
+Form classes, from the hand-9 documents (the entity where each was found) and generalised:
+
+| Class | Found in run 9 | v2.0.2 | v2.0.3 |
+|---|---|---|---|
+| C1. holders' heading: "of record", "registered", "entered in the register of members"; a qualifier meaning "current" in parentheses or after a comma; "(synthetic)"; clause numbers `4.`, `(4)`, `iv.`, `Article 4`, `§ 4`; nouns quotaholdings, shareholding(s), shareholding structure | E-0007 `Shareholders of record:`, `Shareholding structure at the document date (synthetic):`; E-0009 `Holders (as at the document date):` | not read, blocked | read |
+| C2. holder line: markers `-` `*` `•` `–` `—` `·` `1.` `1)` `(1)` `a)` `(a)` `iv)`; identifier first (label optional) or name first `Name (P-001)`; separators `:`, ` - `, `\|`, tab, space | E-0009 `1) P-002 (...) - 20%`; E-0008 `Elmo Ipotetici (P-010): 200 quotas` | not read, blocked | read |
+| C3. share in words: `60 per cent`, `60 percent`, `60 pct`, whole per cent in words (`thirty per cent`, `thirty-five per cent`), simple fractions in words (`one third`, `two fifths`, `a half`, `three quarters`) | E-0007 `thirty per cent` | not read, blocked | read |
+| C4. counts of quotas or shares with exactly one total stated in the same document (`divided into 300 quotas`, `consisting of`, `a total of`): each share is count/total, exact; counts that do not add up to the total do not sum (`OWN-010`) | E-0008 deed | not read, blocked | read |
+| C5. directors' lines in the same item grammar (numbered, name first) | - | not read | read |
+| C6. a document of unrecognised type blocks only the fields it may state (`DISC-005`) | E-0006 ledger, E-0007 statement, E-0008 certificate; the 54 dossiers of the perturbed corpus | every field `[TO CONFIRM]` | the fields it may state |
+| C7. holders in a sentence; nominal amounts per holder; a pipe table with a header row | E-0003 deed and extract, E-0007 deed | blocked | still blocked (known limits) |
+
+Root causes and what changed (file:line of v2.0.2 -> v2.0.3):
+
+- C1: `rules/extract.json:19-21` (v2.0.2) - the heading grammar knew no "of record", no qualifier in
+  parentheses and none of the nouns above. -> `rules/extract.json:19-23`: parameters `holders_heading`,
+  `holders_heading_nouns`, `holders_heading_registered`, `clause_number`.
+- C2: `rules/extract.json:217` and `:235` (v2.0.2) - one item form, `- ID (label): share`. -> `:232` and `:258`:
+  `item_matches` built from the parameters `list_marker`, `item_holder`, `item_person`, `item_separator`.
+  A label with nested or second parentheses is no longer read: v2.0.2 read it with a greedy label; v2.0.3
+  abstains (a tightening).
+- C3: `dossier/lib/numbers.py:81-97` (v2.0.2, `parse_share`: figures with `%` and `n/d` only) ->
+  `dossier/lib/numbers.py:89-165` (`words_to_int`, `_share_in_words`, `parse_share`, `parse_count`; a count
+  is never a share).
+- C4: no count was read in v2.0.2. -> `rules/extract.json:31` (parameter `count_total`) and
+  `dossier/s1_extract.py:328` (`count_total`), `:347` (`_read_items`); the audit re-derives the shares from
+  the quote with its own parser (`dossier/s7_audit.py:46-56`, `:88`).
+- C6, the DISC-005 over-reach: `dossier/s3_discrepancy.py:79-84` (v2.0.2, `unread_that_matter`) ignored the
+  field: every unclassified document not older than the latest event blocked every FACT field of its entity.
+  -> `dossier/s3_discrepancy.py:79-117`: new parameter `unread_document_scope` = `fields_it_may_state`
+  (`rules/discrepancy.json:31`, `[TO CONFIRM with legal]`, allowed also `every_field`, the v2.0.2 behaviour);
+  `fields_check` of each unclassified document (`dossier/s1_extract.py:477-526`) by the new ordered group
+  `unread_fields` (`rules/extract.json:414`, `FEV-010`..`FEV-060` topics, all tried; `FEV-900` a figure, an
+  entity identifier, an amount or a label -> every field; `FEV-910` a holders' heading, `FEV-920` a title
+  marked as invented, `FEV-930` a closing sentence -> no field; default `FEV-999` -> every field). A
+  document whose header has another problem may change every field. A shareholders table read whole that
+  agrees with the current holders releases the holders field (`unread_agreeing`). The audit re-derives the
+  scope from the source lines by its own code (`dossier/s7_audit.py:146-192`).
+- The never_event_list cap: `eval/score.py:190` (v2.0.2) `never[:50]` -> `never`: every never-event is
+  listed; the count was never capped.
+
+Found by the builder before the tag, and closed: in the first commit of this change (`e779adc`) the default
+`FEV-999` said "no field", so a sentence with no topic word, no figure and no identifier ("Ugo Apparenti now
+runs the company.") would have let an older fact be published. Commit `5a13f3f` makes the default keep every
+field; on the corpora already seen only holders' headings and titles fell to it, so no number moved.
+
+### Known limits of v2.0.3 (each still blocks the entity, or keeps the field `[TO CONFIRM]`)
+
+- holders stated in a sentence rather than in a list under a heading (hand-9 E-0003 and E-0007 deeds);
+- nominal amounts per holder (no share, no count);
+- a table with a header row (`| Holder | Nominal quota | Share |`);
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners);
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type;
+- per mille;
+- shares in words beyond whole per cent and simple fractions: `half` alone, decimals in words, a number
+  that does not agree (`two third`, `one thirds`), more than a hundred per cent;
+- a label with nested or second parentheses (read by v2.0.2, abstained by v2.0.3);
+- two holders' tables in one document;
+- a document date in words: the header cannot be read and the document may change every field (41 of the
+  44 entities still blocked wrongly in the out-of-pool corpus of run 5);
+- classified documents of other kinds (resolutions, appointments, office transfers, financial summaries)
+  are not searched for holders' tables;
+- a text of a capital increase or reduction is read as a change of the capital, never of the holders
+  (`FEV-040`; assumption, `[TO CONFIRM with legal]` with `unread_document_scope`);
+- the rules of `unread_fields` are word lists: a topic word present by chance keeps its field
+  `[TO CONFIRM]` (coverage cost; for example "named" in a certificate keeps name and legal form); a line with
+  a topic word that also changes another field without naming it keeps only the named field - the residual
+  risk of the scope, declared here;
+- shares planted as illegible block by design (D26): 2, 2, 1, 3, 3, 3, 3 entities of the generated corpora
+  of dev, holdout, stress and the seeds 20261011 and 20261012, plain and perturbed.
+
+### Tests and numbers
+
+- `tests/test_d30_forms.py`, 31 tests in 7 classes (C1..C7 above). Run on the v2.0.2 code, 19 fail or error:
+  every C1, C2, C3 and C5 test, the three C4 tests that read counts with a total, three C6 tests (ledger,
+  register, minutes of a change of seat, which v2.0.2 kept every field `[TO CONFIRM]`) and
+  `test_nested_parentheses` (v2.0.2 read the label), plus `test_fields_check_of_a_header_problem_is_every_field`
+  (error: no `fields_check`). 12 pass on both: the limits of C7 but one, the two C4 limits, and the three C6
+  tests that keep every field (`test_a_sentence_no_rule_explains_keeps_every_field` fails on `e779adc`).
+- Also failing on v2.0.2: `tests/test_numbers.py` `test_per_cent_words_are_read` (9 of 10 forms) and
+  `test_counts_are_not_shares` (error), `tests/test_never_event.py` `test_never_event_list_is_never_capped`
+  and `test_unknown_document_type_after_the_deed_blocks_the_facts_it_may_change`, and
+  `tests/test_holders_forms.py` `test_register_of_members_with_a_reworded_heading` (now published with the
+  holders stated). 243 tests in all; `tests/test_rules.py` counts 67 rules.
+- Measured by the builder on corpora already seen (`eval/history.json` run 10, commit `5a13f3f`; NOT blind),
+  v2.0.2 -> v2.0.3: hand-9 published 4 -> 6 of 9, blocked wrongly 4 -> 2; out-of-pool corpus of run 5
+  published 44 -> 94, blocked wrongly 94 -> 44; fields `[TO CONFIRM]` stress 605 -> 433, seed 20261011
+  perturbed 744 -> 512, 20261012 perturbed 655 -> 462, 20261013 perturbed 761 -> 543; published dossiers with
+  the holders `[TO CONFIRM]` 33 -> 3, 45 -> 8, 43 -> 4, 54 -> 3. Dev, holdout, the plain corpora and the hand
+  corpus of run 7 do not move. Never-events 0 on every corpus, and every never_event_list empty.
+
 ## [2.0.2] - 2026-09-30 (freeze tag `v2.0.2-freeze`; not yet run blind)
 
 Source: the evaluator's blind run of `v2.0.1-freeze`, `eval/history.json` run 7, seed 20261012: 0 never-events

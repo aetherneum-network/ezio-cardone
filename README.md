@@ -18,7 +18,7 @@ The full map, sentence by sentence, is `CLAIMS.md`.
 |---|---|---|
 | A1 - every figure carries its source document and date | S03, S04, S10 | document, date and edition on every figure; a superseded figure in outgoing text is traced; the nature of an amount (historical, resolved, subscribed, paid-in) is classified before it is shown; since v2.0.1 an amount is read whole or abstained, and the audit compares its digits with the quote (`tests/test_amount_grouping.py`) |
 | A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled |
-| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`) |
+| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`); since v2.0.3 more headings and holder lines, shares in words and counts of quotas with one total stated in the same document are read, and the forms that are not read still block (`tests/test_d30_forms.py`) |
 | A4 - the dossier is a build artefact | S09 | same inputs, same bytes, DOCX included; a rule change moves only the expected field |
 | A5 - no snapshot is ever overwritten | S05 | the state at an earlier date is answered from the snapshots |
 | A6 - identity data is separated from the graph | S08 | the shareable layer holds no string of the identity layer (separation only: no access control) |
@@ -50,20 +50,20 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 209 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
+Expected last lines: `OK` after 243 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 8, code at commit `4b2dbaa` (pipeline, rules and scorer of the tag
-`v2.0.2-freeze`; the tag adds one documentation test and the manifest), measured on 2026-09-30 by the builder's
-hand, not blind: every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
+Source: `eval/history.json`, run 10, code at commit `5a13f3f` (pipeline, rules, tests and scorer of the tag
+`v2.0.3-freeze`; the tag adds the manifest), measured on 2026-09-30 (UTC) by the builder's hand, not blind:
+every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
 Command: `python -m eval.score --suite dev --suite holdout --suite stress`.
 
 | Suite | Never-events | Dossiers published | Conflicts found | Conflicts reported that are real | Facts exact | Fields left `[TO CONFIRM]` | Blocks correct | Figures with source |
 |---|---|---|---|---|---|---|---|---|
 | development, seed 20260930 (inspected while the rules were written) | 0 | 139/150 | 50/50 | 50/50 | 1386/1386 | 0/1472 | 9/9 | 3694/3694 |
 | holdout, seed 20261001 (scored, never inspected) | 0 | 137/150 | 45/45 | 45/45 | 1285/1285 | 0/1378 | 11/11 | 3521/3521 |
-| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 16/47 | 16/16 | 711/1285 | 605/1372 | 12/12 | 2838/2838 |
+| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 20/47 | 20/20 | 879/1285 | 433/1372 | 12/12 | 2958/2958 |
 
 How to read them:
 
@@ -77,11 +77,12 @@ How to read them:
   them rightly; the other one has a share planted as illegible, where the gold abstains on the holders and
   `OWN-015` blocks by decision. On development and holdout the same rule blocks 2 more entities each, for the
   same reason. For comparison, v2.0.0 (run 4) published 138, with 677/1293 facts exact, 647/1380 fields left
-  `[TO CONFIRM]`, 16/47 conflicts found.
+  `[TO CONFIRM]`, 16/47 conflicts found. v2.0.3 blocks the same entities; on the stress suite v2.0.2 (run 8)
+  had 711/1285 facts exact, 605/1372 fields left `[TO CONFIRM]` and 16/47 conflicts found.
 - The first stress run (run 2, commit `9a50ea3`) had **32 never-events**. It was fixed in the rule files, not in
   the outputs; the price was abstention: the rules read one wording and abstain on the others. Every run,
   the bad ones included, is in `eval/history.json`.
-- The holdout was scored five times (runs 2, 3, 4, 6, 8) and is no longer a clean holdout.
+- The holdout was scored six times (runs 2, 3, 4, 6, 8, 10) and is no longer a clean holdout.
 - The blind run of `v2.0.0-freeze` (run 5, by the evaluator, not the author) found **13 never-events**: 0 in the
   plain corpus, 1 in the perturbed one, 12 in the out-of-pool one. Five were capital figures read a thousand
   times too small (`EUR 150'000.00` read as `150.00`, finding T16); eight were dossiers published for
@@ -103,21 +104,34 @@ How to read them:
   (a pipe table, in a third, is not listed either). On the perturbed corpus 54 of the 144 published dossiers
   carry the holders `[TO CONFIRM]` and 780 fields are `[TO CONFIRM]` in all: by the evaluator's reading, a
   table read from a document of unrecognised type leaves the other fields undecided (rule DISC-005).
+- v2.0.3 (owner decision D30) is the answer to run 9. It reads the forms of that run that can be read without
+  guessing - headings with "of record" or a qualifier in parentheses, numbered and name-first holder lines,
+  shares in words, counts of quotas with one total stated in the same document - and keeps blocked those
+  that cannot: holders in a sentence, nominal amounts, a table with a header row (every known limit is in
+  `CHANGELOG.md`). A document of unrecognised type now keeps `[TO CONFIRM]` only the fields it may state
+  (`DISC-005`, parameter `unread_document_scope`, `[TO CONFIRM with legal]`), and the scorer lists every
+  never-event it finds (the list was capped at 50). On the corpora already seen (run 10) it has 0 never-events;
+  hand-9 publishes 6 of 9 (4 before) with 2 blocked wrongly (E-0003, E-0007); on the perturbed corpus of seed
+  20261013, 3 of the 144 published dossiers carry the holders `[TO CONFIRM]` (54 before) and 543 of 1482
+  fields are abstained (761 before); the out-of-pool corpus of run 5 publishes 94 (44 before). That is not a
+  blind result.
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-09-30 on the code of commit `4b2dbaa`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-09-30 (UTC) on the code of commit `5a13f3f`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `6b8824ea8f7a049a6bf3311a1c59d412104b2cfd9527240aca3face546525887` |
-| S03, `dossier_shareable.docx` of E-0004 | `f3d5f1fb33e4c858d0c5a06e254b51087593fc2b6ab40d23d08209ad344e8f00` |
-| S03, whole build (11 files) | `d2272228bf73f9b96282b8794e75dec6feedc18db987d79e7c15cf7a2142b263` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `8b3d5d6ab1d817b4f8714f8c8c58d87ea8eb26420169fbd7e005424a61b2540b` |
+| S03, `dossier.docx` of E-0004 | `bd157385e1c7b88c68c750a6d365b2f2b52c587cfd4c12982e27bf0c9a3ff3e0` |
+| S03, `dossier_shareable.docx` of E-0004 | `9edc4fafd1a7a43e446f5c715a35f22832cf9b6845abbca3a26a420b912ce27b` |
+| S03, whole build (11 files) | `8f3d6c6cd91528659681960bb0892b1316ab874f20619b8d4d43e8bcd4264a9e` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `58971075b7b44dd850e27328ba07c3cd59052b49adc08d5912887a6de58a8a8c` |
 
-The hashes differ from those of v2.0.1 only because the dossier names its generator (`dossier 2.0.2`): no
-document of these two builds has an unrecognised type, and the same entities are blocked. The v2.0.1 hashes
+The hashes differ from those of v2.0.2 because the dossier names its generator (`dossier 2.0.3`) and lists the
+new legal assumption (`unread_document_scope`); the same entities are blocked. The v2.0.2 hashes differed
+from those of v2.0.1 only because the dossier named `dossier 2.0.2`: no document of these two builds has an
+unrecognised type. The v2.0.1 hashes
 differed from those of v2.0.0 because the dossier named `dossier 2.0.1`, listed the new legal assumption and
 two entities of the development corpus became blocked.
 Verified on Windows only (Windows 11, Python 3.12.10). Identity between operating systems is not verified
