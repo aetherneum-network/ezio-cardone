@@ -1,0 +1,5 @@
+# S05 - "As at 31 March"
+
+**Claim A5.** Holding Aurelia Partecipazioni S.r.l.: a transfer of shares on 2026-02-20 and an appointment of directors on 2026-05-11. The dossier is built three times on one snapshot store, as of 2026-01-31, 2026-03-31 and 2026-06-30 (`input/plan.json`). The failure reproduced is answering a question about a past date from today's state. Pass: asked 2026-03-31, the store answers from the snapshot as of 2026-03-31 (holders after the transfer, directors before the appointment) and says which `as_of` it used; asked 2026-04-30 it still answers as of 2026-03-31; asked before the first snapshot it answers nothing; the files of earlier snapshots are byte-identical after later runs; an overwrite is refused and an alteration is detected. Expected values: `expected/expected.json`, written by hand in `scenarios/make_inputs.py` and never copied from a run. Everything is synthetic; what passes here is internal consistency, not accuracy on real companies.
+
+    python scenarios/S05/check.py

@@ -1,0 +1,38 @@
+{
+  "abstain": {
+    "also_to_confirm": [
+      "E-0001",
+      "E-0003"
+    ],
+    "effective": null,
+    "exit_code": 0,
+    "outcome": "TO_CONFIRM"
+  },
+  "closure": {
+    "effective": {
+      "E-0001": {
+        "P-001": "3/10",
+        "P-002": "9/14",
+        "P-003": "2/35"
+      },
+      "E-0002": {
+        "P-002": "45/49",
+        "P-003": "4/49"
+      },
+      "E-0003": {
+        "P-002": "9/49",
+        "P-003": "40/49"
+      }
+    },
+    "exit_code": 0,
+    "method": "closure",
+    "outcome": "RESOLVED"
+  },
+  "cycles": [
+    [
+      "E-0002",
+      "E-0003"
+    ]
+  ],
+  "entity": "E-0002"
+}

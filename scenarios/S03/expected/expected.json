@@ -1,0 +1,31 @@
+{
+  "entity": "E-0004",
+  "every_tamper": {
+    "exit_code": 3,
+    "published": false,
+    "status": "FAILED"
+  },
+  "valid": {
+    "all_figures_sourced": true,
+    "exit_code": 0,
+    "fields": {
+      "fin.FY2025.revenue": {
+        "status": "STATED",
+        "value": "2240760.25"
+      },
+      "share_capital.paid_in": {
+        "status": "STATED",
+        "value": "75000.00"
+      },
+      "share_capital.resolved": {
+        "status": "STATED",
+        "value": "120000.00"
+      },
+      "share_capital.subscribed": {
+        "status": "STATED",
+        "value": "100000.00"
+      }
+    },
+    "minimum_figures": 12
+  }
+}

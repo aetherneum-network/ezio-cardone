@@ -1,0 +1,24 @@
+{
+  "file": "extract.json",
+  "insert_before": "EXT-OFFICE-010",
+  "new_version": "2.0.0+S09",
+  "rule": {
+    "extractor": "text",
+    "field": "registered_office",
+    "id": "EXT-OFFICE-005",
+    "kinds": [
+      "OFFICE"
+    ],
+    "line_matches": "The seat of the company is moved from (?P<previous>.+?) to (?P<value>.+)\\.$",
+    "nature": "text",
+    "rationale": "Exception on top: a second wording of the office transfer.",
+    "tests": [
+      {
+        "expect": "Piazza del Campione 3, Montefinto (ZZ)",
+        "expect_previous": "Via del Collaudo 7, Borgoprova (ZZ)",
+        "kind": "OFFICE",
+        "text": "The seat of the company is moved from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ)."
+      }
+    ]
+  }
+}

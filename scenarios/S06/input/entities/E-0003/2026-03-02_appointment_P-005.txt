@@ -1,0 +1,10 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-02
+Document type: Appointment of directors
+Document date: 2026-03-02
+Edition: APPOINTMENT/1
+Entity: Finanziaria Collelungo S.p.A. (test registry no. TEST-REG-000003)
+
+Minutes of the holders' meeting (synthetic).
+Directors in office after this appointment:
+- P-006 (Fulvia Posticci)

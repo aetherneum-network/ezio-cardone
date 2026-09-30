@@ -1,0 +1,64 @@
+{
+  "clear": {
+    "exit_code": 0,
+    "fields": {
+      "share_capital.paid_in": {
+        "source": [
+          "DOC-E0003-02",
+          "2026-04-14",
+          "RESOLUTION/1"
+        ],
+        "status": "STATED",
+        "value": "250000.00"
+      },
+      "share_capital.resolved": {
+        "source": [
+          "DOC-E0003-02",
+          "2026-04-14",
+          "RESOLUTION/1"
+        ],
+        "status": "STATED",
+        "value": "500000.00"
+      },
+      "share_capital.subscribed": {
+        "source": [
+          "DOC-E0003-02",
+          "2026-04-14",
+          "RESOLUTION/1"
+        ],
+        "status": "STATED",
+        "value": "400000.00"
+      }
+    },
+    "natures_of_the_clause": {
+      "250000.00": "paid_in",
+      "300000.00": "historical",
+      "400000.00": "subscribed",
+      "500000.00": "resolved"
+    }
+  },
+  "entity": "E-0003",
+  "insufficient": {
+    "exit_code": 0,
+    "fields": {
+      "share_capital.paid_in": {
+        "status": "TO_CONFIRM"
+      },
+      "share_capital.resolved": {
+        "status": "STATED",
+        "value": "500000.00"
+      },
+      "share_capital.subscribed": {
+        "status": "TO_CONFIRM"
+      }
+    },
+    "readable_not_fact": {
+      "share_capital.paid_in": [
+        "250000.00"
+      ],
+      "share_capital.subscribed": [
+        "400000.00"
+      ]
+    }
+  }
+}

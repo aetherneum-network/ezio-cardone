@@ -1,0 +1,65 @@
+{
+  "capital_now": {
+    "sources": [
+      [
+        "DOC-E0001-02",
+        "2026-01-15",
+        "RESOLUTION/1"
+      ],
+      [
+        "DOC-E0001-03",
+        "2026-02-02",
+        "EXTRACT/1"
+      ]
+    ],
+    "status": "STATED",
+    "value": "80000.00"
+  },
+  "decoys": {
+    "board-note-2026-02-01.txt": "the line presents the amount as past",
+    "generic-note-2026-03-03.txt": "no entity named",
+    "group-overview-2026-03-01.txt": "two entities in two lines: the old amount belongs to the other one",
+    "guarantee-2026-02-25.txt": "same amount, a guarantee",
+    "holding-profile-2026-03-02.txt": "another entity whose capital really is this amount",
+    "investment-plan-2026-02-27.txt": "the word 'capital' without 'share capital'",
+    "invoice-2026-02-14.txt": "same amount, not the share capital",
+    "letter-bank-2025-11-03.txt": "written before the increase: the value was current on its date",
+    "letter-bank-2026-03-20.txt": "already carries the new value",
+    "press-note-2026-01-20.txt": "the old amount is introduced by 'from'"
+  },
+  "entity": "E-0001",
+  "every_finding": {
+    "changed_by_doc": "DOC-E0001-02",
+    "changed_by_edition": "RESOLUTION/1",
+    "changed_on": "2026-01-15",
+    "new_edition": "EXTRACT/1",
+    "new_source_doc": "DOC-E0001-03",
+    "new_value": "80000.00",
+    "old_value": "50000.00"
+  },
+  "exit_code": 0,
+  "files_scanned": 15,
+  "max_false_positives": 1,
+  "stale": [
+    {
+      "file": "company-profile-2026-03-02.txt",
+      "line": 4
+    },
+    {
+      "file": "email-signature-2026-03-05.txt",
+      "line": 6
+    },
+    {
+      "file": "letter-bank-2026-02-10.txt",
+      "line": 6
+    },
+    {
+      "file": "supplier-form-2026-02-20.txt",
+      "line": 5
+    },
+    {
+      "file": "tender-declaration-2026-03-12.txt",
+      "line": 4
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "P-001": {
+    "born": "1961-02-03",
+    "email": "aldo.finti@persons.example",
+    "name": "Aldo Finti",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "born": "1968-07-19",
+    "email": "bice.provetti@persons.example",
+    "name": "Bice Provetti",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-004": {
+    "born": "1959-04-12",
+    "email": "dora.campione@persons.example",
+    "name": "Dora Campione",
+    "tax_code": "SYN-CF-P004"
+  }
+}

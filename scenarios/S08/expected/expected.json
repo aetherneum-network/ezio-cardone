@@ -1,0 +1,33 @@
+{
+  "edges": [
+    {
+      "held": "E-0002",
+      "holder": "P-001",
+      "share": "3/5"
+    },
+    {
+      "held": "E-0002",
+      "holder": "P-002",
+      "share": "2/5"
+    },
+    {
+      "held": "E-0004",
+      "holder": "E-0002",
+      "share": "9/20"
+    },
+    {
+      "held": "E-0004",
+      "holder": "P-004",
+      "share": "11/20"
+    }
+  ],
+  "effective": {
+    "P-001": "27/100",
+    "P-002": "9/50",
+    "P-004": "11/20"
+  },
+  "entity": "E-0004",
+  "exit_code": 0,
+  "identity_strings_that_must_not_appear": 15,
+  "salt": "scenario-salt-S08"
+}

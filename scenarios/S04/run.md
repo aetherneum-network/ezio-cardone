@@ -1,0 +1,5 @@
+# S04 - Old capital still in outgoing documents
+
+**Claim A1.** Fornace Aurelia S.r.l. increased its share capital from EUR 50.000,00 to EUR 80.000,00 on 2026-01-15 (RESOLUTION/1). The folder `input/outgoing/` holds fifteen outgoing texts: five still present the old amount as current, in five different notations, and ten are decoys (a letter dated before the increase, an invoice and a guarantee for the same amount, a sentence in the past, another entity whose capital really is that amount, a line that names no entity, a capital expenditure). Pass: 5/5 stale mentions found, at most one false positive, and each finding carries the new value with the edition that states it and the document that changed it. The decoys and the guards share an author: this is a regression check, not a measure of precision. Expected values: `expected/expected.json`, written by hand in `scenarios/make_inputs.py` and never copied from a run. Everything is synthetic; what passes here is internal consistency, not accuracy on real companies.
+
+    python scenarios/S04/check.py

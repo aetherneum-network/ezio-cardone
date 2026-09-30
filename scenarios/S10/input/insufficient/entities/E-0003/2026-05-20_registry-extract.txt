@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-03
+Document type: Test registry extract
+Document date: 2026-05-20
+Edition: EXTRACT/1
+Entity: Finanziaria Collelungo S.p.A. (test registry no. TEST-REG-000003)
+
+Name: Finanziaria Collelungo S.p.A.
+Legal form: S.p.A.
+Registered office: Via dei Prototipi 12, Collesintesi (ZZ)
+Share capital: resolved EUR 500.000,00, of which EUR 400.000,00 and EUR 250.000,00
+Holders:
+- P-004 (Dora Campione): 50%
+- P-005 (Elio Simulati): 30%
+- P-006 (Fulvia Posticci): 20%
+
+Directors:
+- P-004 (Dora Campione)

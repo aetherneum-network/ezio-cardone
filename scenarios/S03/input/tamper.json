@@ -1,0 +1,40 @@
+{
+  "reading": "Each entry is applied to a fresh copy of the entity record of a valid run; the run is then repeated from the tampered record.",
+  "tampers": [
+    {
+      "doc": "DOC-E0004-03",
+      "field": "share_capital.resolved",
+      "key": "source_doc",
+      "name": "source_doc removed from one figure",
+      "op": "drop",
+      "reason_contains": "source_doc"
+    },
+    {
+      "doc": "DOC-E0004-04",
+      "field": "fin.FY2025.net_equity",
+      "key": "source_date",
+      "name": "source date blanked on one figure",
+      "op": "set",
+      "reason_contains": "source_date",
+      "to": ""
+    },
+    {
+      "doc": "DOC-E0004-03",
+      "field": "registered_office",
+      "key": "edition",
+      "name": "edition blanked on one figure",
+      "op": "set",
+      "reason_contains": "edition",
+      "to": ""
+    },
+    {
+      "doc": "DOC-E0004-04",
+      "field": "fin.FY2025.revenue",
+      "key": "value",
+      "name": "value changed, source kept",
+      "op": "set",
+      "reason_contains": "not supported by the quoted source lines",
+      "to": "9240760.25"
+    }
+  ]
+}
