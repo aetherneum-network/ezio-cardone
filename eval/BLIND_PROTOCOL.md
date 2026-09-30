@@ -7,7 +7,7 @@ Written after the freeze tag, by the author of the pack, for a **different hand*
 AI agent, via Claude Opus 5.5) does not choose the blind seed, never generates or looks at a blind corpus,
 and does not run anything below.
 
-**Updated after the tag `v2.0.2-freeze`.** The blind runs so far, both recorded in `eval/history.json`:
+**Updated after the tag `v2.0.3-freeze`.** The blind runs so far, all recorded in `eval/history.json`:
 
 - `v2.0.0-freeze`: run once, by the evaluator, on 2026-09-30 (run 5, seed 20261011). Not passed: 13
   never-events (0 plain, 1 perturbed, 12 out-of-pool). Its fix (finding T16, `v2.0.1`) changed code, rules
@@ -17,58 +17,80 @@ and does not run anything below.
 - `v2.0.1-freeze`: run once, by the evaluator, on 2026-09-30 (run 7, seed 20261012). 0 never-events on every
   corpus. But `OWN-015` blocked entities that the gold builds: 89 of 150 in the perturbed corpus (3 of 150 in
   the plain corpus, 0 of 2 in the hand-written one), most of them because their holders' table was worded
-  in a form the rules did not read.
+  in a form the rules did not read. `v2.0.2` (decisions D26 and D29) read more forms of that table, kept
+  `OWN-015` at `block` and aligned the never-event definition with the scorer.
+- `v2.0.2-freeze`: run once, by the evaluator, on 2026-09-30 (run 9, seed 20261013, hand corpus
+  `eval/blind/hand-9/`). 0 never-events on every corpus. Blocked wrongly: 0 of 150 plain, 0 of 150 perturbed,
+  4 of 9 hand-written (E-0003, E-0007, E-0008, E-0009). On the perturbed corpus 54 of the 144 published
+  dossiers carried the holders `[TO CONFIRM]`, because a document of unrecognised type kept every field of its
+  entity undecided (rule `DISC-005`).
 
-The change of `v2.0.2` (owner decisions D26 and D29 of 2026-09-30) changed code, rules and tests - not only
-documentation:
+The change of `v2.0.3` (owner decision D30 of 2026-10-01) changed code, rules and tests - not only
+documentation. `OWN-015` and `unverified_holders_table` keep the value `block` (D26).
 
-- `rules/ownership.json`: `OWN-015` and `unverified_holders_table` keep the value `block` (D26): a holders'
-  table that is not read and verified still blocks the entity. Only the note of the parameter changed.
-- `rules/extract.json`: the heading of the holders' table (`EXT-HOLD-010`) is a grammar (new parameter
-  `holders_heading`): a holder noun (holders, shareholders, stockholders, quotaholders, members, partners),
-  an optional clause number, an optional qualifier that means "current" (after or following the transfer,
-  as at the document date, now, at present). A qualifier not known to mean "current" is not a heading, and
-  two holders' headings in one document abstain (before, the first was taken). New ordered group
-  `holders_evidence` (`HEV-010` to `HEV-080`, default `HEV-999`): the forms of a line that may state a
-  holding.
-- `dossier/s1_extract.py`: a document whose only header problem is an unrecognised type is checked for
-  holders (`holders_check`): `read` when every table under a holders' heading is read whole, `no_table`
-  when there is no table and no line of evidence, `not_read` otherwise. The document still gives no fact
-  (`DISC-005`).
-- `dossier/s4_ownership.py`: a document checked `no_table` or `read` is no longer an unread holders' table;
-  the tables of a `read` document are summed with the others, and one that does not sum blocks (`OWN-010`).
-  `schema/entity_record.schema.json`: optional `holders_check` on a problem document.
-- `eval/score.py`: no change of behaviour. Its docstring lists the eight kinds of never-event the code
-  counts; since D29 that list is the definition of section 1.5 below (before, section 1.5 gave a narrower
-  definition, contained in it).
-- Tests: `tests/test_holders_forms.py` (25 tests), four scorer tests, one documentation test, two older
-  tests moved to the new behaviour (209 tests in all).
+- `rules/extract.json`: the holders' heading grammar also takes "of record", "registered" or "entered in the
+  register", a qualifier meaning "current" in parentheses or after a comma, "(synthetic)", clause numbers
+  such as `iv.`, `(4)`, `Article 4`, `§ 4`, and the nouns quotaholdings, shareholding(s) and shareholding
+  structure. One item grammar for holders and directors (parameters `list_marker`, `item_holder`,
+  `item_person`, `item_separator`): markers `-` `*` `1.` `1)` `(1)` `a)` `(a)` `iv)`, the identifier first or
+  after the name (`Name (P-001)`), separators `:`, ` - `, `|`, tab. Counts of quotas or shares are read only
+  when the same document states exactly one total (parameter `count_total`). New ordered group
+  `unread_fields` (`FEV-010` to `FEV-930`, default `FEV-999`): which fields a document of unrecognised type
+  may state; a line no rule explains may state every field.
+- `dossier/lib/numbers.py`: shares in `per cent`/`percent`/`pct`, whole per cent in words, simple fractions
+  in words; a count is never a share.
+- `dossier/s3_discrepancy.py`: `DISC-005` keeps `[TO CONFIRM]` only the fields an unread document may state
+  (new parameter `unread_document_scope` of `rules/discrepancy.json`, value `fields_it_may_state`,
+  `[TO CONFIRM with legal]`; `every_field` is the behaviour of `v2.0.2`). A document whose header has another
+  problem may change every field. A holders' table read whole that agrees with the current holders releases
+  the holders field.
+- `dossier/s7_audit.py`: the audit re-derives from the source lines, by its own code, the shares of counted
+  tables and the fields an unread document may state.
+- `eval/score.py`: the `never_event_list` of each result is no longer capped at 50 (the count never was).
+- `schema/entity_record.schema.json`: optional `fields_check` on a problem document.
+- Tests: `tests/test_d30_forms.py` (31 tests), changes in `tests/test_numbers.py`, `tests/test_never_event.py`,
+  `tests/test_holders_forms.py`, `tests/test_rules.py` (243 tests in all).
 
-The change was written by the builder's hand after reading the results of run 7, and measured only on
-corpora already seen (run 8, not blind). This protocol now applies to `v2.0.2-freeze`; besides the names of
-the tag, it changes section 1.5 (the definition of a never-event, D29), section 1.6 and section 4 (holders'
-tables in forms of the runner's choosing, wrongly blocked entities reported). The earlier tags are not moved
-and their blind runs are not repeated.
+The change was written by the builder's hand after reading the results and the hand-written documents of
+run 9, and measured only on corpora already seen (run 10, not blind). This protocol now applies to
+`v2.0.3-freeze`; besides the names of the tag, it changes section 0 (seed 20261013 and the wordings of run 9
+are known), section 1.6 (the counts reported next to the never-events, and the times), section 4 (at least
+six entities and twenty documents, forms inside and outside the classes `v2.0.3` claims, the known limits)
+and sections 5 and 6. The earlier tags are not moved and their blind runs are not repeated.
 
 ## 0. What is frozen
 
 | | |
 |---|---|
-| Tag | `v2.0.2-freeze` (annotated), created on 2026-09-30 |
-| Tag object | `475bd994bbd063c4dc7cebb15f50e7b9474ebd58` |
-| Commit | `023c7cb5629b17295b4ddbbfeb22055a2be16b87` |
-| Frozen files | the 170 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
+| Tag | `v2.0.3-freeze` (annotated), created on 2026-09-30 (UTC; 2026-10-01 Italian time) |
+| Tag object | `ae66f49debcb1bb15e83e1827acda35b03c4a3a6` |
+| Commit | `77e7736f573c93024f0aa49157f5949287bee698` |
+| Frozen files | the 171 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
 | Not frozen | `README.md`, `CLAIMS.md`, `CHANGELOG.md`, `MODEL.md`, `eval/history.json`, `eval/blind/`, this file |
-| Previous tag | `v2.0.1-freeze`, tag object `91cba79b5671a9f273a7ecf268dc92ffa8679a23`, commit `b65e45a5289133375222fa595abdbd9cd2087be7`: run blind once (run 7), 0 never-events, 89 of 150 perturbed entities blocked wrongly |
-| Tag before it | `v2.0.0-freeze`, tag object `0c26555916701c4a81ea6490c32d5e7162edcdc8`, commit `d1769d555934ca5eaf4717bafe8135105caffd43`: run blind once (run 5), not passed |
+| Previous tag | `v2.0.2-freeze`, tag object `475bd994bbd063c4dc7cebb15f50e7b9474ebd58`, commit `023c7cb5629b17295b4ddbbfeb22055a2be16b87`: run blind once (run 9), 0 never-events, 4 of 9 hand-written entities blocked wrongly |
+| Tag before it | `v2.0.1-freeze`, tag object `91cba79b5671a9f273a7ecf268dc92ffa8679a23`, commit `b65e45a5289133375222fa595abdbd9cd2087be7`: run blind once (run 7), 0 never-events, 89 of 150 perturbed entities blocked wrongly |
+| First tag | `v2.0.0-freeze`, tag object `0c26555916701c4a81ea6490c32d5e7162edcdc8`, commit `d1769d555934ca5eaf4717bafe8135105caffd43`: run blind once (run 5), not passed |
 
 Seeds already used, which therefore cannot be the blind seed: 20260930 (development, inspected),
-20261001 (holdout, scored five times, never inspected), 20261002 (stress, inspected), 20261011 (the blind
+20261001 (holdout, scored six times, never inspected), 20261002 (stress, inspected), 20261011 (the blind
 seed of `v2.0.0-freeze`: its plain, perturbed and out-of-pool corpora were read by the hand that wrote the
-fix and scored again in runs 6 and 8), 20261012 (the blind seed of `v2.0.1-freeze`: its plain and perturbed
-corpora were generated, read and scored again by the hand that wrote `v2.0.2`, run 8). For the same reason
-the wordings of the out-of-pool rewrite of run 5 and of the ten hand-written documents of run 7
-(`eval/blind/hand/`) are known to `v2.0.2` and are no longer out of pool: a new run needs other wordings.
+fix and scored again in runs 6, 8 and 10), 20261012 (the blind seed of `v2.0.1-freeze`: its plain and
+perturbed corpora were generated, read and scored again by the hand that wrote `v2.0.2`, runs 8 and 10),
+20261013 (the blind seed of `v2.0.2-freeze`: its plain and perturbed corpora were generated, read and scored
+again by the hand that wrote `v2.0.3`, run 10). For the same reason these wordings are known to `v2.0.3` and
+are no longer out of pool - a new run needs other wordings:
+
+- the out-of-pool rewrite of run 5 and the ten hand-written documents of run 7 (`eval/blind/hand/`);
+- the 24 hand-written documents of run 9 (`eval/blind/hand-9/`): the headings `Quotaholders at present.`,
+  `Partners as at the document date:`, `Stockholders following the transfer:`, `Shareholders now.`,
+  `Partners.`, `Holders (as at the document date):`, `Shareholders of record:`, `Shareholding structure at
+  the document date (synthetic):`, `4. Holders.`, `Quotaholders:`; holder lines numbered `1) P-002 (...) - 20%`
+  and name first `Elmo Ipotetici (P-010): 200 quotas` with the total `divided into 300 quotas`; shares
+  `thirty per cent`, `60 %` in a pipe table with a header row; holders in a sentence, with nominal amounts
+  (`held as follows: ... for a nominal EUR 36'000.00`) or with shares (`held by ... as to 30%`); the document
+  types `Ledger of quotaholders`, `Statement of shareholdings`, `Certificate of good standing`; a second
+  amount inside a capital clause; amounts grouped by an apostrophe, a space and a dot;
+- every example of `CHANGELOG.md` (sections 2.0.2 and 2.0.3) and of this protocol.
 
 ## 1. Rules of the run
 
@@ -98,17 +120,21 @@ the wordings of the out-of-pool rewrite of run 5 and of the ten hand-written doc
    (precision), exact facts, and the abstention rate next to them. Next to the never-events of every result
    the runner also reports the entities **blocked wrongly** - built by the gold and blocked by the run
    (`blocked_wrongly` in the counts of each JSON file) - because `OWN-015` blocks, by decision, every
-   holders' table it does not read. More abstention, more wrong blocks and lower recall than on the
-   development suite are expected, above all in sections 3b and 4: the rules read some wordings and write
-   `[TO CONFIRM]` for what they do not read. That is reported as it comes out.
+   holders' table it does not read. Since `v2.0.3` the runner also reports, next to them, the fields left
+   **`[TO CONFIRM]`** (`fields_abstained` in the metrics of each JSON file) and, when it can count them, the
+   published dossiers whose holders are `[TO CONFIRM]`, because `DISC-005` now keeps undecided only the
+   fields an unread document may state. Every time in the record is UTC, written `YYYY-MM-DDTHH:MM:SSZ`.
+   More abstention, more wrong blocks and lower recall than on the development suite are expected, above
+   all in sections 3b and 4: the rules read some wordings and write `[TO CONFIRM]` for what they do not
+   read. That is reported as it comes out.
 7. If a never-event appears: it is recorded, the affected claims are downgraded in `CLAIMS.md`, and the
    fix goes into a new version under a new tag. The freeze tag is never moved and the run is never repeated
    on the fixed code under the name "blind".
 
 ## 2. Before the run: prove that the frozen files are the tagged ones
 
-    git rev-parse "v2.0.2-freeze^{commit}"
-    git diff --stat v2.0.2-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
+    git rev-parse "v2.0.3-freeze^{commit}"
+    git diff --stat v2.0.3-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
     python tools/manifest.py --check
 
 Expected: the commit above; no output from `git diff`; `manifest OK`. Python 3.12 with the packages of
@@ -130,16 +156,18 @@ b. Same seed, perturbed wording (clauses reworded, numbers in other forms, parag
 
 Each command prints one line such as
 `blind seed=<SEED> as_of=2026-09-30 never_events=... conflicts recall=... precision=... fields exact=... abstained=... blocked=... figures_with_source=...`
-followed by one `NEVER-EVENT:` line per never-event (first ten). Note the exit code of each command, and
-the counts `published` and `blocked_wrongly` of each JSON file (rule 1.6).
+followed by one `NEVER-EVENT:` line per never-event (first ten; since `v2.0.3` the JSON file lists every one).
+Note the exit code of each command, the counts `published` and `blocked_wrongly` and the metric
+`fields_abstained` of each JSON file (rule 1.6), and the UTC time each command starts and ends.
 
 What 3a can and cannot show: it uses the same generator and the same templates as the development suite,
 so a clean result is expected and says little. 3b and section 4 are the informative parts.
 
 ## 4. Hand-written documents (the part the generator cannot influence)
 
-The runner writes **ten source documents of two new invented entities** by hand, and writes the gold by
-hand **before** running anything, from what the documents are meant to say - never from an output.
+The runner writes **at least twenty source documents of at least six new invented entities** by hand, and
+writes the gold by hand **before** running anything, from what the documents are meant to say - never from an
+output.
 
 Input folder:
 
@@ -147,6 +175,7 @@ Input folder:
     <DIR>/input/identity/persons.json            {"P-001": {"name": "...", "born": "YYYY-MM-DD", "email": "...@persons.example", "tax_code": "SYN-CF-P001"}, ...}
     <DIR>/input/entities/E-0001/<date>_<slug>.txt
     <DIR>/input/entities/E-0002/<date>_<slug>.txt
+    ... (one folder per entity, E-0001 to E-000N)
     <DIR>/gold.json
 
 Every document is UTF-8 with LF line endings and starts with these lines (the first one is mandatory and
@@ -164,13 +193,34 @@ The document types, the wordings the rules read and the form of amounts and shar
 (`2025-03-10_deed.txt`, `2026-02-02_registry-extract.txt`). The runner is free - and encouraged - to
 word things otherwise: what the rules do not read must come out as `[TO CONFIRM]`, never as a guess.
 
-For `v2.0.2-freeze` the runner is asked in particular to write the **holders' tables** of its documents in
+For `v2.0.3-freeze` the runner is asked in particular to write the **holders' tables** of its documents in
 **forms of its own choosing** - the heading, the holder lines, the form of the shares and the type of the
-document that carries the table - not copied from the scenarios, from the hand-written documents of run 7
-(`eval/blind/hand/`) or from the examples of this protocol and of `CHANGELOG.md`. `v2.0.2` was written to
-read more forms of that table after seeing those, and only forms it has not seen measure it. With the
-never-events of this part, report the entities blocked wrongly (rule 1.6); in the gold, a holders' table
-the runner means to be readable is written as a fact, so that a wrong block shows.
+document that carries the table - not copied from the scenarios, from the hand-written documents of runs 7
+and 9 (`eval/blind/hand/`, `eval/blind/hand-9/`) or from the examples of this protocol and of `CHANGELOG.md`:
+`v2.0.3` was written after seeing those, and only forms it has not seen measure it. Some of the forms should
+fall **inside** the classes `v2.0.3` claims to read, worded in ways it has not seen, and some **outside** them:
+
+- claimed: a holders' heading with a holder noun, an optional clause number and an optional qualifier
+  meaning "current" or "of record"; holder lines in a list, the identifier first or after the name, with a
+  marker and a separator of the item grammar; shares as figures with `%`, `per cent`, `percent` or `pct`,
+  as fractions `n/d`, as whole per cent in words or simple fractions in words; counts of quotas or shares
+  with exactly one total stated in the same document; directors in the same list grammar; a document of
+  unrecognised type whose lines state only some fields (they, and only they, stay `[TO CONFIRM]`);
+- known limits, still blocked or `[TO CONFIRM]` on purpose: holders in a sentence; nominal amounts per
+  holder; a table with a header row; a heading with an explicit date; headings of other nouns ("Allocation
+  of the capital", ownership structure, owners, beneficial owners); counts without a total, with two totals,
+  mixed with shares, or in a document of unrecognised type; per mille; shares in words beyond whole per cent
+  and simple fractions; a label with nested or second parentheses; two holders' tables in one document; a
+  document date in words; holders' tables in classified documents of other kinds (resolutions,
+  appointments, office transfers, financial summaries); a capital increase or reduction read as a change of
+  the capital only, never of the holders; the word lists of `unread_fields` (a topic word present by chance
+  keeps its field `[TO CONFIRM]`; a line that names one field and changes another without naming it keeps
+  only the named one); shares planted as illegible.
+
+With the never-events of this part, report the entities blocked wrongly and the fields left `[TO CONFIRM]`
+(rule 1.6); in the gold, a holders' table the runner means to be readable is written as a fact, so that a
+wrong block shows, and a field an unread document may change is written `TO_CONFIRM`, so that a fact shown
+against it is a never-event.
 Names must be obviously invented, places end in `(ZZ)`, persons are `P-00N` with `SYN-CF-P00N` tax codes
 and `.example` mail addresses, companies are `E-000N` with `TEST-REG-00000N` registry numbers.
 
@@ -220,22 +270,23 @@ of the gold (not its values) and note the correction in the record of section 5.
 
 Append one run to the `runs` list of `eval/history.json`, after the last one, numbered `n` = previous + 1,
 and commit it. Nothing already in the list is edited. The entry `blind` of the same file records the
-blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.2-freeze` is recorded in `runs`,
-as the run of `v2.0.1-freeze` was (run 7), with `code` naming the tag and `run_by` naming the runner.
+blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.3-freeze` is recorded in `runs`,
+as the runs of `v2.0.1-freeze` and `v2.0.2-freeze` were (runs 7 and 9), with `code` naming the tag and
+`run_by` naming the runner.
 
     {
       "n": <previous + 1>,
       "date": "<YYYY-MM-DD of the run>",
       "run_by": "<name of who ran it - not the author>",
-      "code": "tag v2.0.2-freeze, commit 023c7cb",
+      "code": "tag v2.0.3-freeze, commit 77e7736",
       "command": "<the commands of sections 3 and 4, exactly as typed, seed included>",
-      "note": "<exit code of each command; never-events and entities blocked wrongly of each result; who chose the seed and who wrote the ten documents; anything that went wrong>",
+      "note": "<exit code and UTC start and end (YYYY-MM-DDTHH:MM:SSZ) of each command; for each result the never-events, the entities blocked wrongly and the fields left [TO CONFIRM]; who chose the seed and who wrote the hand documents; which forms were meant inside and which outside the claimed classes; anything that went wrong>",
       "results": [ <the objects of the "results" lists of the three JSON files, verbatim, in order 3a, 3b, 4> ]
     }
 
-The ten hand-written documents and their gold are committed next to the record, in a new folder
-`eval/blind/hand-<n>/` named after the number of the run (the folder `eval/blind/hand/` holds those of
-run 7 and is not edited), so that the run can be repeated by anyone. `python -m unittest discover -s tests -t .`
+The hand-written documents and their gold are committed next to the record, in a new folder
+`eval/blind/hand-<n>/` named after the number of the run (the folders `eval/blind/hand/` and
+`eval/blind/hand-9/` hold those of runs 7 and 9 and are not edited), so that the run can be repeated by anyone. `python -m unittest discover -s tests -t .`
 must still pass after the commit (the record must keep the runs already listed untouched).
 
 ## 6. What the author verified about this protocol, and what not
@@ -257,6 +308,13 @@ must still pass after the commit (the record must keep the runs already listed u
   20261011 and 20261012, plain and perturbed, and the `--corpus ... --gold ...` path on the out-of-pool
   corpus of run 5 and on the hand-written corpus of run 7 (`eval/blind/hand/`, whose gold has a blocked cap
   table and a file-name divergence). 0 never-events on all nine results. Not blind.
-- Not verified: any seed other than the five named in section 0; any hand-written document other than
-  the scenario inputs and those of run 7; a hand-written gold with a cycle; any operating system other
-  than Windows.
+- On the code of `v2.0.3-freeze` (verified on 2026-09-30, UTC 2026-09-30T23:29:37Z to 2026-09-30T23:31:39Z, by
+  the builder's hand, run 10 of `eval/history.json`, commit `5a13f3f`, whose frozen files differ from the tag
+  in `MANIFEST.sha256` only): the `--suite` path on the three seeds of the author, the `--seed` path on
+  20261011, 20261012 and 20261013, plain and perturbed, and the `--corpus ... --gold ...` path on the
+  out-of-pool corpus of run 5 and on the hand-written corpora of runs 7 and 9. 0 never-events on all twelve
+  results; blocked wrongly 2 of 9 on hand-9 (E-0003, E-0007: holders in a sentence, nominal amounts, a
+  table with a header row - known limits). Not blind.
+- Not verified: any seed other than the six named in section 0; any hand-written document other than
+  the scenario inputs and those of runs 7 and 9; a hand-written gold with a cycle; any operating system
+  other than Windows.
