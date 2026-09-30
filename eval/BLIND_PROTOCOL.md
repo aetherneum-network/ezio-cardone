@@ -7,18 +7,38 @@ Written after the freeze tag, by the author of the pack, for a **different hand*
 AI agent, via Claude Opus 5.5) does not choose the blind seed, never generates or looks at a blind corpus,
 and does not run anything below.
 
+**Updated after the tag `v2.0.1-freeze`.** The blind run of `v2.0.0-freeze` was made once, by the evaluator,
+on 2026-09-30 (`eval/history.json`, run 5), and did not pass: 13 never-events (0 plain, 1 perturbed, 12
+out-of-pool). The fix of that finding (T16) changed code, rules and tests - not only documentation:
+
+- `rules/extract.json` and `dossier/lib/numbers.py`: amounts grouped by an apostrophe (`150'000.00`,
+  `150’000.00`) or by a space of any kind are read whole; an amount whose grouping, decimals or scale is not
+  certain gives no value and is written `[TO CONFIRM]` with its reason;
+- `dossier/s7_audit.py`: the audit reads the whole figure of a quote and compares its digits;
+- `rules/ownership.json` and `dossier/s4_ownership.py`: new rule `OWN-015` - a holders' table that could not
+  be read blocks the entity (parameter `unverified_holders_table`, `[TO CONFIRM with legal]`);
+- `tests/test_amount_grouping.py` and three adjusted tests (179 tests in all).
+
+The fix was written after reading the results of run 5 and measured only on corpora already seen (run 6).
+This protocol now applies to `v2.0.1-freeze`, unchanged in everything else. `v2.0.0-freeze` is not moved and
+its blind run is not repeated.
+
 ## 0. What is frozen
 
 | | |
 |---|---|
-| Tag | `v2.0.0-freeze` (annotated), created on 2026-09-30 |
-| Tag object | `0c26555916701c4a81ea6490c32d5e7162edcdc8` |
-| Commit | `d1769d555934ca5eaf4717bafe8135105caffd43` |
-| Frozen files | the 168 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
-| Not frozen | `README.md`, `CLAIMS.md`, `CHANGELOG.md`, `eval/history.json`, this file |
+| Tag | `v2.0.1-freeze` (annotated), created on 2026-09-30 |
+| Tag object | `91cba79b5671a9f273a7ecf268dc92ffa8679a23` |
+| Commit | `b65e45a5289133375222fa595abdbd9cd2087be7` |
+| Frozen files | the 169 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
+| Not frozen | `README.md`, `CLAIMS.md`, `CHANGELOG.md`, `MODEL.md`, `eval/history.json`, this file |
+| Previous tag | `v2.0.0-freeze`, tag object `0c26555916701c4a81ea6490c32d5e7162edcdc8`, commit `d1769d555934ca5eaf4717bafe8135105caffd43`: run blind once (run 5), not passed |
 
-Seeds already used by the author, which therefore cannot be the blind seed: 20260930 (development,
-inspected), 20261001 (holdout, scored three times, never inspected), 20261002 (stress, inspected).
+Seeds already used, which therefore cannot be the blind seed: 20260930 (development, inspected),
+20261001 (holdout, scored four times, never inspected), 20261002 (stress, inspected), 20261011 (the blind
+seed of `v2.0.0-freeze`: its plain, perturbed and out-of-pool corpora were read by the hand that wrote the
+fix and scored again in run 6). For the same reason the wordings of the out-of-pool rewrite of run 5 are
+known to the fix and are no longer out of pool: an out-of-pool part of a new run needs other wordings.
 
 ## 1. Rules of the run
 
@@ -41,8 +61,8 @@ inspected), 20261001 (holdout, scored three times, never inspected), 20261002 (s
 
 ## 2. Before the run: prove that the frozen files are the tagged ones
 
-    git rev-parse "v2.0.0-freeze^{commit}"
-    git diff --stat v2.0.0-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
+    git rev-parse "v2.0.1-freeze^{commit}"
+    git diff --stat v2.0.1-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
     python tools/manifest.py --check
 
 Expected: the commit above; no output from `git diff`; `manifest OK`. Python 3.12 with the packages of
@@ -144,14 +164,15 @@ of the gold (not its values) and note the correction in the record of section 5.
 ## 5. Recording the outcome
 
 Append one run to the `runs` list of `eval/history.json`, after the last one, numbered `n` = previous + 1,
-and commit it. Nothing already in the list is edited. In the same file, the entry `blind` gets
-`"status": "run"` with the name of the runner and the date.
+and commit it. Nothing already in the list is edited. The entry `blind` of the same file records the
+blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.1-freeze` is recorded in `runs`,
+with `code` naming the tag and `run_by` naming the runner.
 
     {
       "n": <previous + 1>,
       "date": "<YYYY-MM-DD of the run>",
       "run_by": "<name of who ran it - not the author>",
-      "code": "tag v2.0.0-freeze, commit d1769d5",
+      "code": "tag v2.0.1-freeze, commit b65e45a",
       "command": "<the commands of sections 3 and 4, exactly as typed, seed included>",
       "note": "<exit code of each command; who chose the seed and who wrote the ten documents; anything that went wrong>",
       "results": [ <the objects of the "results" lists of the three JSON files, verbatim, in order 3a, 3b, 4> ]
@@ -159,16 +180,20 @@ and commit it. Nothing already in the list is edited. In the same file, the entr
 
 The ten hand-written documents and their gold are committed next to the record, under
 `eval/blind/hand/`, so that the run can be repeated by anyone. `python -m unittest discover -s tests -t .`
-must still pass after the commit (the record must keep runs 1-4 untouched).
+must still pass after the commit (the record must keep the runs already listed untouched).
 
 ## 6. What the author verified about this protocol, and what not
 
-- Verified on 2026-09-30, on the frozen code, with the **development** seed only: the `--seed` path
+- Verified on 2026-09-30, on the code of `v2.0.0-freeze`, with the **development** seed only: the `--seed` path
   (`--seed 20260930`) and the `--corpus ... --gold ...` path (on the generated development corpus) both give
   the numbers of the development suite (run 4 of `eval/history.json`).
 - Verified on 2026-09-30 as well: a gold written by hand in the form of section 4 for the two documents of
   scenario S01 (already known to the author) is accepted by the scorer and scored
   (`never_events=0`, conflicts 3/3 and 3/3, facts 5/5, abstained 0/8).
-- Not verified: any seed other than the three named in section 0; any hand-written document other than
+- On the code of `v2.0.1-freeze` (verified on 2026-09-30 by the hand that wrote the fix, run 6 of
+  `eval/history.json`, commit `058e8ac`, whose frozen files differ from the tag only in `MANIFEST.sha256`):
+  the `--suite` path on the three seeds of the author, and the `--corpus ... --gold ...` path on the three
+  corpora of run 5. The `--seed` path was not run on `v2.0.1-freeze`.
+- Not verified: any seed other than the four named in section 0; any hand-written document other than
   the scenario inputs; a hand-written gold with a blocked cap table, a cycle or a file-name divergence;
   any operating system other than Windows.
