@@ -57,10 +57,28 @@ class Shares(unittest.TestCase):
         self.assertEqual(sum(parse_share(t)[0] for t in ("33,34%", "33,33%", "33,33%")), 1)
 
     def test_not_guessed(self):
-        for token in ("", "1/0", "about a third", "6#%", "60", "60 percent", "-10%"):
+        # "60 percent" was here until v2.0.2; since v2.0.3 (D30) it is read (test_per_cent_words_are_read)
+        for token in ("", "1/0", "about a third", "6#%", "60", "-10%", "half", "two third", "one thirds",
+                      "thirty point five per cent", "a hundred and one per cent", "per cent"):
             value, reason = parse_share(token)
             self.assertIsNone(value, token)
             self.assertTrue(reason)
+
+    def test_per_cent_words_are_read(self):
+        # D30 (v2.0.3): forms of the blind run of v2.0.2 (hand-9 E-0003 "60 %", E-0007 "thirty per cent")
+        for token, want in (("60 %", Fraction(3, 5)), ("60 percent", Fraction(3, 5)), ("60 per cent", Fraction(3, 5)),
+                            ("thirty per cent", Fraction(3, 10)), ("thirty-five per cent", Fraction(7, 20)),
+                            ("one hundred per cent", Fraction(1)), ("one third", Fraction(1, 3)),
+                            ("two fifths", Fraction(2, 5)), ("a half", Fraction(1, 2)), ("three quarters", Fraction(3, 4))):
+            with self.subTest(token=token):
+                self.assertEqual(parse_share(token), (want, None))
+
+    def test_counts_are_not_shares(self):
+        from dossier.lib.numbers import parse_count
+        self.assertEqual(parse_share("200 quotas")[0], None)
+        self.assertEqual(parse_count("200 quotas"), (200, None))
+        self.assertEqual(parse_count("1.200 shares"), (1200, None))
+        self.assertEqual(parse_count("200")[0], None)
 
     def test_canonical_strings(self):
         self.assertEqual(frac_str(Fraction(6, 10)), "3/5")

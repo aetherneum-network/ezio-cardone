@@ -23,11 +23,12 @@ from __future__ import annotations
 import datetime as _dt
 import re
 from dataclasses import dataclass, field
+from fractions import Fraction
 from pathlib import Path
 
 from . import SYNTHETIC_MARKER
 from .lib import jsonio
-from .lib.numbers import frac_str, parse_amount, parse_share
+from .lib.numbers import frac_str, parse_amount, parse_count, parse_share
 from .rules_engine import Rules, first_match, rx
 
 NATURES = ("resolved", "subscribed", "paid_in")
@@ -150,10 +151,20 @@ def _field_name(template: str, doc: Document) -> str:
 def _expand(text: str, rules: Rules) -> str:
     """Substitute the shared pieces of rules/extract.json parameters into a pattern."""
     p = rules.extract["parameters"]
-    for key in ("holders_heading", "holders_heading_current", "holders_heading_nouns",
+    for key in ("holders_heading", "holders_heading_registered", "clause_number", "holders_heading_current",
+                "holders_heading_nouns", "item_holder", "item_person", "list_marker", "item_separator",
                 "amount_token", "amount_separator", "magnitude_words"):
         text = text.replace("{" + key + "}", p[key])
     return text
+
+
+def _item_rx(rule: dict, rules: Rules) -> re.Pattern:
+    return rx(_expand(_expand(rule["item_matches"], rules), rules))
+
+
+def _item_id(m: re.Match) -> str:
+    """The identifier of a list line, whether it stands first or after the name."""
+    return m.group("id") or m.group("id_last")
 
 
 def _param_rx(rules: Rules, name: str) -> re.Pattern:
@@ -314,32 +325,79 @@ def _block(doc: Document, heading_no: int) -> list[tuple[int, str]]:
     return out
 
 
-def _read_items(block: list[tuple[int, str]], item: re.Pattern, extractor: str) -> tuple[list | None, str]:
-    """(value, "") of a list read whole, or (None, why) at the first line that cannot be read."""
+def count_total(doc: Document, rules: Rules) -> tuple[int | None, int | None, str]:
+    """(total number of quotas or shares, line of the statement, "") when the body of the document states one
+    total (rules/extract.json, count_total); (None, None, why) otherwise."""
+    found: dict[int, int] = {}
+    for no, text in _body(doc):
+        for pattern in rules.extract["parameters"]["count_total"]:
+            for m in rx(pattern).finditer(text):
+                found.setdefault(int(re.sub(r"\D", "", m.group("total"))), no)
+    if not found:
+        return None, None, "the document does not state the total number of quotas or shares"
+    if len(found) > 1:
+        return None, None, ("the document states more than one total number of quotas or shares ("
+                            + ", ".join(str(t) for t in sorted(found)) + ")")
+    (total, no), = found.items()
+    if total <= 0:
+        return None, None, "the total number of quotas or shares is not positive"
+    return total, no, ""
+
+
+def _read_items(block: list[tuple[int, str]], item: re.Pattern, extractor: str, doc: Document | None = None,
+                rules: Rules | None = None) -> tuple[list | None, str, int | None]:
+    """(value, "", line of the total or None) of a list read whole, or (None, why, None) at the first line that
+    cannot be read. A table of counts is read only with the total its document states (count_total)."""
     if not block:
-        return None, "the list is empty"
+        return None, "the list is empty", None
     ids: list[str] = []
     rows: list[dict] = []
+    counts: dict[str, int] = {}
     for _, line in block:
         m = item.match(line)
         if not m:
-            return None, "a line of the list could not be read"
-        if m.group("id") in ids:
-            return None, f"{m.group('id')} is listed twice"
-        ids.append(m.group("id"))
+            return None, "a line of the list could not be read", None
+        hid = _item_id(m)
+        if hid in ids:
+            return None, f"{hid} is listed twice", None
+        ids.append(hid)
         if extractor == "holders":
             share, why = parse_share(m.group("share"))
             if share is None:
-                return None, f"share of {m.group('id')}: {why}"
+                n, _ = parse_count(m.group("share"))
+                if n is None:
+                    return None, f"share of {hid}: {why}", None
+                counts[hid] = n
+                continue
             if share <= 0:
-                return None, f"share of {m.group('id')} is not positive"
-            rows.append({"holder": m.group("id"), "share": frac_str(share)})
-    return (sorted(rows, key=lambda r: r["holder"]) if extractor == "holders" else sorted(ids)), ""
+                return None, f"share of {hid} is not positive", None
+            rows.append({"holder": hid, "share": frac_str(share)})
+    if extractor != "holders":
+        return sorted(ids), "", None
+    total_line = None
+    if counts:
+        if rows:
+            return None, "the table mixes numbers of quotas or shares with shares", None
+        if doc is None or rules is None:
+            return None, "a number of quotas or shares without the total of its document", None
+        total, total_line, why = count_total(doc, rules)
+        if total is None:
+            return None, f"numbers of quotas or shares: {why}", None
+        for hid, n in counts.items():
+            if n <= 0:
+                return None, f"share of {hid} is not positive", None
+            rows.append({"holder": hid, "share": frac_str(Fraction(n, total))})
+    return sorted(rows, key=lambda r: r["holder"]), "", total_line
+
+
+def _span(doc: Document, first: int, last: int) -> str:
+    """The source lines ``first`` to ``last`` (1-based, inclusive), as the audit reads them back."""
+    return "\n".join(doc.lines[first - 1:last])
 
 
 def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
     heading = _pattern(rule, rules)
-    item = rx(rule["item_matches"])
+    item = _item_rx(rule, rules)
     fld = _field_name(rule["field"], doc)
     found = [(no, text) for no, text in _body(doc) if heading.search(text.strip())]
     if not found:
@@ -356,9 +414,14 @@ def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
         lines = ", ".join(str(n) for n, _ in found)
         return abstain(f"{len(found)} holders' tables in one document (lines {lines}): which one is current "
                        "is not ours to choose")
-    value, why = _read_items(block, item, rule["extractor"])
+    value, why, total_line = _read_items(block, item, rule["extractor"], doc, rules)
     if value is None:
         return abstain(why)
+    if total_line is not None:
+        # counts: the quote runs from the statement of the total to the end of the table, so that the audit can
+        # re-derive every share from the source lines it cites
+        no, end = min(no, total_line), max(end, total_line)
+        quote = _span(doc, no, end)
     return [_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, line_end=end, quote=quote)]
 
 
@@ -382,14 +445,16 @@ def holders_check(doc: Document, rules: Rules) -> dict:
         return {"status": "not_read", "why": "the header of the document could not be read (" + "; ".join(other)
                 + "): a table in it could not carry its source and date"}
     rule = next(r for r in rules.extract["field_rules"] if r["extractor"] == "holders")
-    heading, item = _pattern(rule, rules), rx(rule["item_matches"])
+    heading, item = _pattern(rule, rules), _item_rx(rule, rules)
     covered: set[int] = set()
     tables = []
     for no, text in _body(doc):
         if not heading.search(text.strip()):
             continue
         block = _block(doc, no)
-        value, why = _read_items(block, item, "holders")
+        # the line of a total stated for counts is not covered: it is still checked for evidence below, so a
+        # table of counts in a document of unrecognised type is not read (known limit of v2.0.3)
+        value, why, _ = _read_items(block, item, "holders", doc, rules)
         if value is None:
             return {"status": "not_read", "why": f"the holders' table at line {no} could not be read ({why})"}
         covered.update([no] + [n for n, _ in block])
@@ -407,6 +472,54 @@ def holders_check(doc: Document, rules: Rules) -> dict:
     if tables:
         return {"status": "read", "why": "", "edition": doc.edition, "tables": tables}
     return {"status": "no_table", "why": "no holders' table and no line that may state a holding"}
+
+
+EVERY_FIELD = "*"
+
+
+def line_fields(line: str, rules: Rules) -> tuple[list[str], list[str]]:
+    """(fields one body line of an unclassified document may state, ids of the rules that decided), by
+    rules/extract.json unread_fields: every 'topic' rule that applies adds its fields; only when none applies,
+    the first other rule that applies decides. ``["*"]`` is every field."""
+    group = rules.extract["unread_fields"]["rules"]
+    fields: set[str] = set()
+    ids: list[str] = []
+    for r in group:
+        if r["when"] == "topic" and rx(r["pattern"]).search(line):
+            fields.update(r["fields"])
+            ids.append(r["id"])
+    if not ids:
+        r = first_match([r for r in group if r["when"] != "topic"],
+                        lambda r: r["when"] == "always" or rx(r["pattern"]).search(line) is not None)
+        fields.update(r["fields"])
+        ids.append(r["id"])
+    return ([EVERY_FIELD] if EVERY_FIELD in fields else sorted(fields)), ids
+
+
+def fields_check(doc: Document, rules: Rules, holders: dict) -> dict:
+    """Which fields a document that was not classified may change (DISC-005, rules/discrepancy.json
+    unread_document_scope). Only a document whose one problem is its type is looked into; the lines of a
+    holders' table read whole are left to the holders' check, which alone decides the shareholders."""
+    other = [p for p in doc.problems if not p.startswith("document type not recognised")]
+    if other:
+        return {"may_change": [EVERY_FIELD], "why": "the header of the document could not be read"}
+    covered: set[int] = set()
+    for t in holders.get("tables", []) if holders.get("status") == "read" else []:
+        covered.update(range(t["line"], t["line_end"] + 1))
+    may: set[str] = set() if holders.get("status") == "no_table" else {"shareholders"}
+    lines: dict[str, list[int]] = {}
+    for no, text in _body(doc):
+        if no in covered or not text.strip():
+            continue
+        got, _ = line_fields(text, rules)
+        for f in got:
+            lines.setdefault(f, []).append(no)
+        may.update(got)
+    if EVERY_FIELD in may:
+        return {"may_change": [EVERY_FIELD],
+                "why": f"line {lines[EVERY_FIELD][0]} may state any field (rules/extract.json unread_fields)"}
+    return {"may_change": sorted(may), "why": "; ".join(f"{f}: line {', '.join(str(n) for n in lines[f])}"
+                                                     for f in sorted(lines)) or "no line states a field"}
 
 
 _EXTRACTORS = {"text": _extract_text, "amount": _extract_amount, "capital": _extract_capital,
@@ -511,9 +624,10 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
             b["rejected_documents"].append({"file": rel, "reason": "source document without the SYNTHETIC marker line"})
             continue
         if doc.problems:
+            hc = holders_check(doc, rules)
             b["unclassified_documents"].append({"file": rel, "reason": "; ".join(doc.problems),
                                                 "doc_id": doc.doc_id, "date": doc.date,
-                                                "holders_check": holders_check(doc, rules)})
+                                                "holders_check": hc, "fields_check": fields_check(doc, rules, hc)})
             continue
         if doc.date > as_of:
             b["ignored_after_as_of"].append(doc.doc_id)
@@ -575,6 +689,12 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             got = holders_evidence(t["text"], rules)["id"]
             if got != t["expect"] or got != r["id"]:
                 bad.append(f"{r['id']}: line {t['text']!r} decided by {got}, expected {t['expect']}")
+    for r in rules.extract["unread_fields"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            got, ids = line_fields(t["text"], rules)
+            if got != t["expect"] or r["id"] not in ids:
+                bad.append(f"{r['id']}: line {t['text']!r} -> {got} by {ids}, expected {t['expect']}")
     for r in rules.figure_nature["rules"]:
         for t in r.get("tests", []):
             n += 1

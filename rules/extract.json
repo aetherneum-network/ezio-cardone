@@ -1,6 +1,6 @@
 {
   "file": "extract.json",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
@@ -16,11 +16,26 @@
     "amount_uncertain_before": "(?<![a-z])(?:{magnitude_words})\\.?\\s*$",
     "scale_statement": "\\b(?:in|of)\\s+(?:(?:EUR|euros?)\\s+)?(?:thousands?|millions?|billions?)\\b|\\b(?:thousands?|millions?|billions?)\\s+of\\s+(?:EUR|euros?)\\b|\\b(?:TEUR|KEUR|MEUR|TSD\\s*EUR)\\b|\\bEUR\\s*['\\u2019]000\\b|\\bEUR\\s*(?:k|m|mn|bn|mln|mio|mrd|thousands?|millions?)\\s*[)\\]:]",
     "amount_guards_note": "An amount whose reading is not certain is left unread ([TO CONFIRM]), never shown as fact: when the figure goes on past the token (two separators, a character attached to it), when a magnitude word stands next to it (EUR 150 thousand, Mio. EUR 150), and for every amount of a document that states a scale (in thousands of EUR, TEUR, EUR '000). Added with v2.0.1 (finding T16).",
-    "holders_heading_nouns": "(?:share-?\\s?holders?|stock-?\\s?holders?|quota-?\\s?holders?|holders?|members?|partners?)",
+    "holders_heading_nouns": "(?:share-?\\s?holders?|stock-?\\s?holders?|quota-?\\s?holders?|holders?|members?|partners?|shareholdings?(?:\\s+structure)?|quotaholdings?)",
     "holders_heading_current": "(?:after|following)\\s+(?:the|this)\\s+(?:transfer|assignment)|(?:as\\s+)?(?:at|of|on)\\s+(?:the\\s+)?(?:document\\s+date|date\\s+of\\s+(?:the|this)\\s+document)|currently|now|at\\s+present",
-    "holders_heading": "^(?:\\d+[.)]\\s*)?(?:(?:{holders_heading_current}),?\\s+)?(?:the\\s+)?(?:(?:current|present|sole)\\s+)?(?:{holders_heading_nouns})(?:\\s+(?:{holders_heading_current}))?(?:\\s+(?:are|is))?\\s*[.:]$",
+    "holders_heading_registered": "(?:(?:of|on)\\s+record|(?:as\\s+)?(?:registered|entered|recorded|inscribed)(?:\\s+in\\s+the\\s+(?:register|ledger|book)(?:\\s+of\\s+(?:{holders_heading_nouns}))?)?)",
+    "clause_number": "(?:\\d{1,3}(?:\\.\\d{1,3})*[.)]|\\(\\d{1,3}\\)|[ivx]{1,5}[.)]|(?:article|art\\.|clause|section|§)\\s*\\d{1,3}(?:\\.\\d{1,3})*\\s*[.):\\-–—]?)",
+    "holders_heading": "^(?:{clause_number}\\s*)?(?:(?:{holders_heading_current}),?\\s+)?(?:the\\s+)?(?:(?:current|present|sole|registered)\\s+)?(?:{holders_heading_nouns})(?:\\s+{holders_heading_registered})?(?:\\s+(?:{holders_heading_current})|\\s*,\\s*(?:{holders_heading_current})|\\s*\\(\\s*(?:{holders_heading_current}|current|present)\\s*\\))?(?:\\s*\\((?:synthetic|fictitious)\\))?(?:\\s+(?:are|is))?\\s*[.:]$",
+    "holders_heading_note_2_0_3": "Since v2.0.3 (D30, forms found by the blind run of v2.0.2, eval/history.json run 9) the grammar also reads, by class: the qualifier that says 'current' in parentheses or after a comma ('Holders (as at the document date):', 'Holders, now:'); the qualifier that says the holders are the registered ones at the document date ('of record', 'on record', 'registered', 'entered in the register (of members)'), alone or before a 'current' qualifier; the clause numbers '4.', '4)', '4.1.', '(4)', 'IV.', 'Article 4 -'; the nouns 'shareholdings', 'shareholding structure', 'quotaholdings'; the marker of the synthetic world '(synthetic)' at the end. Still not a heading: a qualifier with an explicit date ('Holders at 16 February 2026:'), a qualifier of another time ('before the transfer', 'former'), 'owners', 'beneficial owners', 'ownership structure', 'allocation of the capital', 'directors'.",
     "holders_heading_note": "The heading of a holders' table is a grammar, not a list of phrasings: a holder noun (holders, shareholders, quotaholders, members, partners), optionally numbered, optionally with a qualifier that says the table is current (after the transfer, as at the document date, now), before or after the noun. A qualifier that is not known to mean 'current' (before the transfer, former, as at another date) is not a heading, and the document then abstains on the holders as before. Owners, beneficial owners and directors are not holder nouns. Two headings in one document abstain: which table is current is not ours to choose. Added with v2.0.2 (decision D26 of 2026-09-30: OWN-015 stays 'block'; reworded headings were the first cause of entities blocked wrongly on the stress suite).",
-    "filename_pattern": "^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
+    "list_marker": "(?:[-*•–—·]|\\(?\\d{1,3}[.)]|\\(\\d{1,3}\\)|\\(?[a-z][.)]|\\([a-z]\\)|\\(?[ivx]{1,5}[.)]|\\([ivx]{1,5}\\))",
+    "item_separator": "(?::|\\t|\\||\\s[-–—]\\s|\\s)",
+    "item_holder": "(?:(?P<id>P-\\d{3}|E-\\d{4})(?:\\s*\\((?P<label>[^()]*)\\))?|(?P<label_first>(?:(?!P-\\d{3}|E-\\d{4})[^()|:\\t])+?)\\s*\\((?P<id_last>P-\\d{3}|E-\\d{4})\\))",
+    "item_person": "(?:(?P<id>P-\\d{3})(?:\\s*\\((?P<label>[^()]*)\\))?|(?P<label_first>(?:(?!P-\\d{3}|E-\\d{4})[^()|:\\t])+?)\\s*\\((?P<id_last>P-\\d{3})\\))",
+    "item_grammar_note": "Since v2.0.3 (D30) a holder line is read by class, not by one literal form: an optional list marker (dash, bullet, '1.', '1)', '(1)', 'a)', '(a)', 'i)', '(i)'); the identifier first with its name in parentheses, or the name first with the identifier in parentheses; a separator (colon, tab, pipe, a dash between spaces, or a space); the share. The share is read by dossier/lib/numbers.py parse_share (per cent with '%', 'per cent', 'percent' or 'pct', a fraction n/d, a whole number of per cent in words, a simple fraction in words); a number of quotas or shares is read only when the same document states the total number once (parameter count_total), and every holder of the table is then counted. Anything else on the line - a second identifier in the name, nested parentheses, a share in another form, a table that mixes counts and shares - leaves the whole table unread, as before.",
+    "count_total": [
+      "\\b(?:divided|split)\\s+into\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?:consists|consisting|composed|made\\s+up|represented)\\s+(?:of|by)\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?:a\\s+)?total\\s+(?:number\\s+)?of\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered)\\s+)?(?:quotas|shares)\\s+in\\s+(?:total|all)\\b"
+    ],
+    "count_total_note": "A number of quotas or shares is a share of the entity only through the total. The total is read from the same document, and only when these patterns find one value (the same value found twice is one value); no total, or two different totals, and the counts are not read: the table is [TO CONFIRM] and OWN-015 blocks. The counts of a table are divided by that total and summed like any other share, so counts that do not add up to the total make a table that does not sum (OWN-010). Added with v2.0.3 (D30).",
+    "filename_pattern":"^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
       "capital-resolution": "RESOLUTION",
@@ -214,15 +229,23 @@
       "nature": "share",
       "kinds": ["DEED", "EXTRACT", "LEDGER", "TRANSFER"],
       "line_matches": "{holders_heading}",
-      "item_matches": "^\\s*- (?P<id>P-\\d{3}|E-\\d{4}) \\((?P<label>.*)\\): (?P<share>.+)$",
-      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table. The heading is the grammar of the parameter holders_heading (since v2.0.2); two headings in one document make the table [TO CONFIRM].",
+      "item_matches": "^\\s*(?:{list_marker}\\s+)?{item_holder}\\s*{item_separator}\\s*(?P<share>[^\\s:|\\t\\-–—].*?)\\s*$",
+      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table. The heading is the grammar of the parameter holders_heading (since v2.0.2); two headings in one document make the table [TO CONFIRM]. The line is the grammar of the parameters list_marker, item_holder and item_separator (since v2.0.3, see item_grammar_note).",
       "tests": [
         {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "expect": [{"holder": "E-0002", "share": "2/5"}, {"holder": "P-001", "share": "3/5"}]},
         {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "expect": null},
         {"kind": "LEDGER", "text": "Members at the document date:\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
         {"kind": "DEED", "text": "4. Shareholders.\n- P-001 (Aldo Finti): 1/2\n- P-002 (Bice Provetti): 1/2", "expect": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
         {"kind": "TRANSFER", "text": "Holders before the transfer:\n- P-001 (Aldo Finti): 100%\n\nFollowing the transfer, the members are:\n- P-001 (Aldo Finti): 70%\n- P-003 (Carla Esempi): 30%", "expect": [{"holder": "P-001", "share": "7/10"}, {"holder": "P-003", "share": "3/10"}]},
-        {"kind": "EXTRACT", "text": "Holders:\n- P-001 (Aldo Finti): 100%\n\nMembers:\n- P-002 (Bice Provetti): 100%", "expect": null}
+        {"kind": "EXTRACT", "text": "Holders:\n- P-001 (Aldo Finti): 100%\n\nMembers:\n- P-002 (Bice Provetti): 100%", "expect": null},
+        {"kind": "EXTRACT", "text": "Partners (as at the document date):\n(a) P-001 (Aldo Finti) – 45 per cent\n(b) P-002 (Bice Provetti) – 55 per cent", "expect": [{"holder": "P-001", "share": "9/20"}, {"holder": "P-002", "share": "11/20"}]},
+        {"kind": "EXTRACT", "text": "Stockholders of record:\n1. Aldo Finti (P-001) | two fifths\n2. Bice Provetti (P-002) | three fifths", "expect": [{"holder": "P-001", "share": "2/5"}, {"holder": "P-002", "share": "3/5"}]},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 40.000,00, divided into 400 quotas.\nIV. Quotaholders.\n• Aldo Finti (P-001): 100 quotas\n• Bice Provetti (P-002): 300 quotas", "expect": [{"holder": "P-001", "share": "1/4"}, {"holder": "P-002", "share": "3/4"}]},
+        {"kind": "DEED", "text": "4. Quotaholders.\n- Aldo Finti (P-001): 100 quotas\n- Bice Provetti (P-002): 300 quotas", "expect": null},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 40.000,00, divided into 400 quotas.\n4. Quotaholders.\n- P-001 (Aldo Finti): 100 quotas\n- P-002 (Bice Provetti): 75%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- P-001 (Aldo Finti) (in liquidation): 60%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- Usufruct of P-002 for Aldo Finti (P-001): 60%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- P-001 (Aldo Finti): thirty point five per cent\n- P-002 (Bice Provetti): 69,5%", "expect": null}
       ]
     },
     {
@@ -232,10 +255,12 @@
       "nature": "person",
       "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
       "line_matches": "^(?:\\d+\\. )?Directors(?: in office after this appointment)?[.:]$",
-      "item_matches": "^\\s*- (?P<id>P-\\d{3}) \\((?P<label>.*)\\)$",
-      "rationale": "The directors are a list of person identifiers, read whole or not at all.",
+      "item_matches": "^\\s*(?:{list_marker}\\s+)?{item_person}\\s*$",
+      "rationale": "The directors are a list of person identifiers, read whole or not at all. Since v2.0.3 (D30) the line is the grammar of list_marker and item_person: the identifier first or the name first, with any list marker.",
       "tests": [
         {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)", "expect": ["P-034"]},
+        {"kind": "DEED", "text": "5. Directors.\n- Lia Fittizi (P-034)\n2) P-035 (Ugo Prova)", "expect": ["P-034", "P-035"]},
+        {"kind": "DEED", "text": "5. Directors.\n- Lia Fittizi (P-034), chair", "expect": null},
         {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- someone not identified", "expect": null}
       ]
     },
@@ -382,6 +407,102 @@
           {"text": "Net result: EUR -12.000,00", "expect": "HEV-999"},
           {"text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": "HEV-999"},
           {"text": "The registered office is transferred from Corso dei Modelli 52, Valcollaudo (ZZ) to Largo Simulato 20, Serrafinta (ZZ).", "expect": "HEV-999"}
+        ]
+      }
+    ]
+  },
+  "unread_fields": {
+    "reading": "Which fields a document whose type is not recognised may change (DISC-005, parameter unread_document_scope of rules/discrepancy.json). Checked only when the type is the header's only problem; a document with any other header problem may change every field. Every body line outside a holders' table read whole goes through these rules. The rules marked 'topic' are all tried: a line may speak of several fields, and every field it may speak of is kept. Only when no topic rule applies are the others tried, in order, first match wins: a figure, an identifier, an amount or a label that no topic explains makes the document one that may change every field. The shareholders are decided by the holders' check (holders_evidence): a table read whole may change them, 'no_table' does not. The rules err on the side of evidence: a word wrongly taken as a topic costs coverage (the field stays [TO CONFIRM]), a line wrongly passed could let a fact be shown that the unread document contradicts. Added with v2.0.3 (D30: on the perturbed corpus of seed 20261013 a document of unrecognised type left every field of its entity [TO CONFIRM], including fields it does not speak of).",
+    "rules": [
+      {
+        "id": "FEV-010",
+        "when": "topic",
+        "fields": ["*"],
+        "pattern": "\\b(?:annul\\w*|revok\\w*|revoc\\w*|void\\w*|null|nullity|cancel\\w*|rescind\\w*|rescission|withdraw\\w*|supersed\\w*|replac\\w*|amend\\w*|correct\\w*|rectif\\w*|errat\\w*|dissol\\w*|liquidat\\w*|merg\\w*|demerg\\w*|split\\w*|conver\\w*|transform\\w*|instead|invalid\\w*|ineffective|restat\\w*|previous|prior|earlier|former)\\b",
+        "rationale": "On top: a word of cancellation, correction, restructuring or a reference to an earlier document may change any field, even one it does not name (\"the resolution of March is annulled\"). A plain word of change (\"change of the board\", \"new seat\") is not here: it goes with the topic it names.",
+        "tests": [
+          {"text": "The previous resolution is annulled.", "expect": ["*"]},
+          {"text": "Erratum: the date of the resolution of 3 March is corrected.", "expect": ["*"]}
+        ]
+      },
+      {
+        "id": "FEV-020",
+        "when": "topic",
+        "fields": ["name", "legal_form"],
+        "pattern": "\\b(?:names?|named|renam\\w*|denominat\\w*|designat\\w*|called|styled|known\\s+as|trad(?:e|ing)\\s+(?:name|as)|firm|forms?|limited|liability|joint[\\s-]stock|corporation|incorporat\\w*)\\b|(?<![a-z])s\\.?\\s?r\\.?\\s?l\\b|(?<![a-z])s\\.?\\s?p\\.?\\s?a\\b",
+        "rationale": "The name and the legal form: a word that names the company or its form, or a legal-form abbreviation.",
+        "tests": [
+          {"text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["legal_form", "name"]},
+          {"text": "The test registry certifies that the entity named above is entered in the test registry (synthetic).", "expect": ["legal_form", "name"]}
+        ]
+      },
+      {
+        "id": "FEV-030",
+        "when": "topic",
+        "fields": ["registered_office"],
+        "pattern": "(?<!\\bin\\s)\\b(?:offices?)\\b|\\b(?:seat|address\\w*|domicil\\w*|headquarter\\w*|premises|located|situated|relocat\\w*|moved?|transferred|via|viale|piazza|piazzale|corso|largo|strada|vicolo|borgo|street|road|avenue|square|lane)\\b|\\(ZZ\\)",
+        "rationale": "The registered office: a word of office, seat or address, a street word, or the invented province of the synthetic world. \"in office\" (directors in office) is not a word of the registered office.",
+        "tests": [
+          {"text": "The seat of the company is moved from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"]},
+          {"text": "The registered office of the company is at Corso dei Modelli 52.", "expect": ["registered_office"]},
+          {"text": "The office of the company is in the capital city.", "expect": ["registered_office", "share_capital.*"]}
+        ]
+      },
+      {
+        "id": "FEV-040",
+        "when": "topic",
+        "fields": ["share_capital.*"],
+        "pattern": "\\b(?:capital|subscri\\w*|paid[\\s-]*(?:in|up)|contribut\\w*|increas\\w*|reduc\\w*|rais\\w*|issu\\w*|allot\\w*|nominal|par\\s+value)\\b",
+        "rationale": "The share capital: a word of capital, subscription, payment, increase, reduction or issue.",
+        "tests": [
+          {"text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": ["share_capital.*"]},
+          {"text": "The meeting resolved to increase the share capital from EUR 200.000,00 to EUR 250.000,00.", "expect": ["share_capital.*"]}
+        ]
+      },
+      {
+        "id": "FEV-050",
+        "when": "topic",
+        "fields": ["directors"],
+        "pattern": "\\b(?:directors?|board|appoint\\w*|manag\\w*|administrat\\w*|officers?|chair\\w*|president|ceo|resign\\w*|dismiss\\w*|representative|signator\\w*|P-\\d{3})\\b",
+        "rationale": "The directors: a word of office holding, appointment or resignation, or a person identifier outside a holders' table read whole.",
+        "tests": [
+          {"text": "- P-034 (Lia Fittizi)", "expect": ["directors"]},
+          {"text": "The board now consists of:", "expect": ["directors"]},
+          {"text": "Minutes - change of the board.", "expect": ["directors"]},
+          {"text": "Directors in office after this appointment:", "expect": ["directors"]}
+        ]
+      },
+      {
+        "id": "FEV-060",
+        "when": "topic",
+        "fields": ["fin.*"],
+        "pattern": "\\b(?:equity|assets?|revenues?|turnover|sales|profits?|loss(?:es)?|results?|income|earnings|ebitda|ebit|liabilit\\w*|debts?|cash|accounts|financial|balance|statements?|fiscal|year)\\b",
+        "rationale": "The financial summary: a word of the accounts.",
+        "tests": [
+          {"text": "Equity (net): EUR 80.000,00", "expect": ["fin.*"]},
+          {"text": "Turnover: 750 000,00 euro", "expect": ["fin.*"]}
+        ]
+      },
+      {
+        "id": "FEV-900",
+        "when": "no_topic_and_pattern_found",
+        "fields": ["*"],
+        "pattern": "\\d|\\bE-\\d{4}\\b|\\bEUR\\b|€|\\beuros?\\b|^[^:]{1,80}:\\s*\\S",
+        "rationale": "A figure, an entity identifier, an amount or a label with a value that no topic explains: it may state any field.",
+        "tests": [
+          {"text": "Reference: ABC-17", "expect": ["*"]},
+          {"text": "Value 1.250,00", "expect": ["*"]}
+        ]
+      },
+      {
+        "id": "FEV-999",
+        "when": "always",
+        "fields": [],
+        "rationale": "Default: a line with no topic, no figure, no identifier and no label states no field (a title, the synthetic marker, a sentence about the document itself).",
+        "tests": [
+          {"text": "Entries of the ledger as at the document date (synthetic).", "expect": []},
+          {"text": "Minutes of the holders' meeting (synthetic).", "expect": []},
+          {"text": "Notice of a transfer of shares (synthetic).", "expect": []}
         ]
       }
     ]

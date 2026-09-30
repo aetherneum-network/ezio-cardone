@@ -187,7 +187,7 @@ def score(work: Path, gold: dict) -> dict:
         "filename_divergences_found": ratio(c["filename_found"], c["filename_gold"]),
         "figures_with_source": ratio(c["figures_with_source"], c["figures_total"]),
     }
-    return {"metrics": metrics, "counts": c, "never_event_list": never[:50],
+    return {"metrics": metrics, "counts": c, "never_event_list": never,   # every one, never capped (D30)
             "run": {"status": report["status"], "counts": report["counts"], "as_of": report["as_of"]}}
 
 

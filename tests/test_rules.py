@@ -38,7 +38,7 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 56)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2
+        self.assertEqual(len(ids), 64)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900, FEV-999 in v2.0.3
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
@@ -55,14 +55,14 @@ class RuleFiles(unittest.TestCase):
 
     def test_legal_assumptions_are_parameters_to_confirm(self):
         got = s.rules().legal_assumptions()
-        self.assertEqual(len(got), 10)
+        self.assertEqual(len(got), 11)       # + discrepancy.json unread_document_scope in v2.0.3
         for a in got:
             self.assertEqual(a["status"], "[TO CONFIRM with legal]", a["parameter"])
             self.assertGreater(len(a["note"]), 20)
         listed = (ROOT / "docs" / "ASSUMPTIONS.md").read_text(encoding="utf-8")
         for a in got:
             self.assertIn(f"`{a['parameter']}`", listed)
-        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 10 + 1)
+        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 11 + 1)
 
     def test_rule_files_carry_a_version(self):
         r = s.rules()

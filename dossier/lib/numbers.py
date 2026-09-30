@@ -74,12 +74,64 @@ def format_amount(canonical: str) -> str:
     return f"EUR {'.'.join(reversed(groups))},{cents}"
 
 
-_PCT = re.compile(r"^(\d+)(?:[.,](\d+))?\s*%$")
+_PER_CENT = r"(?:%|per\s?-?\s?cent|percent|pct\.?)"
+_PCT = re.compile(r"^(\d+)(?:[.,](\d+))?\s*" + _PER_CENT + r"$", re.I)
 _FRAC = re.compile(r"^(\d+)\s*/\s*(\d+)$")
+_UNITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
+          "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"]
+_TENS = {"twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60, "seventy": 70, "eighty": 80, "ninety": 90}
+_ORDINALS = {"half": 2, "third": 3, "quarter": 4, "fourth": 4, "fifth": 5, "sixth": 6, "seventh": 7, "eighth": 8,
+             "ninth": 9, "tenth": 10, "twentieth": 20, "hundredth": 100}
+_PCT_WORDS = re.compile(r"^([a-z]+(?:[\s-][a-z]+)*)\s+" + _PER_CENT + r"$", re.I)
+_FRAC_WORDS = re.compile(r"^(?:(a|an|[a-z]+)\s+)?(halves|half|[a-z]+?)(s?)$", re.I)
+
+
+def words_to_int(text: str) -> int | None:
+    """An integer from 0 to 100 written in English words ("thirty", "thirty-five", "thirty five", "one hundred",
+    "a hundred"); None for anything else (decimals, "and", ordinals, numbers above one hundred)."""
+    t = re.sub(r"[\s-]+", " ", text.strip().lower())
+    if t in ("one hundred", "a hundred", "hundred"):
+        return 100
+    if t in _UNITS:
+        return _UNITS.index(t)
+    if t in _TENS:
+        return _TENS[t]
+    parts = t.split(" ")
+    if len(parts) == 2 and parts[0] in _TENS and parts[1] in _UNITS[1:10]:
+        return _TENS[parts[0]] + _UNITS.index(parts[1])
+    return None
+
+
+def _share_in_words(t: str) -> tuple[Fraction | None, str | None]:
+    m = _PCT_WORDS.match(t)
+    if m:
+        n = words_to_int(m.group(1))
+        if n is None:
+            return None, "per cent in words that are not a whole number from zero to one hundred"
+        return Fraction(n, 100), None
+    m = _FRAC_WORDS.match(t.strip().lower())
+    if m and m.group(2) in ("half", "halves") or (m and m.group(2) in _ORDINALS):
+        num_word, ordinal, plural = m.group(1), m.group(2), m.group(3)
+        if ordinal == "halves":
+            ordinal, plural = "half", "s"
+        if num_word is None:
+            return None, "a fraction in words without its numerator"
+        num = 1 if num_word in ("a", "an") else words_to_int(num_word)
+        if num is None or num == 0:
+            return None, "the numerator of a fraction in words is not read"
+        if (num == 1) == bool(plural):       # "one thirds", "two third": singular and plural disagree
+            return None, "a fraction in words whose number and ordinal disagree"
+        return Fraction(num, _ORDINALS[ordinal]), None
+    return None, "share in a form that is not recognised"
 
 
 def parse_share(token: str) -> tuple[Fraction | None, str | None]:
-    """``"60%"``, ``"33,33%"``, ``"1/3"``, ``"60/100"`` -> exact ``Fraction``."""
+    """``"60%"``, ``"60 %"``, ``"33,33%"``, ``"60 per cent"``, ``"60 percent"``, ``"1/3"``, ``"60/100"``,
+    ``"thirty per cent"``, ``"thirty-five per cent"``, ``"one third"``, ``"two fifths"``, ``"a half"`` -> exact
+    ``Fraction``. Since v2.0.3 (D30) the per cent words and the shares written in words are read; a share in
+    words that is not a whole number of per cent or a simple fraction (numerator in words, ordinal
+    denominator) is not read. Counts and nominal amounts are not shares: they are read only with a total
+    stated in the same document (``dossier/s1_extract.py``)."""
     t = token.strip()
     if not t:
         return None, "empty share"
@@ -94,7 +146,22 @@ def parse_share(token: str) -> tuple[Fraction | None, str | None]:
         if int(m.group(2)) == 0:
             return None, "zero denominator"
         return Fraction(int(m.group(1)), int(m.group(2))), None
-    return None, "share in a form that is not recognised"
+    if re.search(r"\d", t):
+        return None, "share in a form that is not recognised"
+    return _share_in_words(t)
+
+
+_COUNT = re.compile(r"^(\d{1,3}(?:([.,'’ ])\d{3})?(?:\2\d{3})*|\d+)\s+(?:(?:ordinary|registered)\s+)?"
+                    r"(quotas?|shares?)$", re.I)
+
+
+def parse_count(token: str) -> tuple[int | None, str | None]:
+    """``"200 quotas"``, ``"1.200 shares"``, ``"1 ordinary share"`` -> 200, 1200, 1: a number of quotas or shares,
+    which is a share only with the total the same document states."""
+    m = _COUNT.match(token.strip())
+    if not m:
+        return None, "not a number of quotas or shares"
+    return int(re.sub(r"\D", "", m.group(1))), None
 
 
 def frac_str(f: Fraction) -> str:

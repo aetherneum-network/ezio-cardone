@@ -76,12 +76,44 @@ def _valid_date(text: str) -> bool:
         return False
 
 
-def unread_that_matter(unread: list[dict], baseline: dict | None, rules: Rules) -> list[dict]:
-    """Unread documents that may change a field: undated, or not older than its latest event document."""
+def may_change(u: dict, fld: str, rules: Rules) -> bool:
+    """Whether an unread document may change the field (rules/discrepancy.json unread_document_scope). A document
+    without a fields check - or any scope other than fields_it_may_state - may change every field."""
+    fc = u.get("fields_check")
+    if rules.param("discrepancy", "unread_document_scope") != "fields_it_may_state" or not fc:
+        return True
+    for m in fc.get("may_change") or ["*"]:
+        if m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])):
+            return True
+    return False
+
+
+def agrees_with_current(u: dict, fld: str, current: list[dict], rules: Rules) -> bool:
+    """A holders' table read whole in an unread document that equals the one current table: it says nothing the
+    recognised sources do not already say, so it does not make the shareholders [TO CONFIRM]."""
+    hc = u.get("holders_check") or {}
+    if (fld != "shareholders" or rules.param("discrepancy", "unread_document_scope") != "fields_it_may_state"
+            or hc.get("status") != "read" or len(hc.get("tables") or []) != 1 or not current
+            or any(a["status"] != "STATED" for a in current)):
+        return False
+    values = {_key(a["value"]) for a in current}
+    return values == {_key(hc["tables"][0]["value"])}
+
+
+def unread_that_matter(unread: list[dict], baseline: dict | None, rules: Rules, fld: str | None = None,
+                       current: list[dict] | None = None) -> tuple[list[dict], list[dict]]:
+    """(unread documents that may change the field, unread documents whose holders' table agrees with the current
+    one). A document matters when it may change the field and is undated or not older than the latest event
+    document of the field."""
     if not rules.param("discrepancy", "unread_document_blocks_fact"):
-        return []
-    return [u for u in unread if baseline is None or not _valid_date(u.get("date") or "")
-            or u["date"] >= baseline["source_date"]]
+        return [], []
+    dated = [u for u in unread if baseline is None or not _valid_date(u.get("date") or "")
+             or u["date"] >= baseline["source_date"]]
+    if fld is None:
+        return dated, []
+    scoped = [u for u in dated if may_change(u, fld, rules)]
+    agreeing = [u for u in scoped if agrees_with_current(u, fld, current or [], rules)]
+    return [u for u in scoped if u not in agreeing], agreeing
 
 
 def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[dict] | None = None) -> dict:
@@ -91,7 +123,7 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
     groups: dict[str, list[dict]] = {}
     for a in stated:
         groups.setdefault(_key(a["value"]), []).append(a)
-    blocking = unread_that_matter(unread or [], baseline, rules)
+    blocking, agreeing = unread_that_matter(unread or [], baseline, rules, fld, current)
     strict = rules.param("discrepancy", "unreadable_current_source_blocks_fact")
     facts = {"unread_document_may_change_field": bool(blocking),
              "no_current_assertion": not current,
@@ -104,6 +136,8 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
     res: dict = {"field": fld, "status": rule["status"], "rule": rule["id"],
                  "unreadable": [dict(_src(a), reason=a["reason"]) for a in sorted(current, key=_order)
                                 if a["status"] != "STATED"]}
+    if agreeing:
+        res["unread_agreeing"] = sorted(u.get("doc_id") or u["file"] for u in agreeing)
     if rule["status"] == "STATED":
         newest_first = sorted(stated, key=_order, reverse=True)
         res["value"] = newest_first[0]["value"]
@@ -184,7 +218,7 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 else:
                     x["status"], x["value"] = "STATED", a["value"]
                 assertions.append(x)
-            got = resolve_field("f", assertions, rules, t.get("unread"))
+            got = resolve_field(t.get("field", "f"), assertions, rules, t.get("unread"))
             exp = t["expect"]
             ok = got["status"] == exp["status"] and got["rule"] == r["id"]
             if "value" in exp:

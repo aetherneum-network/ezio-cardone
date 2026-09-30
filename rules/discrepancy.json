@@ -1,6 +1,6 @@
 {
   "file": "discrepancy.json",
-  "version": "2.0.0",
+  "version": "2.0.3",
   "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
   "parameters": {
     "event_supersedes_earlier_state": {
@@ -24,9 +24,15 @@
       "note": "No source is preferred. A human adjudicates."
     },
     "unread_document_blocks_fact": {
-      "note": "A document of the entity that could not be classified (unknown type, broken header) may change any field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Added after the first stress run (eval/history.json, run 2).",
+      "note": "A document of the entity that could not be classified (unknown type, broken header) may change a field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Which fields it may change: parameter unread_document_scope. Added after the first stress run (eval/history.json, run 2).",
       "status": "[TO CONFIRM with legal]",
       "value": true
+    },
+    "unread_document_scope": {
+      "value": "fields_it_may_state",
+      "allowed": ["fields_it_may_state", "every_field"],
+      "status": "[TO CONFIRM with legal]",
+      "note": "fields_it_may_state (since v2.0.3, D30): a document whose only problem is its type may change the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table of the recognised sources does not make the shareholders [TO CONFIRM]. A document with any other problem of the header may change every field. every_field: the rule of v2.0.0-v2.0.2, every field (the over-reach that left 780 fields [TO CONFIRM] on the perturbed corpus of seed 20261013)."
     },
     "unreadable_current_source_blocks_fact": {
       "note": "When one current source of a field could not be read, the value of the other current sources is not shown as fact: the unread source may disagree. Added after the first stress run (eval/history.json, run 2).",
@@ -40,8 +46,33 @@
       "when": "unread_document_may_change_field",
       "status": "TO_CONFIRM",
       "reason": "a document of the entity could not be read and may change this field",
-      "rationale": "Exception on top of everything: a document that was not classified is not evidence of absence. If it is not older than the latest event document of the field, nothing is shown as fact for that field.",
+      "rationale": "Exception on top of everything: a document that was not classified is not evidence of absence. If it may change the field (parameter unread_document_scope) and is not older than the latest event document of the field, nothing is shown as fact for that field.",
       "tests": [
+        {
+          "field": "share_capital.resolved",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "50000.00"}
+          ],
+          "expect": {"readable": ["50000.00"], "status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["share_capital.*"], "why": "t"}}]
+        },
+        {
+          "field": "shareholders",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": [{"holder": "P-001", "share": "1/1"}]}
+          ],
+          "expect": {"status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["shareholders"], "why": "t"},
+                      "holders_check": {"status": "read", "why": "", "edition": "X/1", "tables": [{"line": 9, "line_end": 11, "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}]}}]
+        },
+        {
+          "field": "name",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Alfa S.r.l."}
+          ],
+          "expect": {"status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9"}]
+        },
         {
           "assertions": [
             {
@@ -278,6 +309,23 @@
       "status": "STATED",
       "rationale": "Every readable current source gives the same value. It is shown once, with the latest source first and the others listed.",
       "tests": [
+        {
+          "field": "fin.FY2025.revenue",
+          "assertions": [
+            {"date": "2026-03-01", "doc": "D1", "role": "state", "series": "FIN-FY2025", "value": "750000.00"}
+          ],
+          "expect": {"status": "STATED", "value": "750000.00"},
+          "unread": [{"date": "2026-04-01", "doc_id": "D9", "fields_check": {"may_change": ["directors", "legal_form", "name", "registered_office", "share_capital.*", "shareholders"], "why": "t"}}]
+        },
+        {
+          "field": "shareholders",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}
+          ],
+          "expect": {"status": "STATED", "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["shareholders"], "why": "t"},
+                      "holders_check": {"status": "read", "why": "", "edition": "X/1", "tables": [{"line": 9, "line_end": 11, "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}]}}]
+        },
         {
           "assertions": [
             {

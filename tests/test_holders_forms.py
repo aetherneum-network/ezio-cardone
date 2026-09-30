@@ -152,8 +152,12 @@ class B_UnclassifiedDocumentsAreChecked(unittest.TestCase):
         self.assertEqual(checks["DOC-E0001-02"]["source_date"], "2025-05-05")
 
     def test_register_of_members_with_a_reworded_heading(self):
+        # until v2.0.2 the shareholders were [TO CONFIRM] here; since v2.0.3 (D30, rules/discrepancy.json
+        # unread_document_scope) a table read whole that equals the one current table does not make them so
         doc = _retype(_ledger(2, "2025-02-01", "Members at the document date:", H), "Register of members")
-        self.assertPublished([DEED, doc], to_confirm=["shareholders"])
+        view = self.assertPublished([DEED, doc])
+        self.assertEqual(view["fields"]["shareholders"]["status"], "STATED")
+        self.assertEqual(view["fields"]["shareholders"]["unread_agreeing"], ["DOC-E0001-02"])
 
 
 class B_UnclassifiedDocumentsThatStillBlock(unittest.TestCase):
@@ -176,8 +180,10 @@ class B_UnclassifiedDocumentsThatStillBlock(unittest.TestCase):
         self.assertBlocked([DEED, doc])
 
     def test_a_table_with_a_line_in_another_form(self):
+        # until v2.0.2 the line was "- Carlo Inventati (P-003): 20%", which v2.0.3 reads (D30, name first:
+        # tests/test_d30_forms.py C2); a line in a form still not read is used instead
         doc = _retype(_reword(mk.transfer("E-0001", 2, "2025-05-05", AFTER), "- P-003 (Carlo Inventati): 20%",
-                              "- Carlo Inventati (P-003): 20%"), "Notice of assignment of shares")
+                              "- Carlo Inventati, P-003: 20%"), "Notice of assignment of shares")
         self.assertBlocked([DEED, doc])
 
     def test_a_table_under_a_heading_in_another_form(self):

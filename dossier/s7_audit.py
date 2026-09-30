@@ -28,6 +28,7 @@ from docx import Document
 from . import TO_CONFIRM
 from .lib import jsonio
 from .lib.numbers import parse_amount, parse_frac, parse_share
+from . import rules_engine
 from .rules_engine import Rules, first_match, rx
 from . import s6_build as b
 
@@ -39,7 +40,18 @@ _DIGIT_RUN = rf"\d(?:\d|{_GROUPING}(?=\d))*"
 _AMOUNT_IN_QUOTE = re.compile(
     rf"(?<![A-Za-z])EUR\s+({_DIGIT_RUN})"
     rf"(?!{_GROUPING}+[\d#]|[\dA-Za-z#]|\s*(?:thousand|million|billion|k|m|bn|mn|mln|mio|mrd)(?![A-Za-z]))", re.I)
-_SHARE_IN_LINE = re.compile(r"^\s*- (\S+) \(.*\): (.+)$")
+# The audit's own reading of a list line (v2.0.3, D30): a list marker (dash, bullet, number, letter, roman
+# numeral) or none; the identifier first with an optional label in parentheses, or a name first with the
+# identifier in parentheses; then a colon, tab, bar, spaced dash or space, and the share.
+_MARK = r"(?:[-*•–—·]|\(?\d{1,3}[.)]|\(\d{1,3}\)|\(?[a-z][.)]|\([a-z]\)|\(?[ivx]{1,5}[.)]|\([ivx]{1,5}\))"
+_HOLDER = r"(?:(P-\d{3}|E-\d{4})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{3}|E-\d{4})\))"
+_SHARE_IN_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?{_HOLDER}\s*(?::|\t|\||\s[-–—]\s|\s)\s*(\S.*?)\s*$", re.I)
+_PERSON_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:(P-\d{{3}})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{{3}})\))\s*$",
+                          re.I)
+_COUNT_IN_LINE = re.compile(r"^(\d{1,3}(?:[.,'’ ]\d{3})+|\d+)\s+(?:(?:ordinary|registered)\s+)?(?:quotas?|shares?)$",
+                            re.I)
+_TOTAL_IN_LINE = re.compile(r"(?<![\d.,'’])(\d{1,3}(?:[.,'’ ]\d{3})+|\d+)\s+(?:(?:ordinary|registered|equal)\s+)?"
+                            r"(?:quotas|shares)\b", re.I)
 FIGURE_SECTIONS = {"facts": b.H_FACTS, "discrepancies": b.H_DISC, "unconfirmed": b.H_UNCONF,
                    "cap_table": b.H_CAP, "chain": b.H_CHAIN, "history": b.H_HIST}
 _ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -59,7 +71,7 @@ def supported_by_quote(fig: dict) -> bool:
     if fld == "shareholders":
         return _holder_lines(quote) == {r["holder"]: parse_frac(r["share"]) for r in value}
     if fld == "directors":
-        ids = re.findall(r"^\s*- (P-\d{3}) ", quote, flags=re.M)
+        ids = [m.group(1) or m.group(2) for m in map(_PERSON_LINE.match, quote.split("\n")[1:]) if m]
         return sorted(ids) == sorted(value)
     if isinstance(value, str) and re.fullmatch(r"\d+\.\d{2}", value) and (
             fld.startswith(("share_capital", "fin."))):
@@ -74,13 +86,29 @@ def _same_digits(token: str, value: str) -> bool:
 
 
 def _holder_lines(quote: str) -> dict[str, Fraction]:
+    """Every holder line of the quote with its share. Numbers of quotas or shares are shares only through the one
+    total the other lines of the quote state; a quote that mixes them with shares, or states no single total, gives
+    a table that cannot match (the audit then fails the dossier)."""
     out: dict[str, Fraction] = {}
+    counts: dict[str, int] = {}
+    others: list[str] = []
     for line in quote.split("\n"):
         m = _SHARE_IN_LINE.match(line)
-        if m:
-            share, _ = parse_share(m.group(2))
-            if share is not None:
-                out[m.group(1)] = share
+        hid = (m.group(1) or m.group(2)) if m else None
+        share = parse_share(m.group(3))[0] if m else None
+        count = _COUNT_IN_LINE.match(m.group(3).strip()) if m and share is None else None
+        if share is not None:
+            out[hid] = share
+        elif count:
+            counts[hid] = int(re.sub(r"\D", "", count.group(1)))
+        else:
+            others.append(line)
+    if counts:
+        totals = {int(re.sub(r"\D", "", t)) for line in others for t in _TOTAL_IN_LINE.findall(line)}
+        if out or len(totals) != 1 or 0 in totals:
+            return {"": Fraction(-1)}
+        total = totals.pop()
+        out = {h: Fraction(n, total) for h, n in counts.items()}
     return out
 
 
@@ -104,6 +132,70 @@ def current_values(assertions: list[dict]) -> tuple[set[str], bool, bool, str]:
             any(a["status"] != "STATED" for a in current), cutoff)
 
 
+def _expand_all(pattern: str, params: dict) -> str:
+    """Substitute every ``{name}`` of the rule parameters, until none is left (the audit's own expansion)."""
+    for _ in range(5):
+        new = re.sub(r"\{([a-z_]+)\}", lambda m: params[m.group(1)] if isinstance(params.get(m.group(1)), str)
+                     else m.group(0), pattern)
+        if new == pattern:
+            break
+        pattern = new
+    return pattern
+
+
+def unread_scope(u: dict, input_dir: Path | str, rules: Rules | None) -> tuple[set[str], list[dict]]:
+    """(fields an unread document may change, holders' tables of it re-read by the audit), read again from the
+    source by the audit: a second implementation of rules/discrepancy.json unread_document_scope over
+    rules/extract.json unread_fields and holders_evidence. ``{"*"}`` is every field."""
+    every = ({"*"}, [])
+    if rules is None or rules.param("discrepancy", "unread_document_scope") != "fields_it_may_state":
+        return every
+    reason = u.get("reason") or ""
+    if not reason.startswith("document type not recognised") or "; " in reason:
+        return every                      # another problem of the header: any field
+    path = Path(input_dir) / u["file"]
+    if not path.exists():
+        return every
+    lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
+    start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
+    skip: set[int] = set()
+    tables = []
+    hc = u.get("holders_check") or {}
+    for t in hc.get("tables") or [] if hc.get("status") == "read" else []:
+        rows = lines[t["line"]:t["line_end"]]          # the lines after the heading, 0-based t["line"] is next
+        got = _holder_lines("\n".join(lines[t["line"] - 1:t["line_end"]]))
+        want = {r["holder"]: parse_frac(r["share"]) for r in t["value"]}
+        if t["line"] > start and rows and all(_SHARE_IN_LINE.match(x) for x in rows) and got == want:
+            skip.update(range(t["line"], t["line_end"] + 1))
+            tables.append(t["value"])
+    p = rules.extract["parameters"]
+    fev = rules.extract["unread_fields"]["rules"]
+    hev = rules.extract["holders_evidence"]
+    neutral = rx(_expand_all(hev["parameters"]["neutral_phrases"], p))
+    fields: set[str] = set()
+    holders = False
+    for no in range(start + 1, len(lines) + 1):
+        text = lines[no - 1]
+        if no in skip or not text.strip():
+            continue
+        topics = [r for r in fev if r["when"] == "topic" and rx(_expand_all(r["pattern"], p)).search(text)]
+        if not topics:
+            topics = [next(r for r in fev if r["when"] != "topic" and (
+                r["when"] == "always" or rx(_expand_all(r["pattern"], p)).search(text)))]
+        for r in topics:
+            fields.update(r["fields"])
+        plain = neutral.sub(" ", text)
+        hit = next(r for r in hev["rules"] if r["when"] == "always" or rx(_expand_all(r["pattern"], p)).search(plain))
+        holders = holders or hit["outcome"] != "none"
+    if holders or tables or hc.get("status") != "no_table":
+        fields.add("shareholders")
+    return ({"*"} if "*" in fields else fields), tables
+
+
+def _in_scope(scope: set[str], fld: str) -> bool:
+    return any(m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])) for m in scope)
+
+
 # ----------------------------------------------------------------------------------------------
 # 4. the DOCX, read back
 
@@ -121,7 +213,7 @@ def read_docx(path: Path) -> dict:
 
 
 def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict | None = None,
-                  names: tuple[str, str] = ("dossier.docx", "provenance.json")) -> dict:
+                  names: tuple[str, str] = ("dossier.docx", "provenance.json"), rules: Rules | None = None) -> dict:
     d = Path(dossier_dir)
     problems: list[str] = []
     prov = jsonio.load(d / names[1])
@@ -169,12 +261,23 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
         for a in record["assertions"]:
             if not a["field"].endswith(".previous"):
                 by_field.setdefault(a["field"], []).append(a)
+        if rules is None:
+            rules = rules_engine.load()
+        scopes = [(u, *unread_scope(u, input_dir, rules)) for u in record.get("unclassified_documents", [])]
         for fld, assertions in sorted(by_field.items()):
             values, any_current, unreadable, cutoff = current_values(assertions)
             shown = [f for f in figures if f["field"] == fld and f["section"] in ("facts", "cap_table")]
             disc = {_key(f["value"]) for f in figures if f["field"] == fld and f["section"] == "discrepancies"}
-            unread = [u for u in record.get("unclassified_documents", [])
-                      if not cutoff or not _ISO_DATE.fullmatch(u.get("date") or "") or u["date"] >= cutoff]
+            unread = []
+            for u, scope, tables in scopes:
+                if cutoff and _ISO_DATE.fullmatch(u.get("date") or "") and u["date"] < cutoff:
+                    continue
+                if not _in_scope(scope, fld):
+                    continue
+                if (fld == "shareholders" and len(tables) == 1 and len(values) == 1 and not unreadable
+                        and _key(sorted(tables[0], key=lambda r: r["holder"])) in values):
+                    continue                  # its table, re-read by the audit, is the one current table
+                unread.append(u)
             if unread:
                 if shown or disc:
                     problems.append(f"{fld}: shown as fact or as a conflict although an unread document may change it")

@@ -2,7 +2,7 @@
 
 SYNTHETIC - written from the rule files by `tools/assumptions.py`; do not edit by hand.
 
-The pack makes 10 assumptions that only a qualified professional can confirm. The author is a
+The pack makes 11 assumptions that only a qualified professional can confirm. The author is a
 synthetic AI agent: not a lawyer, a notary, an accountant or an auditor. None of these assumptions is
 legal advice and none has been reviewed by a legal professional. Each one is a parameter of a rule file,
 is printed in every dossier, and carries the status `[TO CONFIRM with legal]` until someone qualified
@@ -54,9 +54,17 @@ No source is preferred. A human adjudicates.
 - Value in v2.0: `true`
 - Status: [TO CONFIRM with legal]
 
-A document of the entity that could not be classified (unknown type, broken header) may change any field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Added after the first stress run (eval/history.json, run 2).
+A document of the entity that could not be classified (unknown type, broken header) may change a field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Which fields it may change: parameter unread_document_scope. Added after the first stress run (eval/history.json, run 2).
 
-## 7. `unreadable_current_source_blocks_fact`
+## 7. `unread_document_scope`
+
+- File: `rules/discrepancy.json`
+- Value in v2.0: `fields_it_may_state`
+- Status: [TO CONFIRM with legal]
+
+fields_it_may_state (since v2.0.3, D30): a document whose only problem is its type may change the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table of the recognised sources does not make the shareholders [TO CONFIRM]. A document with any other problem of the header may change every field. every_field: the rule of v2.0.0-v2.0.2, every field (the over-reach that left 780 fields [TO CONFIRM] on the perturbed corpus of seed 20261013).
+
+## 8. `unreadable_current_source_blocks_fact`
 
 - File: `rules/discrepancy.json`
 - Value in v2.0: `true`
@@ -64,7 +72,7 @@ A document of the entity that could not be classified (unknown type, broken head
 
 When one current source of a field could not be read, the value of the other current sources is not shown as fact: the unread source may disagree. Added after the first stress run (eval/history.json, run 2).
 
-## 8. `sum_must_equal`
+## 9. `sum_must_equal`
 
 - File: `rules/ownership.json`
 - Value in v2.0: `1/1`
@@ -72,7 +80,7 @@ When one current source of a field could not be read, the value of the other cur
 
 The holders of an entity must sum to exactly the whole. 99.99% and 100.01% are both refused. Whether a real cap table may legitimately not sum to the whole (treasury shares, unallotted capital) is a legal question and is not modelled.
 
-## 9. `cycle_policy`
+## 10. `cycle_policy`
 
 - File: `rules/ownership.json`
 - Value in v2.0: `abstain`
@@ -80,7 +88,7 @@ The holders of an entity must sum to exactly the whole. 99.99% and 100.01% are b
 
 With cross-holdings the look-through to natural persons depends on a rule. 'abstain' reports the cycle and writes the effective holding [TO CONFIRM]. 'closure' computes the exact limit of the look-through (the solution of x = direct + cross * x, in fractions) and says so next to each figure.
 
-## 10. `unverified_holders_table`
+## 11. `unverified_holders_table`
 
 - File: `rules/ownership.json`
 - Value in v2.0: `block`

@@ -135,7 +135,17 @@
         "reason": {"$ref": "#/$defs/text"},
         "doc_id": {"type": "string"},
         "date": {"type": "string"},
-        "holders_check": {"$ref": "#/$defs/holders_check"}
+        "holders_check": {"$ref": "#/$defs/holders_check"},
+        "fields_check": {"$ref": "#/$defs/fields_check"}
+      }
+    },
+    "fields_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["may_change", "why"],
+      "properties": {
+        "may_change": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "why": {"type": "string"}
       }
     },
     "holders_check": {

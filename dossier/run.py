@@ -129,7 +129,7 @@ def run(input_dir: Path | str | None, work_dir: Path | str, as_of: str | None = 
             shutil.rmtree(jsonio.ext(staging))
         try:
             built = s6_build.build(view, staging / "dossier", as_of, assumptions, identity=identity)
-            audit = s7_audit.audit_dossier(staging / "dossier", inp, records[eid]) if inp else {
+            audit = s7_audit.audit_dossier(staging / "dossier", inp, records[eid], rules=rules) if inp else {
                 "ok": False, "problems": ["no input folder: the sources cannot be re-read"], "figures_total": 0,
                 "figures_with_source": 0, "derived_total": 0, "to_confirm_total": 0}
             jsonio.write(staging / "dossier" / "audit.json", audit)
