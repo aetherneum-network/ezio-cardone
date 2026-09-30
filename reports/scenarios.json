@@ -1,0 +1,155 @@
+{
+  "passed": 10,
+  "results": [
+    {
+      "details": {
+        "discrepancy_rows_in_docx": 6
+      },
+      "line": "S01 PASS - capital 50000.00 (deed) and 80000.00 (extract) shown side by side with their sources; no capital figure among the facts",
+      "pass": true,
+      "scenario": "S01"
+    },
+    {
+      "details": {},
+      "line": "S02 PASS - 33,33% x 3 = 9999/10000: BLOCKED with exit 2, no dossier written; 1/3 x 3 builds and sums to exactly 1/1",
+      "pass": true,
+      "scenario": "S02"
+    },
+    {
+      "details": {
+        "tampers": {
+          "edition blanked on one figure": {
+            "exit_code": 3,
+            "reason": "entity record invalid at assertions/10/edition: '' should be non-empty (1 error(s))",
+            "status": "FAILED"
+          },
+          "source date blanked on one figure": {
+            "exit_code": 3,
+            "reason": "entity record invalid at assertions/2/source_date: '' does not match '^\\\\d{4}-\\\\d{2}-\\\\d{2}$' (1 error(s))",
+            "status": "FAILED"
+          },
+          "source_doc removed from one figure": {
+            "exit_code": 3,
+            "reason": "entity record invalid at assertions/17: 'source_doc' is a required property (1 error(s))",
+            "status": "FAILED"
+          },
+          "value changed, source kept": {
+            "exit_code": 3,
+            "reason": "audit: F-009: value EUR 9.240.760,25 is not supported by the quoted source lines",
+            "status": "FAILED"
+          }
+        }
+      },
+      "line": "S03 PASS - 16/16 figures of the valid run carry source, date and edition; 4/4 tampered records FAILED with exit 3 and published nothing",
+      "pass": true,
+      "scenario": "S03"
+    },
+    {
+      "details": {
+        "false_positives": [],
+        "ignored_by_rule": [
+          [
+            "board-note-2026-02-01.txt",
+            "SCAN-030"
+          ],
+          [
+            "generic-note-2026-03-03.txt",
+            "SCAN-050"
+          ],
+          [
+            "group-overview-2026-03-01.txt",
+            "SCAN-040"
+          ],
+          [
+            "guarantee-2026-02-25.txt",
+            "SCAN-020"
+          ],
+          [
+            "holding-profile-2026-03-02.txt",
+            "SCAN-040"
+          ],
+          [
+            "investment-plan-2026-02-27.txt",
+            "SCAN-020"
+          ],
+          [
+            "invoice-2026-02-14.txt",
+            "SCAN-020"
+          ],
+          [
+            "letter-bank-2025-11-03.txt",
+            "SCAN-010"
+          ],
+          [
+            "press-note-2026-01-20.txt",
+            "SCAN-030"
+          ]
+        ]
+      },
+      "line": "S04 PASS - 5/5 stale mentions found, 0 false positive(s) on 10 decoys; each finding carries the new value with its edition",
+      "pass": true,
+      "scenario": "S04"
+    },
+    {
+      "details": {
+        "answered_as_of": {
+          "2026-01-15": null,
+          "2026-01-31": "2026-01-31",
+          "2026-03-31": "2026-03-31",
+          "2026-04-30": "2026-03-31",
+          "2026-06-30": "2026-06-30"
+        }
+      },
+      "line": "S05 PASS - asked 2026-03-31 -> snapshot as of 2026-03-31 (holders after the transfer, directors before the appointment); 3 snapshots, earlier files unchanged, overwrite refused, alteration detected",
+      "pass": true,
+      "scenario": "S05"
+    },
+    {
+      "details": {},
+      "line": "S06 PASS - director in office P-006 from the text (APPOINTMENT/1); the file name saying P-005 is reported as a divergence and never used as a source",
+      "pass": true,
+      "scenario": "S06"
+    },
+    {
+      "details": {},
+      "line": "S07 PASS - cycle E-0002 <-> E-0003 reported; effective holding [TO CONFIRM] under 'abstain', exact under 'closure' (E-0002: P-002 45/49, P-003 4/49)",
+      "pass": true,
+      "scenario": "S07"
+    },
+    {
+      "details": {},
+      "line": "S08 PASS - 0/15 identity strings in the shareable DOCX and JSON; 4 edges and the effective holdings unchanged under opaque ids",
+      "pass": true,
+      "scenario": "S08"
+    },
+    {
+      "details": {
+        "diff": [
+          {
+            "after": {
+              "source_doc": "DOC-E0001-02",
+              "status": "STATED",
+              "value": "Piazza del Campione 3, Montefinto (ZZ)"
+            },
+            "before": {
+              "status": "TO_CONFIRM"
+            },
+            "entity": "E-0001",
+            "field": "registered_office"
+          }
+        ]
+      },
+      "line": "S09 PASS - one rule added on top: registered_office of E-0001 goes from [TO CONFIRM] to the new office with its source; the diff lists that field only; the control entity is byte-identical",
+      "pass": true,
+      "scenario": "S09"
+    },
+    {
+      "details": {},
+      "line": "S10 PASS - one clause, four amounts: historical 300000.00, resolved 500000.00, subscribed 400000.00, paid-in 250000.00; when a later extract does not say what two amounts are, subscribed and paid-in are [TO CONFIRM]",
+      "pass": true,
+      "scenario": "S10"
+    }
+  ],
+  "schema": "scenarios/2.0.0",
+  "total": 10
+}
