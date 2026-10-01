@@ -194,9 +194,11 @@
       "extractor": "text",
       "nature": "text",
       "kinds": ["DEED"],
-      "line_matches": "; its legal form is (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)$",
-      "rationale": "Deed clause on name and form. Only the two forms used by the synthetic world are accepted.",
-      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "S.r.l."}]
+      "line_matches": "; its legal form is (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+      "rationale": "Deed clause on name and form. Only the two forms used by the synthetic world are accepted. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by CLS-110 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "S.r.l."},
+                {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.r.l.; its legal form is S.r.l..", "expect": "S.r.l."},
+                {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.p.A.; its legal form is S.p.A..", "expect": "S.p.A."}]
     },
     {
       "id": "EXT-FORM-020",
@@ -204,9 +206,10 @@
       "extractor": "text",
       "nature": "text",
       "kinds": ["EXTRACT"],
-      "line_matches": "^Legal form: (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)$",
-      "rationale": "Registry extract line 'Legal form:'. Only the two forms the test registry knows are accepted; any other wording is left unread rather than mapped to the nearest form.",
-      "tests": [{"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": "S.p.A."}]
+      "line_matches": "^Legal form: (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+      "rationale": "Registry extract line 'Legal form:'. Only the two forms the test registry knows are accepted; any other wording is left unread rather than mapped to the nearest form. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by CLS-150 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+      "tests": [{"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": "S.p.A."},
+                {"kind": "EXTRACT", "text": "Legal form: S.r.l..", "expect": "S.r.l."}]
     },
     {
       "id": "EXT-OFFICE-010",
@@ -648,9 +651,10 @@
         "when": "shape",
         "kinds": ["DEED"],
         "fields": ["name", "legal_form"],
-        "pattern": "^(?:{clause_number}\\s*)?(?:name\\s+and\\s+form\\.\\s+)?(?:the\\s+company\\s+is\\s+named|the\\s+name\\s+of\\s+the\\s+company\\s+is)\\s+(?P<w_name>{slot_company});\\s+(?:its\\s+legal\\s+form\\s+is|it\\s+takes\\s+the\\s+legal\\s+form\\s+of)\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)$",
-        "rationale": "Deed clause on name and form, the whole line: a company name, one of the two legal forms.",
+        "pattern": "^(?:{clause_number}\\s*)?(?:name\\s+and\\s+form\\.\\s+)?(?:the\\s+company\\s+is\\s+named|the\\s+name\\s+of\\s+the\\s+company\\s+is)\\s+(?P<w_name>{slot_company});\\s+(?:its\\s+legal\\s+form\\s+is|it\\s+takes\\s+the\\s+legal\\s+form\\s+of)\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+        "rationale": "Deed clause on name and form, the whole line: a company name, one of the two legal forms. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by EXT-FORM-010 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
         "tests": [
+          {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.r.l.; its legal form is S.r.l..", "expect": ["name", "legal_form"], "expect_may_change": []},
           {"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
           {"kind": "DEED", "text": "1. Name and form. The name of the company is Cartiere Villasimulata S.r.l.; it takes the legal form of S.r.l.", "expect": ["name", "legal_form"]}
         ]
@@ -702,10 +706,11 @@
         "when": "shape",
         "kinds": ["EXTRACT"],
         "fields": ["legal_form"],
-        "pattern": "^legal\\s+form:\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)$",
-        "rationale": "Registry extract line 'Legal form:': one of the two legal forms.",
+        "pattern": "^legal\\s+form:\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+        "rationale": "Registry extract line 'Legal form:': one of the two legal forms. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by EXT-FORM-020 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
         "tests": [
-          {"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": ["legal_form"]}
+          {"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": ["legal_form"]},
+          {"kind": "EXTRACT", "text": "Legal form: S.r.l..", "expect": ["legal_form"], "expect_may_change": []}
         ]
       },
       {
