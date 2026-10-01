@@ -48,8 +48,9 @@ blind run of `v2.0.6-freeze` (run 16, below) found no never-event; one of its pr
 evaluator's own wording, and the defects it found all block or keep a field open. v2.0.7 is the answer to run
 16 (`CHANGELOG.md` 2.0.7): measured by class on 600 constructed siblings, the residual risk that v2.0.6 declared
 for the words of a typed slot was real on its code (312 unsafe, 56 of them a FAILED run); v2.0.7 closes it by
-equality and by form (0 of 600) and states what still rests on a word list as `[TO CONFIRM]`. v2.0.7 has not been
-run blind.
+equality and by form (0 of 600) and states what still rests on a word list as `[TO CONFIRM]`. The blind run of
+`v2.0.7-freeze` (run 18, below) found 4 never-events in one hand-written entity, in that residual risk: claim
+A2 is downgraded for that tag (`CLAIMS.md` section 8) and the fix goes into a new version under a new tag.
 
 ## Re-run it
 
@@ -241,6 +242,19 @@ How to read them:
   What still rests on a word list - the words of a street or a town of place-name form - is stated as a residual
   risk, `[TO CONFIRM]`, kept as a test expected to fail (`CHANGELOG.md` 2.0.7 section 4). That is not a blind
   result.
+- The blind run of `v2.0.7-freeze` (run 18, by the evaluator, not the author, seed 20261017, hand-written
+  corpus `eval/blind/hand-18/`, 27 entities, 67 documents) found **4 never-events**: 0 in the plain corpus, 0 in
+  the perturbed one, 4 in the hand-written one, all in E-0015 - the residual risk of `CHANGELOG.md` 2.0.7
+  section 4: three words of place-name form added inside the town of the extract's office state a change of
+  the capital; the capital is published as a fact and the office is shown with the added words. Claim A2 is
+  downgraded for that tag (`CLAIMS.md` section 8). Facts exact 1294/1294, 655/1294 and 39/111; fields
+  `[TO CONFIRM]` 0 of 1408, 673 of 1408 and 75 of 134. Entities blocked wrongly: 3 of 150 in each generated
+  corpus (the illegible share planted by the generator, decision D26) and 10 of 27 hand-written - seven
+  declared limits, and three forms that block without being read or declared (known names without identifiers
+  as holders, a fraction before the holder in a pipe row, a heading `Fourth. Holders:`). The other probes - a
+  name, a second address, an amount, a count and a legal-form label, each with words added - opened their line
+  or blocked, unmasked; the second address was caught by a word of the list, not by its form. These go into a
+  new version under a new tag; this tag is not moved.
 
 ## Two rebuilds, same bytes
 
