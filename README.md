@@ -39,7 +39,8 @@ v2.0.2 (decision D29) it is also, word for word, the definition of section 1.5 o
 output, unread documents, ties between sources - and requires a refusal each time; it also checks that the
 scorer counts every kind of the list. A field that cannot be decided is written `[TO CONFIRM]`; when two
 current sources disagree both values are shown with their sources. The blind run of `v2.0.0-freeze` found
-never-events anyway (finding T16, below); v2.0.1 is the fix.
+never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v2.0.3-freeze` found
+two (run 11, below); their fix goes into a new version.
 
 ## Re-run it
 
@@ -115,6 +116,18 @@ How to read them:
   20261013, 3 of the 144 published dossiers carry the holders `[TO CONFIRM]` (54 before) and 543 of 1482
   fields are abstained (761 before); the out-of-pool corpus of run 5 publishes 94 (44 before). That is not a
   blind result.
+- The blind run of `v2.0.3-freeze` (run 11, by the evaluator, not the author, seed 20261014, hand-written
+  corpus `eval/blind/hand-11/`) found **2 never-events**: 0 in the plain corpus, 0 in the perturbed one, 2 in
+  the hand-written one, both on one entity (E-0015). A document of unrecognised type raised the capital by a
+  contribution in kind; the rules of `unread_fields` kept the capital and the office `[TO CONFIRM]` but not
+  the holders (`FEV-040`: a capital increase changes the capital, never the holders), and the holders of the
+  older registry extract were published as a fact, with the effective holding derived from them. The assumption
+  and the residual risk were declared in `CHANGELOG.md` 2.0.3; claim A2 is downgraded for this tag
+  (`CLAIMS.md` section 7). Entities blocked wrongly: 2 of 150 plain and the same 2 of 150 perturbed (a share
+  planted as illegible by the generator, blocked by decision D26), 8 of 15 hand-written. Two of the eight
+  are limits `CHANGELOG.md` 2.0.3 declares (a table with a header row, per mille); six are not: a holders'
+  heading without a final `.` or `:`, a date in words read as a share in words, dot leaders with a Total
+  line, the share written before the holder. Fields left `[TO CONFIRM]`: 0 of 1461, 477 of 1461, 23 of 43.
 
 ## Two rebuilds, same bytes
 

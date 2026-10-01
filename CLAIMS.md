@@ -16,7 +16,7 @@ Three statuses are used, and only these three:
 | # | Sentence of the profile (README) | Status | Where it would fail |
 |---|---|---|---|
 | A1 | "Every figure in the rendered dossier carries the source document it came from and that document's date." | demonstrated | `scenarios/S03` (every figure of a valid dossier has document, date and edition; four tampered records are refused), `scenarios/S04` (a superseded figure in outgoing text is traced to the edition that replaced it), `scenarios/S10` (boundary: the nature of each amount), `tests/test_never_event.py`, `tests/test_amount_grouping.py` (since v2.0.1: an amount is read whole or abstained; the audit refuses a figure whose digits are not those of its quote) |
-| A2 | "Conflicting sources are surfaced side by side rather than silently reconciled" | demonstrated | `scenarios/S01` (deed vs registry extract on share capital), `scenarios/S06` (file name vs content), `tests/test_never_event.py` (a discrepancy collapsed to one value is refused by the builder and caught by the audit; ties are never broken by a guess) |
+| A2 | "Conflicting sources are surfaced side by side rather than silently reconciled" | demonstrated; **downgraded at `v2.0.3-freeze`** (section 7) | `scenarios/S01` (deed vs registry extract on share capital), `scenarios/S06` (file name vs content), `tests/test_never_event.py` (a discrepancy collapsed to one value is refused by the builder and caught by the audit; ties are never broken by a guess) |
 | A3 | "a cap table that does not resolve to 100% per entity is blocked, not footnoted" | demonstrated | `scenarios/S02` (3 x 33,33% = 9999/10000 is blocked, 3 x 1/3 builds), `scenarios/S07` (cross-holding: reported, never silently resolved), `tests/test_ownership.py` (exact fractions against an independent reference), `tests/test_amount_grouping.py` (since v2.0.1: a holders' table that could not be read blocks the entity, rule `OWN-015`), `tests/test_holders_forms.py` (since v2.0.2, owner decision D26: `OWN-015` stays `block`; a reworded holders' heading is read, a document of unrecognised type is checked and blocks only when it may hold a table that is not read, a table read there that does not sum blocks by `OWN-010`), `tests/test_d30_forms.py` (since v2.0.3, owner decision D30: more headings and holder lines are read, shares in words, counts of quotas only with one total stated in the same document; counts that do not add up to it block by `OWN-010`; the forms still not read keep blocking) |
 | A4 | "the dossier is a build artifact regenerated from the entity-record JSON, never hand-assembled" | demonstrated | `scenarios/S09` (a rule change moves only the expected field; the diff is reported), `tests/test_determinism.py` (same inputs, same bytes, DOCX included; a rebuild from the records gives the same dossier), `tools/rebuild.py` |
 | A5 | "\"what did this entity look like in March\" is always answerable, because no snapshot is ever overwritten" | demonstrated | `scenarios/S05`, `tests/test_snapshot.py` |
@@ -102,3 +102,26 @@ read without guessing, keeps blocked those that cannot (holders in a sentence, n
 header row: `CHANGELOG.md` lists every known limit), scopes `DISC-005` to the fields an unread document may
 state, and lists every never-event the scorer finds (the list was capped at 50). It was measured by the author
 on data already seen (run 10: 0 never-events; hand-9 blocked wrongly 4 -> 2) and has not been run blind.
+
+## 7. The blind run of `v2.0.3-freeze`, and what it downgraded
+
+Run once by the evaluator, not by the author, on 2026-10-01 (UTC) (`eval/history.json`, run 11, seed 20261014,
+hand-written corpus `eval/blind/hand-11/`). By the criterion of `eval/BLIND_PROTOCOL.md` - no never-event in
+any result - it does not pass: 0 never-events in the plain corpus, 0 in the perturbed one, 2 in the
+hand-written one. Both come from one entity and one cause (E-0015). A document of unrecognised type (a notice
+to creditors) states that the equity was raised by a contribution in kind and that the seat moves; rules
+`FEV-030`, `FEV-040` and `FEV-060` of `unread_fields` scope that sentence to the capital, the financial figures
+and the registered office (by `FEV-040` a capital increase changes the capital, never the holders), so the
+holders' table of the older registry extract was published as a fact and the effective holding was derived
+from it, where the gold says the holders cannot be decided.
+`CHANGELOG.md` 2.0.3 declares both the assumption (`FEV-040`, `[TO CONFIRM with legal]`) and the residual
+risk of the scope; a declared risk that materialises is still a never-event. As the protocol requires, the
+row it touches is downgraded here for the tag `v2.0.3-freeze`; the tag is not moved and the run is not
+repeated under the name "blind".
+
+| # | At `v2.0.3-freeze` | Fix |
+|---|---|---|
+| A2 | Held when the conflicting document is of a recognised type, or names the field it changes. Not held when a document of unrecognised type changes a field without naming it: the older value is published as a fact instead of being left `[TO CONFIRM]` next to that document (run 11, E-0015: the holders, and the effective holding derived from them). By the evaluator's analysis the same sentence-level gap appeared in two more hand-written entities (E-0009, E-0010), whose fields stayed `[TO CONFIRM]` only because of the wording of their title line. | Not made yet: it goes into a new version under a new tag. |
+
+The related sentences "Cross-source discrepancy detection" and "Ownership-graph construction" are downgraded
+with A2 at `v2.0.3-freeze`, for the same entity. Rows A1, A3, A4, A5 and A6 are not touched by the run.
