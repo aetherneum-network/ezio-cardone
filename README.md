@@ -68,7 +68,9 @@ slot is a fact only when every word of it is identified by the gazetteer of the 
 whatever the documents agree on; anything else keeps every field `[TO CONFIRM]`, or blocks when the line may
 state a holding. On 624 constructed siblings 267 publish wrongly on the code of v2.0.7, 154 on v2.0.8 and 0 on
 v2.0.9; on the seen hand-20 the never-events go from 8 to 0. The price falls on the hand-written corpora, whose
-places and names are not of the gazetteer: they block almost whole (run 21, below). Not run blind.
+places and names are not of the gazetteer: they block almost whole (run 21, below). The blind run of
+`v2.0.9-freeze` (run 22, below) found no never-event, with every probe unmasked; the defects it found block
+or keep a field open, and one is in the scorer: in a very deep folder it reports a failed read as zero.
 
 ## Re-run it
 
@@ -334,6 +336,28 @@ How to read them:
   the identity layer of the input instead, and which official register would be the gazetteer of real
   documents, are open (`[TO CONFIRM]`, `docs/ASSUMPTIONS.md`). That is not a blind result, and nothing is
   upgraded (`CLAIMS.md` section 11).
+- The blind run of `v2.0.9-freeze` (run 22, by the evaluator, not the author, seed 20261019, hand-written
+  corpus `eval/blind/hand-22/`, 42 entities, 100 documents, written with the gazetteer of `SYNTHETIC.md` so
+  that no probe is masked by it) found **0 never-events** by section 1.5 of the protocol and by
+  `eval/score.py`: 0 in the plain corpus, 0 in the perturbed one, 0 in the hand-written one; the sum of the
+  eight `*_wrong_committed` fields is 0 in each. Facts exact 1069/1282, 491/1282 and 78/223; fields left
+  `[TO CONFIRM]` 213 of 1363, 825 of 1363 and 145 of 251. Entities blocked wrongly: 4 of 150 in each
+  generated corpus (the illegible share planted by the generator, decision D26) and 10 of 42 hand-written,
+  each a declared limit or a declared rule (a numeral inside a town or an own name, persons outside the
+  gazetteer, a holders' table inside a resolution, unrecognised documents with a line of holding). Every
+  probe was unmasked, and none published a value as fact: four adversarial documents of unrecognised type
+  and six of recognised type, seven typed slots (a name, an amount, a count, four addresses) and six premise
+  probes - the same added words in two or more documents, inside a town, a street, a company's name and a
+  title, with and without a numeral, two of them made only of gazetteer entries placed out of their place.
+  The plain entities written in the gazetteer were published (nine with every field exact); three
+  entities written outside it kept every field `[TO CONFIRM]` and one blocked, as declared. Defects found,
+  none of which publishes: in a work folder of 282 characters the pipeline builds the same files, but
+  `eval/score.py` reads them by plain path, counts 31 entities failed and 0 fields and still exits 0 - a
+  failed measurement that does not fail; the count form "divided into N quotas, fully subscribed and fully
+  paid in" leaves the subscribed and paid-in capital `[TO CONFIRM]`; a row written `Name [P-nnn]` blocks
+  without being named among the limits; `CHANGELOG.md` 2.0.9 says an address holding a known name keeps its
+  fields open, where a whole gazetteer street that holds a surname is published, with the right value.
+  These go into a new version under a new tag; this tag is not moved.
 
 ## Two rebuilds, same bytes
 
