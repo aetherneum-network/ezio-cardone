@@ -16,7 +16,7 @@ Three statuses are used, and only these three:
 | # | Sentence of the profile (README) | Status | Where it would fail |
 |---|---|---|---|
 | A1 | "Every figure in the rendered dossier carries the source document it came from and that document's date." | demonstrated | `scenarios/S03` (every figure of a valid dossier has document, date and edition; four tampered records are refused), `scenarios/S04` (a superseded figure in outgoing text is traced to the edition that replaced it), `scenarios/S10` (boundary: the nature of each amount), `tests/test_never_event.py`, `tests/test_amount_grouping.py` (since v2.0.1: an amount is read whole or abstained; the audit refuses a figure whose digits are not those of its quote) |
-| A2 | "Conflicting sources are surfaced side by side rather than silently reconciled" | demonstrated; **downgraded at `v2.0.3-freeze`** (section 7) **and at `v2.0.7-freeze`** (section 8) | `scenarios/S01` (deed vs registry extract on share capital), `scenarios/S06` (file name vs content), `tests/test_never_event.py` (a discrepancy collapsed to one value is refused by the builder and caught by the audit; ties are never broken by a guess) |
+| A2 | "Conflicting sources are surfaced side by side rather than silently reconciled" | demonstrated; **downgraded at `v2.0.3-freeze`** (section 7) **and at `v2.0.7-freeze`** (section 8) **and at `v2.0.8-freeze`** (section 10) | `scenarios/S01` (deed vs registry extract on share capital), `scenarios/S06` (file name vs content), `tests/test_never_event.py` (a discrepancy collapsed to one value is refused by the builder and caught by the audit; ties are never broken by a guess) |
 | A3 | "a cap table that does not resolve to 100% per entity is blocked, not footnoted" | demonstrated | `scenarios/S02` (3 x 33,33% = 9999/10000 is blocked, 3 x 1/3 builds), `scenarios/S07` (cross-holding: reported, never silently resolved), `tests/test_ownership.py` (exact fractions against an independent reference), `tests/test_amount_grouping.py` (since v2.0.1: a holders' table that could not be read blocks the entity, rule `OWN-015`), `tests/test_holders_forms.py` (since v2.0.2, owner decision D26: `OWN-015` stays `block`; a reworded holders' heading is read, a document of unrecognised type is checked and blocks only when it may hold a table that is not read, a table read there that does not sum blocks by `OWN-010`), `tests/test_d30_forms.py` (since v2.0.3, owner decision D30: more headings and holder lines are read, shares in words, counts of quotas only with one total stated in the same document; counts that do not add up to it block by `OWN-010`; the forms still not read keep blocking) |
 | A4 | "the dossier is a build artifact regenerated from the entity-record JSON, never hand-assembled" | demonstrated | `scenarios/S09` (a rule change moves only the expected field; the diff is reported), `tests/test_determinism.py` (same inputs, same bytes, DOCX included; a rebuild from the records gives the same dossier), `tools/rebuild.py` |
 | A5 | "\"what did this entity look like in March\" is always answerable, because no snapshot is ever overwritten" | demonstrated | `scenarios/S05`, `tests/test_snapshot.py` |
@@ -238,3 +238,33 @@ so they touch no claim.
 ## 9. v2.0.8
 
 v2.0.8 has not been run blind, nothing is upgraded.
+
+## 10. The blind run of `v2.0.8-freeze`, and what it downgraded
+
+Run once by the evaluator, not by the author, on 2026-10-01 (UTC) (`eval/history.json`, run 20, seed 20261018,
+hand-written corpus `eval/blind/hand-20/`, 34 entities, 87 documents). By the criterion of
+`eval/BLIND_PROTOCOL.md` - no never-event in any result - it does not pass: 0 never-events in the plain corpus, 0
+in the perturbed one, 8 in the hand-written one, in two entities (E-0009, E-0010) and from one cause, the premise
+that `CHANGELOG.md` 2.0.8 section 4 declares: two documents that carry the same added words are read as written.
+In E-0009 the deed and the registry extract both write the town of the registered office as
+`Monte Spurio Dotazione Novantamila`; in E-0010 the header, the own-name clause and the extract all write the
+company's name as `Birrificio Pieve Supposta Dotazione Novantamila S.r.l.`. The added words state that the
+endowment is ninety thousand, beside a share capital of 30.000,00. Stated alike by two documents, the office
+(E-0009) or the name (E-0010) is taken as corroborated and published with the words, and the share capital
+(resolved, subscribed, paid in) is published as a fact, where the gold keeps them `[TO CONFIRM]`. By the
+evaluator's reading a careful human would have seen both changes. A declared premise that publishes a wrong value
+is still a never-event; as the protocol requires, the row it touches is downgraded here for the tag
+`v2.0.8-freeze`; the tag is not moved and the run is not repeated under the name "blind".
+
+| # | At `v2.0.8-freeze` | Fix |
+|---|---|---|
+| A2 | Held when an address, a company's name, a title or a label that carries added words is stated without them by another document, or by one document only: every field `[TO CONFIRM]`. Not held when two documents carry the same added words and those words state a change of another field: the slot is taken as corroborated, the words are published with it and the older value of the other field (run 20: the share capital) is published as a fact. | Not made yet: it goes into a new version under a new tag. |
+
+The related sentences "Cross-source discrepancy detection" and "lets a human adjudicate" are downgraded with A2
+at `v2.0.8-freeze`, for the same entities. Rows A1, A3, A4, A5 and A6 are not touched by the run. The same run
+found: one form that blocks without being read or declared (E-0030, rows framed by vertical bars without a
+header row); a company's own name that holds a word of the registered office's topic words (`Borgo`) is left
+unread in every document, which keeps every field of the entity `[TO CONFIRM]` and masked two probes at field
+level (E-0007, E-0020); a capitalised particle in a street (`Via Del ...`) keeps every field `[TO CONFIRM]`
+without being named among the limits; a registry extract filed with another entity's documents is built as an
+entity of its own (E-0062). A block or a field kept open publishes nothing, so they touch no claim.

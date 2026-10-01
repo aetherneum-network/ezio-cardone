@@ -60,8 +60,10 @@ header name, a title or a label is a fact only when a second document states it 
 equal to another plus words is a line no rule explains, every field `[TO CONFIRM]`. On 738 constructed
 siblings 429 publish wrongly on the code of v2.0.6, 423 on v2.0.7 and 0 on v2.0.8; on the seen hand-18,
 E-0015 has every field `[TO CONFIRM]` and the never-events go from 4 to 0. The price is facts kept
-`[TO CONFIRM]` wherever one document alone states an address (run 19, below). v2.0.8 has not been run blind
-and nothing is upgraded (`CLAIMS.md` section 9).
+`[TO CONFIRM]` wherever one document alone states an address (run 19, below). The blind run of
+`v2.0.8-freeze` (run 20, below) found 8 never-events in two hand-written entities, in the premise that its
+`CHANGELOG.md` section 4 declares: claim A2 is downgraded for that tag (`CLAIMS.md` section 10) and the fix
+goes into a new version under a new tag.
 
 ## Re-run it
 
@@ -290,6 +292,21 @@ How to read them:
   39/111 to 35/111 on hand-18, 47/102 to 33/102 on hand-16 (`CHANGELOG.md` 2.0.8 section 3). What it rests on -
   two documents that state the same text alike are taken to state it - is section 4 of that entry. That is not
   a blind result, and nothing is upgraded (`CLAIMS.md` section 9).
+- The blind run of `v2.0.8-freeze` (run 20, by the evaluator, not the author, seed 20261018, hand-written
+  corpus `eval/blind/hand-20/`, 34 entities, 87 documents) found **8 never-events**: 0 in the plain corpus, 0 in
+  the perturbed one, 8 in the hand-written one, in E-0009 and E-0010 - the premise of `CHANGELOG.md` 2.0.8
+  section 4: two documents carry the same added words inside the town of the office or inside the company's
+  name; the words state a change of the capital, the slot is taken as corroborated and the capital is
+  published as a fact. Claim A2 is downgraded for that tag (`CLAIMS.md` section 10). Facts exact 1008/1279,
+  474/1279 and 48/169; fields `[TO CONFIRM]` 271 of 1379, 839 of 1379 and 121 of 216. Entities blocked
+  wrongly: 4 of 150 in each generated corpus (the illegible share planted by the generator, decision D26) and
+  6 of 34 hand-written - five declared limits or the declared rule that a line which may state a holding
+  blocks, and one form that blocks without being read or declared (rows framed by vertical bars without a
+  header row). The other probes - words added inside a town or a street with and without a second document,
+  in a previous address, a name, an amount, a count, a label stated alike twice, a known person's name inside
+  an address - kept every field `[TO CONFIRM]` or blocked; two of them were masked at field level by a
+  company's own name holding the word `Borgo`, which is left unread in every document. These go into a new
+  version under a new tag; this tag is not moved.
 
 ## Two rebuilds, same bytes
 
