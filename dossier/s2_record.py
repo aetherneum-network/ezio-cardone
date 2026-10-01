@@ -48,6 +48,7 @@ def build_record(raw: dict, as_of: str) -> dict:
                                                                a["nature"])),
         "filename_divergences": sorted(raw["filename_divergences"], key=lambda d: (d["doc_id"], d["aspect"])),
         "unclassified_documents": sorted(raw["unclassified_documents"], key=lambda d: d["file"]),
+        "classified_checks": sorted(raw["classified_checks"], key=lambda d: d["file"]),
         "rejected_documents": sorted(raw["rejected_documents"], key=lambda d: d["file"]),
         "ignored_after_as_of": sorted(raw["ignored_after_as_of"]),
     }

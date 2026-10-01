@@ -5,7 +5,7 @@
   "description": "One record per entity. The record is the sole source of truth of the dossier. It stores every assertion of every source document, side by side: nothing is merged here. Every figure is {value, source_doc, source_date, edition}. Amounts are decimal strings, shares are fraction strings: a JSON number is never accepted as a value.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "entity", "as_of", "documents", "assertions", "filename_divergences", "unclassified_documents", "rejected_documents", "ignored_after_as_of"],
+  "required": ["schema_version", "entity", "as_of", "documents", "assertions", "filename_divergences", "unclassified_documents", "classified_checks", "rejected_documents", "ignored_after_as_of"],
   "properties": {
     "schema_version": {"const": "2.0.0"},
     "entity": {
@@ -22,6 +22,7 @@
     "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}},
     "filename_divergences": {"type": "array", "items": {"$ref": "#/$defs/divergence"}},
     "unclassified_documents": {"type": "array", "items": {"$ref": "#/$defs/problem_document"}},
+    "classified_checks": {"type": "array", "items": {"$ref": "#/$defs/classified_check"}},
     "rejected_documents": {"type": "array", "items": {"$ref": "#/$defs/problem_document"}},
     "ignored_after_as_of": {"type": "array", "items": {"type": "string"}}
   },
@@ -138,6 +139,20 @@
         "date": {"type": "string"},
         "holders_check": {"$ref": "#/$defs/holders_check"},
         "fields_check": {"$ref": "#/$defs/fields_check"}
+      }
+    },
+    "classified_check": {
+      "description": "Since v2.0.5 (D34): a document of a recognised type with text that no rule of its kind reads (fields_check.may_change ['*']), or a holders' table in a document of a kind not read for holders (['shareholders']), or a line that may state a holding outside the lists of its kind (holders_check). Decided by rules/extract.json classified_lines; used by DISC-006, OWN-010 and OWN-015.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doc_id", "file", "date", "kind", "fields_check", "holders_check"],
+      "properties": {
+        "doc_id": {"$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/text"},
+        "date": {"$ref": "#/$defs/date"},
+        "kind": {"enum": ["DEED", "RESOLUTION", "TRANSFER", "APPOINTMENT", "OFFICE", "EXTRACT", "LEDGER", "FIN"]},
+        "fields_check": {"$ref": "#/$defs/fields_check"},
+        "holders_check": {"$ref": "#/$defs/holders_check"}
       }
     },
     "fields_check": {

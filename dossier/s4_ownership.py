@@ -46,6 +46,10 @@ def unverified_tables(record: dict) -> list[dict]:
             continue                      # its body was checked: no table, or every table read whole (sum_checks)
         why = f"document not read: {u['reason']}" + (f"; {check['why']}" if check.get("why") else "")
         out.append({"source_doc": u.get("doc_id") or u["file"], "why": why})
+    for c in record.get("classified_checks", []):
+        check = c["holders_check"]
+        if check["status"] == "not_read":     # since v2.0.5: a holding outside the lists of a recognised document
+            out.append({"source_doc": c["doc_id"], "why": f"document of kind {c['kind']} not read whole: {check['why']}"})
     for r in record.get("rejected_documents", []):
         out.append({"source_doc": r["file"], "why": f"document not read: {r['reason']}"})
     return sorted(out, key=lambda x: (x["source_doc"], x["why"]))
@@ -78,6 +82,14 @@ def sum_checks(record: dict, rules: Rules) -> list[dict]:
             continue
         for t in check["tables"]:
             out.append(table_check({"source_doc": u["doc_id"], "source_date": date,
+                                    "edition": check.get("edition", "")}, [parse_frac(r["share"]) for r in t["value"]],
+                                   t.get("stated_total"), whole))
+    for c in record.get("classified_checks", []):
+        check = c["holders_check"]
+        if check["status"] != "read":
+            continue                          # since v2.0.5: a holders' table in a document of another kind
+        for t in check["tables"]:
+            out.append(table_check({"source_doc": c["doc_id"], "source_date": c["date"],
                                     "edition": check.get("edition", "")}, [parse_frac(r["share"]) for r in t["value"]],
                                    t.get("stated_total"), whole))
     return sorted(out, key=lambda c: (c["source_date"], c["source_doc"]))

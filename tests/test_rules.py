@@ -38,7 +38,8 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 67)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3
+        self.assertEqual(len(ids), 88)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3;
+        #                                      + CLS-010..CLS-999 (20) and DISC-006 in v2.0.5
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
@@ -127,6 +128,7 @@ class InlineTestsBite(unittest.TestCase):
         groups = {
             "doc_kinds": lambda d: d["extract"]["doc_kinds"],
             "holders_evidence": lambda d: d["extract"]["holders_evidence"]["rules"],
+            "classified_lines": lambda d: d["extract"]["classified_lines"]["rules"],
             "nature": lambda d: d["figure_nature"]["rules"],
             "discrepancy": lambda d: d["discrepancy"]["rules"],
             "scan": lambda d: d["discrepancy"]["outgoing_scan"]["rules"],

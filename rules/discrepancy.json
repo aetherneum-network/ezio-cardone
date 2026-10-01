@@ -1,6 +1,6 @@
 {
   "file": "discrepancy.json",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
   "parameters": {
     "event_supersedes_earlier_state": {
@@ -144,6 +144,136 @@
               "doc_id": "D9"
             }
           ]
+        }
+      ]
+    },
+    {
+      "id": "DISC-006",
+      "when": "classified_document_may_change_field",
+      "status": "TO_CONFIRM",
+      "reason": "a document of a recognised type of the entity has text that no rule of its kind reads and may change this field",
+      "rationale": "Since v2.0.5 (D34). A document of a recognised type is read for the fields of its kind only. When a line of it is explained by no rule of rules/extract.json classified_lines, or states a field of its kind again where no rule read it, the document may change every field; a holders' table read whole in a document of a kind not read for holders may change the shareholders (classified_checks of the record). If the document is not older than the latest event document of the field - the criterion of DISC-005 - nothing is shown as fact for that field. No parameter turns this off.",
+      "tests": [
+        {
+          "field": "directors",
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": [
+                "P-001"
+              ]
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "RESOLUTION",
+              "fields_check": {
+                "may_change": [
+                  "*"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "no_table",
+                "why": "t"
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM",
+            "readable": [
+              [
+                "P-001"
+              ]
+            ]
+          }
+        },
+        {
+          "field": "registered_office",
+          "assertions": [
+            {
+              "date": "2025-06-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "OFFICE",
+              "value": "Via Nuova 1, Borgoprova (ZZ)"
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "OFFICE",
+              "fields_check": {
+                "may_change": [
+                  "*"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "no_table",
+                "why": "t"
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        },
+        {
+          "field": "shareholders",
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": [
+                {
+                  "holder": "P-001",
+                  "share": "1/1"
+                }
+              ]
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "RESOLUTION",
+              "fields_check": {
+                "may_change": [
+                  "shareholders"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "read",
+                "why": "",
+                "edition": "RESOLUTION/1",
+                "tables": [
+                  {
+                    "line": 9,
+                    "line_end": 10,
+                    "value": [
+                      {
+                        "holder": "P-001",
+                        "share": "1/1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
         }
       ]
     },

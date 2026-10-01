@@ -9,7 +9,8 @@ For every field the assertions are ordered in time:
 * the baseline and those witnesses are the *current* sources.
 
 Then the ordered rules of ``rules/discrepancy.json`` decide: an unread document that may change the
-field -> ``TO_CONFIRM``; no current source -> ``TO_CONFIRM``; two or more different current values
+field -> ``TO_CONFIRM``; a document of a recognised type with text that no rule of its kind reads (since v2.0.5,
+``classified_checks`` of the record) that may change the field -> ``TO_CONFIRM``; no current source -> ``TO_CONFIRM``; two or more different current values
 -> ``DISCREPANCY`` (all shown, none chosen); a current source that could not be read ->
 ``TO_CONFIRM``; every current source readable and agreeing -> ``STATED``.
 
@@ -117,7 +118,24 @@ def unread_that_matter(unread: list[dict], baseline: dict | None, rules: Rules, 
     return [u for u in scoped if u not in agreeing], agreeing
 
 
-def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[dict] | None = None) -> dict:
+def classified_that_matter(classified: list[dict], baseline: dict | None, fld: str) -> list[dict]:
+    """Documents of a recognised type that may change the field beyond their kind (``classified_checks`` of the record,
+    since v2.0.5) and are not older than the latest event document of the field - the criterion of DISC-005. Their
+    scope is structural (a line no rule of the kind explains: every field; a holders' table of another kind: the
+    shareholders) and does not depend on unread_document_scope."""
+    out = []
+    for c in classified:
+        if baseline is not None and c["date"] < baseline["source_date"]:
+            continue
+        for m in c["fields_check"]["may_change"]:
+            if m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])):
+                out.append(c)
+                break
+    return out
+
+
+def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[dict] | None = None,
+                  classified: list[dict] | None = None) -> dict:
     baseline, witnesses, history = split_current(assertions, rules)
     current = ([baseline] if baseline else []) + witnesses
     stated = [a for a in current if a["status"] == "STATED"]
@@ -125,8 +143,10 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
     for a in stated:
         groups.setdefault(_key(a["value"]), []).append(a)
     blocking, agreeing = unread_that_matter(unread or [], baseline, rules, fld, current)
+    open_docs = classified_that_matter(classified or [], baseline, fld)
     strict = rules.param("discrepancy", "unreadable_current_source_blocks_fact")
     facts = {"unread_document_may_change_field": bool(blocking),
+             "classified_document_may_change_field": bool(open_docs),
              "no_current_assertion": not current,
              "two_or_more_current_values": len(groups) >= 2,
              "current_source_unreadable": len(stated) < len(current) and bool(strict or not groups),
@@ -154,6 +174,8 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
             if rule["when"] == "unread_document_may_change_field":
                 reasons = sorted(f"{u.get('doc_id') or 'a document without id'} dated "
                                  f"{u.get('date') or 'without a valid date'}" for u in blocking)
+            elif rule["when"] == "classified_document_may_change_field":
+                reasons = sorted(f"{c['doc_id']} dated {c['date']}" for c in open_docs)
             else:
                 reasons = sorted({a["reason"] for a in current if a["status"] != "STATED"})
             res["reason"] = rule["reason"] + (": " + "; ".join(reasons) if reasons else "")
@@ -179,7 +201,8 @@ def resolve_record(record: dict, rules: Rules) -> dict:
         else:
             by_field.setdefault(a["field"], []).append(a)
     unread = record.get("unclassified_documents", [])
-    fields = {f: resolve_field(f, by_field[f], rules, unread) for f in sorted(by_field)}
+    classified = record.get("classified_checks", [])
+    fields = {f: resolve_field(f, by_field[f], rules, unread, classified) for f in sorted(by_field)}
     return {"fields": fields, "previous_statements": sorted(previous, key=lambda p: (p["field"], p["source_date"],
                                                                                    p["source_doc"]))}
 
@@ -221,7 +244,7 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 assertions.append(x)
             # a test of an option that is off by default names the parameter value it holds for
             local = rules_engine.with_params(rules, "discrepancy", t["params"]) if t.get("params") else rules
-            got = resolve_field(t.get("field", "f"), assertions, local, t.get("unread"))
+            got = resolve_field(t.get("field", "f"), assertions, local, t.get("unread"), t.get("classified"))
             exp = t["expect"]
             ok = got["status"] == exp["status"] and got["rule"] == r["id"]
             if "value" in exp:

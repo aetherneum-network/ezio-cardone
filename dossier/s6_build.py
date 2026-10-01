@@ -300,6 +300,14 @@ def render_docx(path: Path, view: dict, model: dict, as_of: str, rules_assumptio
                      f"{d['content_says']}. The content is used; the file name is never a source.")
     for d in w["unclassified_documents"]:
         lines.append(f"A document was not read ({d.get('doc_id') or 'no id'}): {d['reason']}.")
+    for d in w.get("classified_checks", []):
+        fc, hc = d["fields_check"], d["holders_check"]
+        scope = "every field" if "*" in fc["may_change"] else ", ".join(fc["may_change"]) or "no field"
+        line = (f"{d['doc_id']} ({d['kind']}) was not read whole ({fc['why']}): it may change {scope} "
+                "(DISC-006).")
+        if hc["status"] == "not_read":
+            line += f" Its holders could not be summed: {hc['why']} (OWN-015)."
+        lines.append(line)
     for d in w["ignored_after_as_of"]:
         lines.append(f"{d} is dated after {as_of} and was not considered.")
     for line in lines or ["None."]:

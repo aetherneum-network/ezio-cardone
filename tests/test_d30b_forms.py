@@ -98,7 +98,9 @@ class S_UnreadScopeAdversarialSiblings(unittest.TestCase):
 
     def test_the_title_nouns_are_those_of_the_rule(self):
         rule = next(r for r in s.rules().extract["unread_fields"]["rules"] if r["id"] == "FEV-920")
-        nouns = re.search(r"\(\?:((?:[a-z]+\|)+[a-z]+)\)", rule["pattern"]).group(1).split("|")
+        self.assertIn("{title_nouns}", rule["pattern"])         # since v2.0.5 a parameter shared with CLS-900
+        nouns = re.search(r"\(\?:((?:[a-z]+\|)+[a-z]+)\)",
+                          s.rules().extract["parameters"]["title_nouns"]).group(1).split("|")
         self.assertEqual(tuple(nouns), FEV920_NOUNS)
 
     def test_default_scope_is_every_field(self):

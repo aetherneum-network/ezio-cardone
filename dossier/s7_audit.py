@@ -7,7 +7,9 @@ The audit does not trust the builder. It re-opens ``provenance.json`` and the DO
    the recorded line numbers; and the value is supported by the quote (re-read with a small parser
    of its own, not with the extraction rules);
 3. a field shown as one value has no current source that says otherwise (a second, independent
-   implementation of the rule declared in ``rules/discrepancy.json``);
+   implementation of the rule declared in ``rules/discrepancy.json``), and no document - of unrecognised type, or
+   (since v2.0.5, D34) of a recognised type with a line that no rule of its kind reads, every body line read again
+   by the audit - that may change it;
 4. every figure row of the DOCX matches its provenance entry, no row lacks a source, nothing marked
    ``[TO CONFIRM]`` carries a value, and no amount, percentage or fraction appears outside a table;
 5. the cap table in the DOCX sums to exactly the whole.
@@ -158,7 +160,7 @@ def current_values(assertions: list[dict]) -> tuple[set[str], bool, bool, str]:
 
 def _expand_all(pattern: str, params: dict) -> str:
     """Substitute every ``{name}`` of the rule parameters, until none is left (the audit's own expansion)."""
-    for _ in range(5):
+    for _ in range(8):
         new = re.sub(r"\{([a-z_]+)\}", lambda m: params[m.group(1)] if isinstance(params.get(m.group(1)), str)
                      else m.group(0), pattern)
         if new == pattern:
@@ -218,6 +220,163 @@ def unread_scope(u: dict, input_dir: Path | str, rules: Rules | None) -> tuple[s
 
 def _in_scope(scope: set[str], fld: str) -> bool:
     return any(m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])) for m in scope)
+
+
+# ----------------------------------------------------------------------------------------------
+# 3b. documents of a recognised type, every body line read again (v2.0.5, D34)
+
+# The audit's own reading of the name beside an identifier in a list line.
+_LABEL_AFTER = re.compile(r"(?:P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+_LABEL_BEFORE = re.compile(rf"^\s*(?:{_MARK}\s+)?([^()|:\t]+?)\s*\((?:P-\d{{3}}|E-\d{{4}})\)")
+_FY_HEADER = re.compile(r"^Financial year:\s*(\d{4})\s*$")
+
+
+def _topic_of(fld: str) -> str:
+    return "share_capital.*" if fld.startswith("share_capital.") else "fin.*" if fld.startswith("fin.") else fld
+
+
+class _Words:
+    """The audit's own test of free words: the fields they may name, by the rules that judge a document of
+    unrecognised type (the topic rules of unread_fields, and holders_evidence for a holding). Figures are
+    removed first: a slot's figures are typed by its grammar."""
+
+    def __init__(self, rules: Rules):
+        p = rules.extract["parameters"]
+        self.topics = [(rx(_expand_all(r["pattern"], p)), r["fields"]) for r in rules.extract["unread_fields"]["rules"]
+                       if r["when"] == "topic"]
+        hev = rules.extract["holders_evidence"]
+        self.neutral = rx(_expand_all(hev["parameters"]["neutral_phrases"], p))
+        self.hev = [(None if r["when"] == "always" else rx(_expand_all(r["pattern"], p)), r["outcome"])
+                    for r in hev["rules"]]
+
+    def holding(self, text: str) -> bool:
+        plain = self.neutral.sub(" ", text)
+        return next(out for pat, out in self.hev if pat is None or pat.search(plain)) != "none"
+
+    def name(self, text: str) -> set[str]:
+        words = re.sub(r"[0-9]", " ", text)
+        out = {f for pat, fields in self.topics if pat.search(words) for f in fields}
+        if self.holding(words):
+            out.add("shareholders")
+        return out
+
+
+def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern) -> bool:
+    """A line of a list by the audit's own grammar: a director, or a holder (or the Total) whose share is read as a
+    share or a number, or is a figure without words; the name beside the identifier has no figure and names
+    nothing but a name, a legal form or the field of the list."""
+    if fld == "directors":
+        if not _PERSON_LINE.match(line):
+            return False
+        rest = line
+    else:
+        m, f, t = _SHARE_IN_LINE.match(line), _SHARE_FIRST_LINE.match(line), _TOTAL_LINE.match(line)
+        if m:
+            share, rest = m.group(3), line[:m.start(3)]
+        elif f:
+            share, rest = f.group(1), re.sub(r"^[\s:|\-–—.]+", "", line[f.end(1):])
+        elif t:
+            share, rest = t.group(1), ""
+        else:
+            return False
+        share = share.strip()
+        if not share or (parse_share(share)[0] is None and not _COUNT_IN_LINE.match(share)
+                         and not unread_share.fullmatch(share)):
+            return False
+    labels = [x.group(1) for x in _LABEL_AFTER.finditer(rest)]
+    before = _LABEL_BEFORE.match(rest)
+    if before:
+        labels.append(before.group(1))
+    return all(not re.search(r"[0-9]", x) and words.name(x) <= {"name", "legal_form", _topic_of(fld)} for x in labels)
+
+
+def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
+                     words: _Words | None = None) -> dict:
+    """What one document of a recognised type may change beyond the fields its rules read, read again from the
+    source by the audit: a second implementation of rules/extract.json classified_lines over the assertions of the
+    record. A body line is closed when it has no letter or digit; when it is a line of a list (a heading of a list
+    rule - holders in every kind, directors in the kinds of their rule - or a row of the audit's own grammar after
+    it); when it is the whole of a shape of its kind whose free words name only the fields of the shape; or when it is
+    a label and a typed value (CLS-250) whose label names fields of its kind only, and the fields both the label and
+    the type of the value name. A closed line whose field is not read from it (no assertion of the record covers it,
+    or its kind does not read the field) may change that field; any other line, every field ("*")."""
+    path = Path(input_dir) / d["file"]
+    out = {"scope": set(), "open": [], "restated": set(), "holding": False, "problems": []}
+    if not path.exists():
+        out["scope"], out["problems"] = {"*"}, [f"{d['doc_id']}: source file not found"]
+        return out
+    words = words or _Words(rules)
+    p = rules.extract["parameters"]
+    lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
+    start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
+    fy = next((m.group(1) for x in lines[1:start] for m in [_FY_HEADER.match(x.strip())] if m), "")
+    kind = d["kind"]
+    expected = {t.replace("{fy}", fy) for t in rules.extract["expected_fields"][kind]}
+    spans: dict[str, list[tuple[int, int]]] = {}
+    for a in record["assertions"]:
+        if (a["source_doc"] == d["doc_id"] and a["source_file"] == d["file"] and a["line"] is not None
+                and not a["field"].endswith(".previous")):
+            spans.setdefault(a["field"], []).append((a["line"], a["line_end"]))
+    check = next((c for c in record.get("classified_checks", []) if c["doc_id"] == d["doc_id"]
+                  and c["file"] == d["file"]), None)
+    hc = (check or {}).get("holders_check") or {}
+    for t in hc.get("tables") or [] if hc.get("status") == "read" else []:
+        if _holder_lines("\n".join(lines[t["line"] - 1:t["line_end"]])) != {
+                r["holder"]: parse_frac(r["share"]) for r in t["value"]}:
+            out["problems"].append(f"{d['doc_id']}: the holders' table at line {t['line']} is not the one its "
+                                   "source states")
+    unread_share = re.compile(_expand_all(p["slot_share_unread"], p), re.I)
+    rows_of: dict[int, str] = {}
+    for r in rules.extract["field_rules"]:
+        if r["extractor"] != "holders" and not (r["extractor"] == "directors" and kind in r["kinds"]):
+            continue
+        heads = [rx(_expand_all(r[k], p)) for k in ("line_matches", "line_matches_bare") if r.get(k)]
+        for no in range(start + 1, len(lines) + 1):
+            if not any(h.search(lines[no - 1].strip()) for h in heads):
+                continue
+            rows_of[no] = r["field"]
+            nxt = no + 1
+            while nxt <= len(lines) and lines[nxt - 1].strip():
+                if _list_row(lines[nxt - 1], r["field"], words, unread_share):
+                    rows_of[nxt] = r["field"]
+                nxt += 1
+    kind_topics = {_topic_of(f) for f in expected}
+    shapes = [r for r in rules.extract["classified_lines"]["rules"]
+              if r.get("pattern") and (not r.get("kinds") or kind in r["kinds"])]
+    for no in range(start + 1, len(lines) + 1):
+        line = lines[no - 1].strip()
+        if not any(ch.isalnum() for ch in line):
+            continue
+        fields = [rows_of[no]] if no in rows_of else None
+        for r in shapes if fields is None else []:
+            m = rx(_expand_all(r["pattern"], p)).search(line)
+            if not m:
+                continue
+            if r["when"] == "label":      # a label and a typed value: the fields both name, by the audit's words
+                g = m.groupdict()
+                label = words.name(g["w_label"])
+                typed = next((k for k in r["value_topics"] if k and g.get(k)), "")
+                both = label & set(r["value_topics"][typed]) if label <= kind_topics else set()
+                if not both or any(v and not words.name(v) <= both for k, v in g.items()
+                                   if k.startswith("w_") and k != "w_label"):
+                    continue
+                fields = sorted(f for f in expected if _topic_of(f) in both)
+                break
+            may = r.get("slots_may_name", r["fields"])
+            allowed = kind_topics if may == "kind" else {_topic_of(f) for f in may}
+            if any(v and not words.name(v) <= allowed for k, v in m.groupdict().items() if k.startswith("w_")):
+                continue
+            fields = [f.replace("{fy}", fy) for f in r["fields"]]
+            break
+        if fields is None:
+            out["open"].append(no)
+            out["holding"] = out["holding"] or words.holding(line)
+            continue
+        for f in fields:          # a field its kind does not read, not read at all, or read from another line
+            if f not in expected or not spans.get(f) or any(not first <= no <= last for first, last in spans[f]):
+                out["restated"].add(f)
+    out["scope"] = {"*"} if out["open"] else set(out["restated"])
+    return out
 
 
 # ----------------------------------------------------------------------------------------------
@@ -288,6 +447,24 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
         if rules is None:
             rules = rules_engine.load()
         scopes = [(u, *unread_scope(u, input_dir, rules)) for u in record.get("unclassified_documents", [])]
+        words = _Words(rules)
+        for meta in record["documents"]:
+            got = classified_scope(meta, record, input_dir, rules, words)
+            problems.extend(got["problems"])
+            check = next((c for c in record.get("classified_checks", []) if c["doc_id"] == meta["doc_id"]
+                          and c["file"] == meta["file"]), None)
+            said = set(check["fields_check"]["may_change"]) if check else set()
+            if got["open"] and "*" not in said:
+                problems.append(f"{meta['doc_id']}: line(s) {got['open'][:5]} read by no rule of its kind, and the record "
+                                "does not say the document may change every field")
+            elif got["restated"] - said and "*" not in said:
+                problems.append(f"{meta['doc_id']}: it states {sorted(got['restated'] - said)} on lines that no rule "
+                                "read, and the record does not say the document may change them")
+            if got["holding"] and (check is None or check["holders_check"]["status"] != "not_read"):
+                problems.append(f"{meta['doc_id']}: a line read by no rule of its kind may state a holding, and its "
+                                "holders are not marked unread")
+            if got["scope"] | said:
+                scopes.append(({"date": meta["date"], "doc_id": meta["doc_id"]}, got["scope"] | said, []))
         for fld, assertions in sorted(by_field.items()):
             values, any_current, unreadable, cutoff = current_values(assertions)
             shown = [f for f in figures if f["field"] == fld and f["section"] in ("facts", "cap_table")]

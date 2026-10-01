@@ -43,6 +43,7 @@ def make_view(eid: str, records: dict, resolutions: dict, ownership: dict) -> di
             "superseded": s3_discrepancy.superseded_register(res),
             "warnings": {"filename_divergences": record["filename_divergences"],
                          "unclassified_documents": record["unclassified_documents"],
+                         "classified_checks": record["classified_checks"],
                          "ignored_after_as_of": record["ignored_after_as_of"]}}
 
 

@@ -1,6 +1,6 @@
 {
   "file": "extract.json",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
@@ -46,6 +46,27 @@
       "\\b(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered)\\s+)?(?:quotas|shares)\\s+in\\s+(?:total|all)\\b"
     ],
     "count_total_note": "A number of quotas or shares is a share of the entity only through the total. The total is read from the same document, and only when these patterns find one value (the same value found twice is one value); no total, or two different totals, and the counts are not read: the table is [TO CONFIRM] and OWN-015 blocks. The counts of a table are divided by that total and summed like any other share, so counts that do not add up to the total make a table that does not sum (OWN-010). Added with v2.0.3 (D30).",
+    "title_nouns": "(?:minutes|notice|entries|entry|register|ledger|statement|certificate|memorandum|summary|record|report|letter|declaration)",
+    "closing_sentence": "^(?:nothing\\s+(?:else|more)|no\\s+other\\s+(?:fact|matter|data|information))\\s+is\\s+(?:certified|stated|recorded|declared|attested)\\s*\\.?$",
+    "slot_word": "(?-i:(?:(?:d|dell|nell|sull|all|dall|sant|l)['’])?[A-ZÀ-Þ][A-Za-zß-ÿ]*(?:['’][A-Za-zß-ÿ]+)?)",
+    "slot_particle": "(?-i:del|della|dello|dei|degli|delle|di|da|dal|dalla|dai|al|alla|ai|e|ed|in|sul|sulla|lo|la|le|il|i|gli|san|santa|santo|de)",
+    "slot_street": "{slot_word}(?:[ -](?:{slot_word}|{slot_particle})){0,5}",
+    "slot_town": "{slot_word}(?:[ -](?:{slot_word}|{slot_particle})){0,3}",
+    "slot_house_number": "\\d{1,4}(?:\\s?/\\s?[A-Za-z0-9]{1,3}|[A-Za-z])?",
+    "slot_province": "\\((?-i:[A-Z]{2})\\)",
+    "slot_address": "{slot_street}(?: {slot_house_number})?, {slot_town} {slot_province}(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?",
+    "slot_company_form": "(?-i:S\\.r\\.l\\.|S\\.p\\.A\\.|S\\.a\\.s\\.|S\\.n\\.c\\.)",
+    "slot_company": "{slot_word}(?: (?:{slot_word}|{slot_particle})){0,7} {slot_company_form}",
+    "slot_person": "{slot_word}\\.?(?:[ -](?:{slot_word}\\.?|{slot_particle})){0,4}",
+    "slot_label": "(?:{slot_company}|{slot_person})",
+    "slot_number_words": "(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)(?:(?:[ -]|\\s+and\\s+)(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))*",
+    "slot_amount": "(?:(?:EUR|euros?)\\s+{amount_token}|€\\s?{amount_token}|{amount_token}\\s*(?:EUR|euros?|€)|{slot_number_words}\\s+euros?)",
+    "slot_count": "(?:\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)",
+    "slot_capital_item": "(?:(?:resolved|authori[sz]ed|nominal|issued|subscribed(?:\\s+and\\s+paid[\\s-](?:in|up))?|paid[\\s-](?:in|up)|of\\s+which)\\s+)?{slot_amount}",
+    "slot_share_unread": "(?:[\\W\\d_]|per\\s*-?\\s*cent|percent|pct|quotas?|shares?)*",
+    "slot_subscribed_paid": "(?:fully|wholly|entirely)\\s+subscribed\\s+and\\s+(?:(?:fully|wholly)\\s+)?paid[\\s-](?:in|up)",
+    "slot_label_words": "[^\\W\\d_]+(?:['’][^\\W\\d_]*)?(?:[ -][^\\W\\d_]+(?:['’][^\\W\\d_]*)?){0,7}",
+    "slot_note_2_0_5": "Since v2.0.5 (D34): the slots of rules/extract.json classified_lines. The share of a line of a list (rule CLS-020) is typed too: a share or a number of quotas or shares that is read, or a figure that is not read (slot_share_unread: no letter but those of per cent, quotas or shares); a share in any other words leaves the line open. A slot is typed: an amount (slot_amount: EUR or € before the figure, euro after it, or a number in words before euro), a number of quotas or shares (slot_count), a company name (capitalised words and Italian particles, at most eight, then S.r.l., S.p.A., S.a.s. or S.n.c.), a person's name (at most five capitalised words, particles or initials), an address (a street of at most six words, a house number, a town of at most four words, a province of two capitals in parentheses, optionally ' - interno', ' - scala' or ' - piano' and a mark). A capitalised word holds letters and apostrophes only: no figure, no identifier (P-001, E-0001), no punctuation. The free words of a slot (groups named w_...) go through the same test as an unread document (the topic rules of unread_fields and holders_evidence) and may name only the fields of their rule. title_nouns and closing_sentence are shared by FEV-920, FEV-930 and the rules CLS-900, CLS-910. slot_subscribed_paid names the clause 'fully subscribed and fully paid in' and its closed variants; slot_label_words is the label of CLS-250 (at most eight words of letters, no figure).",
     "filename_pattern":"^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
@@ -550,7 +571,7 @@
         "id": "FEV-920",
         "when": "no_topic_and_pattern_found",
         "fields": [],
-        "pattern": "^(?:the\\s+)?(?:minutes|notice|entries|entry|register|ledger|statement|certificate|memorandum|summary|record|report|letter|declaration)\\b[^.:;!?]{0,100}\\((?:synthetic|fictitious)\\)\\s*[.:]?$",
+        "pattern": "^(?:the\\s+)?{title_nouns}\\b[^.:;!?]{0,100}\\((?:synthetic|fictitious)\\)\\s*[.:]?$",
         "rationale": "A title, the whole line: a title noun, one phrase with no sentence in it, marked as invented. It names the document and states no field.",
         "tests": [
           {"text": "Entries of the ledger as at the document date (synthetic).", "expect": []},
@@ -562,7 +583,7 @@
         "id": "FEV-930",
         "when": "no_topic_and_pattern_found",
         "fields": [],
-        "pattern": "^(?:nothing\\s+(?:else|more)|no\\s+other\\s+(?:fact|matter|data|information))\\s+is\\s+(?:certified|stated|recorded|declared|attested)\\s*\\.?$",
+        "pattern": "{closing_sentence}",
         "rationale": "A closing sentence, the whole line, saying that the document states nothing more: it states no field.",
         "tests": [
           {"text": "Nothing else is certified.", "expect": []}
@@ -577,6 +598,273 @@
           {"text": "Ugo Apparenti now runs the company.", "expect": ["*"]},
           {"text": "Lia Inesistente sold everything to Ugo Apparenti.", "expect": ["*"]},
           {"text": "Minutes of the holders' meeting (synthetic). Ugo Apparenti takes over from Lia Inesistente.", "expect": ["*"]}
+        ]
+      }
+    ]
+  },
+  "classified_lines": {
+    "reading": "Since v2.0.5 (D34, the limit 'may publish' of v2.0.4): every non-empty body line of a document whose type is recognised is decided by these rules, first match wins. A document of a recognised type is read for the fields of its kind only; these rules say which of its lines state those fields and nothing else. A line is explained when it has no letter or digit, when it is a line of a list read under a heading of its kind (or of a holders' table in a document of any kind), when the whole line is a shape of its kind whose typed slots (parameters slot_...) name no other field by the test of an unread document, or when it is a title or a closing sentence. Any other line (default CLS-999) makes the document one that may change every field of its entity: stage 3 keeps every field [TO CONFIRM] when the document is not older than the latest event of the field (DISC-006, the criterion of DISC-005), and the line is checked for holdings as a line of an unread document is (holders_evidence: a holding outside a table read whole and OWN-015 blocks). A closed line states nothing but the fields of its rule: when a rule of the kind read one of them from another line (a second clause, a second list), the line was not read and the document may change that field (DISC-006 keeps it [TO CONFIRM] under the same date criterion). A holders' table in a document of a kind that is not read for holders (resolution, appointment, office transfer, financial summary) is read whole and summed (OWN-010), or OWN-015 blocks; read whole, it may change the shareholders. The rules err on the side of the open line: a shape not listed here costs coverage (every field [TO CONFIRM]), a shape too wide could let an older value be shown as fact.",
+    "rules": [
+      {
+        "id": "CLS-010",
+        "when": "no_letter_or_digit",
+        "fields": [],
+        "rationale": "A line without a letter or a digit (a banner, a rule of dashes or stars) states nothing.",
+        "tests": [
+          {"kind": "DEED", "text": "* * *", "expect": []},
+          {"kind": "RESOLUTION", "text": "--------", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-020",
+        "when": "list_line",
+        "fields": [],
+        "rationale": "A line of a list under a heading of a list rule (EXT-HOLD-010 in a document of every kind, EXT-DIR-010 in the kinds of its rule): the heading, an item line of the rule's grammar whose name is a person's or a company's name (slot_label) naming nothing else and whose share is typed (a share or a number of quotas or shares that is read, or a figure without words: slot_share_unread), or the last line 'Total' of a holders' table with a typed share. It states the field of the list. A holders' table in a document of a kind that is not read for holders may change the shareholders: it is read whole and summed, or OWN-015 blocks.",
+        "tests": [
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "line": 3, "expect": ["shareholders"]},
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti) .... 60%\n- P-002 (Bice Provetti) .... 40%\nTotal .... 100%", "line": 4, "expect": ["shareholders"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)", "line": 2, "expect": ["directors"], "expect_may_change": []},
+          {"kind": "RESOLUTION", "text": "Holders:\n- P-001 (Aldo Finti): 100%", "line": 2, "expect": ["shareholders"], "expect_may_change": ["shareholders"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "line": 2, "expect": ["shareholders"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-110",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["name", "legal_form"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:name\\s+and\\s+form\\.\\s+)?(?:the\\s+company\\s+is\\s+named|the\\s+name\\s+of\\s+the\\s+company\\s+is)\\s+(?P<w_name>{slot_company});\\s+(?:its\\s+legal\\s+form\\s+is|it\\s+takes\\s+the\\s+legal\\s+form\\s+of)\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)$",
+        "rationale": "Deed clause on name and form, the whole line: a company name, one of the two legal forms.",
+        "tests": [
+          {"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
+          {"kind": "DEED", "text": "1. Name and form. The name of the company is Cartiere Villasimulata S.r.l.; it takes the legal form of S.r.l.", "expect": ["name", "legal_form"]}
+        ]
+      },
+      {
+        "id": "CLS-120",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:registered\\s+office\\.\\s+)?(?:the\\s+registered\\s+office\\s+is\\s+at|the\\s+company\\s+has\\s+its\\s+seat\\s+at|the\\s+company\\s+is\\s+domiciled\\s+at)\\s+(?P<w_office>{slot_address})\\.$",
+        "rationale": "Deed clause on the registered office, the whole line: one address. A second office clause that no rule read: the document may change the registered office (DISC-006).",
+        "tests": [
+          {"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).", "expect": ["registered_office"], "expect_may_change": []},
+          {"kind": "DEED", "text": "The company has its seat at Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"], "expect_may_change": ["registered_office"]},
+          {"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).\nThe registered office is at Piazza del Campione 3, Montefinto (ZZ).", "line": 2, "expect": ["registered_office"], "expect_may_change": ["registered_office"]},
+          {"kind": "DEED", "text": "2. Registered office. The company is domiciled at Piazza Inventata 78, Montefinto (ZZ).", "expect": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-130",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:share\\s+capital\\.\\s+)?the\\s+share\\s+capital\\s+is\\s+{slot_amount}(?:(?:,?\\s+|\\.\\s+it\\s+is\\s+)(?:{slot_subscribed_paid}|(?:divided|split)\\s+into\\s+{slot_count}\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)(?:\\s+of\\s+{slot_amount}\\s+each)?)){0,2}\\.$",
+        "rationale": "Deed clause on the share capital, the whole line: one amount, then in either order, in the same sentence or in a second one that begins 'It is', how much of it is subscribed and paid in and the number of quotas or shares (with the nominal amount of each).",
+        "tests": [
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is € 40.000, divided into 400 quotas.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "The share capital is fifty thousand euro, entirely subscribed and paid up.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, divided into 500 quotas of EUR 100,00 each, fully subscribed and fully paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is 100.000,00 EUR, wholly subscribed and wholly paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 90.000,00, fully subscribed and fully paid in. It is split into 900 quotas.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-140",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["name"],
+        "slots_may_name": ["name", "legal_form"],
+        "pattern": "^name:\\s+(?P<w_name>{slot_company})$",
+        "rationale": "Registry extract line 'Name:': a company name, whose legal form is part of the name.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": ["name"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-150",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["legal_form"],
+        "pattern": "^legal\\s+form:\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)$",
+        "rationale": "Registry extract line 'Legal form:': one of the two legal forms.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": ["legal_form"]}
+        ]
+      },
+      {
+        "id": "CLS-160",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:registered\\s+office|seat):\\s+(?P<w_office>{slot_address})$",
+        "rationale": "Registry extract line 'Registered office:' or 'Seat:': one address.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Seat: Via del Collaudo 7, Borgoprova (ZZ) - interno 2", "expect": ["registered_office"], "expect_may_change": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-170",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^share\\s+capital:\\s+{slot_capital_item}(?:(?:;\\s+|,\\s+|\\s+and\\s+){slot_capital_item}){0,3}$",
+        "rationale": "Registry extract line 'Share capital:': up to four amounts, each with or without its nature (resolved, authorised, subscribed, paid in, paid up, of which).",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Share capital: authorised EUR 120,000.00; subscribed EUR 100,000.00; paid up EUR 75,000.00", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []},
+          {"kind": "EXTRACT", "text": "Share capital: EUR 500.000,00, of which EUR 400.000,00 and EUR 250.000,00", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "EXTRACT", "text": "Share capital: resolved 80 000,00 euro; subscribed and paid in 80 000,00 euro", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]}
+        ]
+      },
+      {
+        "id": "CLS-180",
+        "when": "shape",
+        "kinds": ["RESOLUTION"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^the\\s+meeting\\s+resolved\\s+(?:to\\s+(?:increase|raise)\\s+the\\s+share\\s+capital|that\\s+the\\s+share\\s+capital\\s+(?:go\\s+up|be\\s+(?:increased|raised)))\\s+from\\s+{slot_amount}\\s+to\\s+{slot_amount}(?:\\.\\s+(?:the\\s+(?:whole\\s+)?increase\\s+has\\s+been\\s+(?:(?:fully|wholly)\\s+)?subscribed\\s+and\\s+(?:(?:fully|wholly)\\s+)?paid\\s+in|the\\s+new\\s+shares\\s+were\\s+all\\s+taken\\s+up\\s+and\\s+paid\\s+for)|;\\s+after\\s+the\\s+increase\\s+the\\s+(?:subscribed\\s+capital|capital\\s+subscribed|capital\\s+taken\\s+up)\\s+(?:is|amounts\\s+to)\\s+{slot_amount}\\s+and\\s+the\\s+(?:paid-in\\s+capital|capital\\s+paid\\s+in)\\s+(?:is|amounts\\s+to)\\s+{slot_amount}|,\\s+with\\s+{slot_amount}\\s+and\\s+{slot_amount})?\\.$",
+        "rationale": "Capital resolution, the whole line: the capital raised from one amount to another, and how much of it is subscribed and paid in. Nothing about who takes the new quotas: a sentence that names a subscriber is not this shape.",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"]},
+          {"kind": "RESOLUTION", "text": "The meeting resolved to increase the share capital from EUR 200'000.00 to EUR 280'000.00; after the increase the capital taken up is EUR 260'000.00 and the paid-in capital is EUR 220'000.00.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "RESOLUTION", "text": "The meeting resolved that the share capital go up from EUR 120.000,00 to EUR 170.000,00; after the increase the capital subscribed amounts to EUR 157.500,00 and the capital paid in amounts to EUR 150.000,00.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]}
+        ]
+      },
+      {
+        "id": "CLS-190",
+        "when": "shape",
+        "kinds": ["OFFICE"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:the\\s+registered\\s+(?:office|address)\\s+(?:is\\s+transferred|is\\s+moved|changes)|the\\s+seat\\s+of\\s+the\\s+company\\s+is\\s+moved)\\s+from\\s+(?P<w_previous>{slot_address})\\s+to\\s+(?P<w_office>{slot_address})\\.$",
+        "rationale": "Transfer of registered office, the whole line: from one address to another.",
+        "tests": [
+          {"kind": "OFFICE", "text": "The seat of the company is moved from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"]},
+          {"kind": "OFFICE", "text": "The registered address changes from Corso dei Modelli 66, Rivaprova (ZZ) to Via della Prova 32, Monteprototipo (ZZ).", "expect": ["registered_office"], "expect_may_change": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-200",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.net_equity"],
+        "pattern": "^(?:net\\s+equity|equity\\s+\\(net\\)):\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the net equity: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Equity (net): EUR 80.000,00", "expect": ["fin.FY{fy}.net_equity"]}
+        ]
+      },
+      {
+        "id": "CLS-210",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.total_assets"],
+        "pattern": "^total\\s+assets:\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the total assets: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Total assets: 1 000 000,00 euro", "expect": ["fin.FY{fy}.total_assets"]}
+        ]
+      },
+      {
+        "id": "CLS-220",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.revenue"],
+        "pattern": "^(?:revenue|turnover):\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the revenue: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Turnover: seven hundred and fifty thousand euro", "expect": ["fin.FY{fy}.revenue"]}
+        ]
+      },
+      {
+        "id": "CLS-230",
+        "when": "shape",
+        "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+        "fields": ["directors"],
+        "pattern": "^(?:(?:{clause_number}\\s*)?board\\s*[.:]?|the\\s+board\\s+now\\s+consists\\s+of\\s*:)$",
+        "rationale": "A heading of the directors that EXT-DIR-010 does not read ('Board:', 'The board now consists of:'): it states the directors only. The directors stay [TO CONFIRM] by EXPECTED-FIELD; the line does not open the document.",
+        "tests": [
+          {"kind": "APPOINTMENT", "text": "The board now consists of:\n- P-034 (Lia Fittizi)", "expect": ["directors"], "expect_may_change": ["directors"]},
+          {"kind": "DEED", "text": "5. Board.", "expect": ["directors"]}
+        ]
+      },
+      {
+        "id": "CLS-240",
+        "when": "shape",
+        "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+        "fields": ["directors"],
+        "slots_may_name": ["name", "legal_form", "directors"],
+        "pattern": "^(?:{list_marker}\\s+)?(?:P-\\d{3}(?:\\s*\\((?P<w_label>{slot_person})\\))?|(?P<w_label_first>{slot_person})\\s*\\(P-\\d{3}\\))$",
+        "rationale": "A director line outside a list that EXT-DIR-010 read: a person identifier with a person's name. It states the directors only; when the directors are read from another list, the line was not read: the document may change the directors (DISC-006).",
+        "tests": [
+          {"kind": "DEED", "text": "5. Board.\n- Lia Fittizi (P-034)", "line": 2, "expect": ["directors"], "expect_may_change": ["directors"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)\n\n- P-035 (Ugo Prova)", "line": 4, "expect": ["directors"], "expect_may_change": ["directors"]}
+        ]
+      },
+      {
+        "id": "CLS-250",
+        "when": "label",
+        "fields": [],
+        "pattern": "^(?:{clause_number}\\s*)?(?P<w_label>{slot_label_words})(?:\\s*[.:]|:\\s+(?:(?P<v_amounts>{slot_capital_item}(?:(?:;\\s+|,\\s+|\\s+and\\s+){slot_capital_item}){0,3})|(?P<w_office>{slot_address})|(?P<w_name>{slot_company})|(?P<v_form>S\\.r\\.l\\.|S\\.p\\.A\\.)))$",
+        "slots_may_name": "kind",
+        "value_topics": {"v_amounts": ["share_capital.*", "fin.*"], "w_office": ["registered_office"], "w_name": ["name", "legal_form"], "v_form": ["legal_form"], "": ["shareholders", "directors"]},
+        "rationale": "A label and a typed value, the whole line (since v2.0.5): a label of at most eight words that names fields of the kind only (the test of an unread document), then one to four amounts, an address, a company name, a legal form, or nothing (the heading of a list). The line states the fields of the kind that both the label and the type of the value name (value_topics; a heading: the holders or the directors), and nothing else; a label that names none of them does not close the line. The free words of the value may name only those fields. No rule read the line: the document may change those fields (DISC-006).",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Form of the company: S.r.l.", "expect": ["legal_form"], "expect_may_change": ["legal_form"]},
+          {"kind": "EXTRACT", "text": "Registered address: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["registered_office"]},
+          {"kind": "FIN", "fy": "2023", "text": "Sales revenue: EUR 6.586.603,78", "expect": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]},
+          {"kind": "FIN", "fy": "2023", "text": "Balance sheet total: 8.487.975,78 EUR", "expect": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]},
+          {"kind": "EXTRACT", "text": "Administrators:", "expect": ["directors"]},
+          {"kind": "DEED", "text": "5. Administrative body.", "expect": ["directors"]},
+          {"kind": "APPOINTMENT", "text": "Directors serving once this appointment takes effect:", "expect": ["directors"]},
+          {"kind": "EXTRACT", "text": "Subscribed capital: EUR 60.000,00", "expect": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"], "expect_may_change": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"]}
+        ]
+      },
+      {
+        "id": "CLS-900",
+        "when": "shape",
+        "fields": [],
+        "slots_may_name": "kind",
+        "pattern": "^(?P<w_title>(?:the\\s+)?{title_nouns}\\b[^.:;!?\\d]{0,100}\\((?:synthetic|fictitious)\\))\\s*[.:]?$",
+        "rationale": "A title, the whole line: a title noun of FEV-920, one phrase with no sentence and no figure in it, marked as invented. Its words may name only the fields of the kind of the document ('Minutes - capital increase' in a resolution); a title that names another field ('... and new seat') is not a title here.",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "Minutes of the holders' meeting (synthetic).", "expect": []},
+          {"kind": "APPOINTMENT", "text": "Minutes - change of the board (synthetic).", "expect": []},
+          {"kind": "TRANSFER", "text": "Notice of a transfer of shares (synthetic).", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-910",
+        "when": "shape",
+        "fields": [],
+        "pattern": "{closing_sentence}",
+        "rationale": "A closing sentence of FEV-930, the whole line: the document states nothing more.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Nothing else is certified.", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-999",
+        "when": "always",
+        "fields": ["*"],
+        "rationale": "Default: a line that no rule above explains may state any field, as a line of an unread document does. The document may change every field of its entity (DISC-006), and the line is checked for holdings (holders_evidence, OWN-015).",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "The new quotas are subscribed by P-009 (Ugo Apparenti).", "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "TRANSFER", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ). P-009 (Ugo Apparenti) is appointed director.", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Borgo Director Ugo (ZZ).", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Ugo Apparenti Takes Over Now (ZZ).", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Minutes of the meeting appointing P-009 as director (synthetic).", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Minutes of the meeting that also changes the board (synthetic).", "expect": ["*"]},
+          {"kind": "APPOINTMENT", "text": "The meeting also resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00.", "expect": ["*"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 150 thousand, fully subscribed and fully paid in.", "expect": ["*"]},
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti, who also becomes director): 100%", "line": 2, "expect": ["*"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- P-001 (Aldo Finti): 60% and the seat moves to Montefinto\n- P-002 (Bice Provetti): 40%", "line": 2, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "OFFICE", "text": "Directors:", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Holders after the increase:", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Remarks: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Registered address: Fornace Aurelia S.r.l.", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Registered address: Via Nuova 1, Borgo Director Ugo (ZZ)", "expect": ["*"]},
+          {"kind": "TRANSFER", "text": "Registered office: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["*"]}
         ]
       }
     ]
