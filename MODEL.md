@@ -62,6 +62,18 @@
   `tests/test_d37_slots.py`) were written by the same hand with those documents in view. What it rests on is the
   premise that two documents which state the same text alike state it (`CHANGELOG.md` 2.0.8 section 4). The same
   limit applies: hand-18 and seed 20261017 are now seen, and its numbers (run 19) are not blind.
+- **The change of v2.0.9** (finding D38: every free-text slot - an address, a company's name, a person's name, a
+  title, a label - is a fact only when every word of it is identified by the gazetteer of the pack and holds no
+  numeral, `free_text_identification`, whatever the documents agree on; the premise of corroboration of v2.0.8 is
+  closed; a company's own name no longer decided by topic words; a registry extract filed with another entity's
+  documents read as an unclassified document of its folder; builds that no longer depend on the long-path support
+  of Windows) was written with the same model, in a separate session on 2026-10-01, as the builder's hand, after
+  reading the results and the hand-written documents of the blind run of v2.0.8 (run 20, seed 20261018,
+  `eval/blind/hand-20/`). Its rules, its gazetteer and its 624 sibling cases (`tests/test_d38_identification.py`)
+  were written by the same hand with those documents in view. The gazetteer is drawn from the generator and the
+  scenarios of the same author, so the generated corpora are identified by construction and say little about it;
+  the hand-written corpora, whose words are not in it, block. The same limit applies: hand-20 and seed 20261018 are
+  now seen, and its numbers (run 21) are not blind.
 
 ## What runs at runtime
 

@@ -17,7 +17,7 @@ The full map, sentence by sentence, is `CLAIMS.md`.
 | Claim of the profile | Scenarios | What is checked |
 |---|---|---|
 | A1 - every figure carries its source document and date | S03, S04, S10 | document, date and edition on every figure; a superseded figure in outgoing text is traced; the nature of an amount (historical, resolved, subscribed, paid-in) is classified before it is shown; since v2.0.1 an amount is read whole or abstained, and the audit compares its digits with the quote (`tests/test_amount_grouping.py`) |
-| A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled; since v2.0.5 a document of a recognised type whose text may change a field its rules do not read keeps that field `[TO CONFIRM]` (`DISC-006`, `tests/test_d34_forms.py`); since v2.0.8 an address, a company's header name, a title or a label is a fact only when a second document states it alike, and one equal to another plus words is not a conflict but a line no rule explains (`tests/test_d37_forms.py`, `tests/test_d37_slots.py`) |
+| A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled; since v2.0.5 a document of a recognised type whose text may change a field its rules do not read keeps that field `[TO CONFIRM]` (`DISC-006`, `tests/test_d34_forms.py`); since v2.0.8 an address, a company's header name, a title or a label is a fact only when a second document states it alike, and one equal to another plus words is not a conflict but a line no rule explains (`tests/test_d37_forms.py`, `tests/test_d37_slots.py`); since v2.0.9 an address, a company's or a person's name, a title or a label closes its line only when every word of it is identified by the gazetteer of the pack and holds no numeral, whatever the documents agree on; two different identified addresses are still shown side by side (`tests/test_d38_identification.py`) |
 | A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`); since v2.0.3 more headings and holder lines, shares in words and counts of quotas with one total stated in the same document are read, and the forms that are not read still block (`tests/test_d30_forms.py`); since v2.0.4 a stated Total line must equal the exact sum of the rows (`tests/test_d30b_forms.py`); since v2.0.5 a holders' table in a document of another recognised type is read whole and summed, or blocks (`tests/test_d34_forms.py`) |
 | A4 - the dossier is a build artefact | S09 | same inputs, same bytes, DOCX included; a rule change moves only the expected field |
 | A5 - no snapshot is ever overwritten | S05 | the state at an earlier date is answered from the snapshots |
@@ -63,7 +63,12 @@ E-0015 has every field `[TO CONFIRM]` and the never-events go from 4 to 0. The p
 `[TO CONFIRM]` wherever one document alone states an address (run 19, below). The blind run of
 `v2.0.8-freeze` (run 20, below) found 8 never-events in two hand-written entities, in the premise that its
 `CHANGELOG.md` section 4 declares: claim A2 is downgraded for that tag (`CLAIMS.md` section 10) and the fix
-goes into a new version under a new tag.
+goes into a new version under a new tag. v2.0.9 is the answer to run 20 (`CHANGELOG.md` 2.0.9): a free-text
+slot is a fact only when every word of it is identified by the gazetteer of the pack and holds no numeral,
+whatever the documents agree on; anything else keeps every field `[TO CONFIRM]`, or blocks when the line may
+state a holding. On 624 constructed siblings 267 publish wrongly on the code of v2.0.7, 154 on v2.0.8 and 0 on
+v2.0.9; on the seen hand-20 the never-events go from 8 to 0. The price falls on the hand-written corpora, whose
+places and names are not of the gazetteer: they block almost whole (run 21, below). Not run blind.
 
 ## Re-run it
 
@@ -74,17 +79,20 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK (expected failures=1)` after 321 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. The
-expected failure is the premise of corroboration of `CHANGELOG.md` 2.0.8 section 4 - an address written
-alike, words and all, in two documents is read as written (`tests/test_d36_forms.py`,
-`D36_ResidualWordList`). In v2.0.7 the line was the same after 300 tests; until v2.0.6 it was `OK` after 286
-tests.
+Expected last lines: `OK` after 339 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. In v2.0.8 the line was
+`OK (expected failures=1)` after 321 tests: the expected failure was the premise of corroboration of
+`CHANGELOG.md` 2.0.8 section 4 - an address written alike, words and all, in two documents is read as written
+(`tests/test_d36_forms.py`, `D36_ResidualWordList`) -, which passes since v2.0.9. In v2.0.7 the line was
+`OK (expected failures=1)` after 300 tests; until v2.0.6 it was `OK` after 286 tests.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 19, code at commit `67cb31d` (pipeline, rules, tests and scorer of the tag
-`v2.0.8-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
-not blind: every seed had been seen. In v2.0.7 (run 17, code at commit `b624830`), as in v2.0.6 (run 15) and
+Source: `eval/history.json`, run 21, code at commit `99894a9` (pipeline, rules, tests and scorer of the tag
+`v2.0.9-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
+not blind: every seed had been seen. Every number of the table below is the same as in v2.0.8 (run 19, code at
+commit `67cb31d`): the places, streets, trades and names of the generated corpora are drawn from the lists the
+gazetteer of v2.0.9 is made of, so identification costs nothing there, and says little; its price is on the
+hand-written corpora (`CHANGELOG.md` 2.0.9 section 3). In v2.0.7 (run 17, code at commit `b624830`), as in v2.0.6 (run 15) and
 v2.0.5 (run 13), facts exact were 1386/1386, 1285/1285 and 681/1285, fields `[TO CONFIRM]` 0/1472, 0/1378 and
 635/1372, figures with source 3694/3694, 3521/3521 and 2868/2868; every other column was as below. The difference
 is the price of corroboration (`CHANGELOG.md` 2.0.8 section 3): a field that a document whose address no second
@@ -307,20 +315,45 @@ How to read them:
   an address - kept every field `[TO CONFIRM]` or blocked; two of them were masked at field level by a
   company's own name holding the word `Borgo`, which is left unread in every document. These go into a new
   version under a new tag; this tag is not moved.
+- v2.0.9 (finding D38) is the answer to run 20, and it does not lengthen a word list, tighten a form or ask for
+  more documents that agree: a free-text slot - an address, a company's or a person's name, a title, a label -
+  closes its line only when every word of it is identified by the gazetteer of the pack (the closed vocabulary
+  of this synthetic world, `SYNTHETIC.md`) and holds no numeral; anything else keeps every field `[TO CONFIRM]`,
+  and blocks when the line may state a holding. Measured by class first on 624 constructed siblings
+  (`tests/test_d38_identification.py`: words of the capital, the holders, the directors or the office, with and
+  without a numeral, in the town, the street, the province, the name, a title or a label, stated alike by two or
+  three documents or by one beside a second without them): 267 publish wrongly on the code of `v2.0.7-freeze`,
+  154 on `v2.0.8-freeze`, 0 on v2.0.9. A company's own name is no longer read by topic words (the `Borgo` of run
+  20); the bars without a header row block, a capitalised particle keeps `[TO CONFIRM]`, a registry extract filed
+  under another entity makes the entity of its folder abstain - each declared; a build in a deep folder no longer
+  depends on the long-path support of Windows. On the corpora already seen (run 21) it has 0 never-events on all
+  twenty-seven results; hand-20 goes from 8 to 0. The generated corpora do not move. The price is on the
+  hand-written corpora, whose places, trades and persons are not of the gazetteer: published 27/34 to 1/34 on
+  hand-20, 16/27 to 0/27 on hand-18, 14/28 to 0/28 on hand-16, and to 0 on every other hand corpus; one entity
+  more blocks on the out-of-pool corpus (`CHANGELOG.md` 2.0.9 section 3). Whether a person may be identified by
+  the identity layer of the input instead, and which official register would be the gazetteer of real
+  documents, are open (`[TO CONFIRM]`, `docs/ASSUMPTIONS.md`). That is not a blind result, and nothing is
+  upgraded (`CLAIMS.md` section 11).
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `67cb31d`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `99894a9`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `94cbadc08989ecaba7ebf0f04aa15133ef32d1f35dc64bd650e9756eaced0557` |
-| S03, `dossier_shareable.docx` of E-0004 | `13da78110453a9427e8e54ebd53a9099d250e0317231ab85517c5fd1bf62ed15` |
-| S03, whole build (11 files) | `a567fa989ad4585d7c1c7c411b0b4f6f576d7aec21787f87bedff6734e24b4da` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `bba7e48b3bd4ee66eb48beebab9584b74c0df571ebf013cb599cd4f970e10f0e` |
+| S03, `dossier.docx` of E-0004 | `45413792b6d952f268661af3e4909c4e7e1135d327b9edb14d631e8a5abc5632` |
+| S03, `dossier_shareable.docx` of E-0004 | `5f1202b5ed10174007c734f718d697659155d37f119538a3acf506646da60137` |
+| S03, whole build (11 files) | `92de062e959b70242219ee45a85aa79eead7039172400e99bcfb536058b15485` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `77da4d300bcd283f7533e31ddcd82eefa1ae3f7c102bbefabbbe1887a79bceb5` |
 
-The v2.0.7 hashes (commit `b624830`) were `454a0d64934d8791f9ae7af9e6cd620960a94d30b77be23e73c19e5e692a9342`,
+The v2.0.8 hashes (commit `67cb31d`) were `94cbadc08989ecaba7ebf0f04aa15133ef32d1f35dc64bd650e9756eaced0557`,
+`13da78110453a9427e8e54ebd53a9099d250e0317231ab85517c5fd1bf62ed15`,
+`a567fa989ad4585d7c1c7c411b0b4f6f576d7aec21787f87bedff6734e24b4da` and
+`bba7e48b3bd4ee66eb48beebab9584b74c0df571ebf013cb599cd4f970e10f0e`. They differ from those of v2.0.9 because
+the dossier names its generator (`dossier 2.0.9`) and lists the new legal assumption `identification_source`
+(12 assumptions); every count and metric of the development corpus is the same (run 21: the gazetteer is drawn
+from the generator's vocabulary, so a generated corpus is identified by construction). The v2.0.7 hashes (commit `b624830`) were `454a0d64934d8791f9ae7af9e6cd620960a94d30b77be23e73c19e5e692a9342`,
 `0b9822c5ca635a82b2d8438dc6f81309215263e130f3b1349e2cb3e34feefce4`,
 `fbd46f8fa1af789b564c5a86920a66660fe2227b04c688f7a66a555c6df6a8b6` and
 `0c8519e36376aff8a652964119f59a7552769d6e229d6dd60b38d16c60fc9eb5`. They differ from those of v2.0.8 because

@@ -2,6 +2,463 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.9] - 2026-10-01 (freeze tag `v2.0.9-freeze`; not yet run blind)
+
+### D38 - blind run of v2.0.8, run 20: eight never-events in two entities (the premise of corroboration), an own name read by topic words, three limits undeclared, long paths
+
+Source: the evaluator's blind run of `v2.0.8-freeze`, `eval/history.json` run 20, seed 20261018 and the hand
+corpus `eval/blind/hand-20/` (34 entities, 87 documents): 0 never-events in the plain and the perturbed corpus, 8
+in the hand-written one, 4 in E-0009 and 4 in E-0010. In E-0009 the deed and the registry extract both write the
+town of the registered office with words that state an endowment of ninety thousand beside a capital of 30.000; in
+E-0010 every header and the own-name clause write the company's name with the same words. Stated alike by two
+documents, the office (`ADR-020`) and the name (`NAM-020`) were corroborated, and the share capital was published
+as a fact where the gold keeps it `[TO CONFIRM]`. This is the premise that section 4 of entry 2.0.8 declared: a
+declared premise that publishes a wrong value is still a never-event, and `CLAIMS.md` section 10 downgrades A2 for
+`v2.0.8-freeze`. The same run found a company's own name read by topic words (E-0007, E-0020), a capitalised
+particle (`Via Del ...`), rows framed by vertical bars without a header row (E-0030) and a registry extract filed
+with another entity's documents (E-0062), none of them declared; and a build that fails in a deep folder on a
+machine without long-path support. Fixed by the builder's hand in this order: (a) first - the free-text slots are
+decided by positive identification of every word, not by the agreement of the documents, a longer word list or a
+tighter form -, then (b) the own name, (c) the limits declared, (d) long paths, (e) the measurer's two flags.
+`OWN-015` stays `block` (D26), holders in a sentence stay unread (D31), `DISC-005` stays `every_field`,
+`DISC-006`, `CLS-005`, `DISC-035` and `DISC-038` stay. Measured on corpora already seen only (`eval/history.json`
+run 21): not blind; seed 20261018 and hand-20 are now seen.
+
+#### 1. The rule (a): a free-text slot is a fact only when every word of it is identified
+
+Written in `rules/extract.json`: the gazetteer (`gazetteer_town`, `gazetteer_province`, `gazetteer_street_type`,
+`gazetteer_street_name`, `gazetteer_trade`, `gazetteer_first_name`, `gazetteer_surname`, `gazetteer_street`, lines
+85-92), how its entries combine (`identify_address`, `identify_company`, `identify_person`, lines 99-101;
+`gazetteer_note`, line 102), what a numeral is (`numeral_word_it`, `numeral_word_en`, `numeral_token`,
+`numeral_note`, lines 103-106), which slot is of which class (`identification_slot_classes`, line 107;
+`slot_note_2_0_9`, line 108), the ordered group `free_text_identification` (lines 957-1041: `IDN-010` line 961,
+`IDN-020` 976, `IDN-030` 988, `IDN-040` 1000, `IDN-050` 1011, `IDN-999` 1022), `name_corroboration` `NAM-005`
+(line 1116, after `NAM-010` and before `NAM-020`), `text_corroboration` `TXT-005` (line 1154) and `TXT-020` (line
+1175, outcome now `unexplained`), and the legal assumption `identification_source` (lines 93-98,
+`docs/ASSUMPTIONS.md`, the twelfth). Each group is ordered, first match wins, the exception on top. The code
+extracts (`dossier/s1_extract.py` `identify`, `identified`, `numerals_in`, `_slot_closes`, `corroborate_names`,
+`text_outcomes`, `known_names`); the audit derives the same outcomes with its own code (`dossier/s7_audit.py`
+`_Ident`).
+
+The principle chosen, and why. A free-text slot - the address of the office and of the previous office, the
+company's name of a header or of a name slot, a person's name beside an identifier, the title of `CLS-900`, the
+label of `CLS-250` - closes its line only when **every word of it is accounted for**, and the agreement of the
+documents accounts for none:
+
+- **(i) Identified by the gazetteer** (`IDN-020` to `IDN-050`): an address is a street type and a street name of
+  the gazetteer, a house number of the slot grammar, a town and the province of the gazetteer, and optionally
+  ` - interno`, ` - scala` or ` - piano` and a mark; a company's name is a trade word and a town (or `Holding`, a
+  town and `Partecipazioni`), its legal form at the end read apart (`DISC-035`); a person's name is a first name
+  and a surname; a title is one of the titles the pack's own builders write (`text_recognised`). Each entry is
+  matched whole, case and particles included. The gazetteer is the closed list of the synthetic world: the
+  vocabulary the generator draws from and the pack's scenarios write (`SYNTHETIC.md`).
+- **(ii) Nothing left over**: a word that the gazetteer does not hold, before, inside or after the slot, leaves it
+  unidentified (`IDN-999`), however many documents state it alike.
+- **(iii) A numeral is a quantity** (`IDN-010`, the exception on top): a word of the street, the town, the name, the
+  title or the label that holds a digit, is an Italian or English number word or a Roman numeral of two letters or
+  more means the slot may state a quantity - an amount, a count, a share; such a line may state a holding.
+- **What an unidentified slot does**: its line is one that no rule explains (`CLS-999`): every field the document
+  may change **keeps `[TO CONFIRM]`** (`DISC-006`, under the date criterion of `DISC-005`), no value of that slot
+  is read, and when the line may state a holding (`holders_evidence`, or a numeral) the entity **blocks**
+  (`OWN-015`). A header name that is not identified (`NAM-005`) does the same for the document whose header it is.
+  A title or a label closes its line only when it is a recognised text (`TXT-005`); a label stated alike by other
+  documents (`TXT-020`) is now read by no rule.
+- **Corroboration stays on top of identification**: an identified address is a fact only when it is also
+  corroborated (`ADR-020`), an identified header name only with `NAM-020`; `ADR-010`, `ADR-999`, `NAM-010`,
+  `NAM-999` and `DISC-038` are unchanged. A genuine difference of two identified addresses is still shown side by
+  side (`DISC-020`, `tests/test_d38_identification.py` `D38_PlainStillPublishes`).
+
+Why not the alternatives. A longer word list or a tighter form is what failed in runs 16 and 18. Equality with a
+second document is what failed in run 20: the hand can write the same words twice. The names known to the corpus
+(`CLS-005`: the identity layer, the `Entity:` headers) are in the same position: the hand writes the identity layer
+and the headers too, so a person's name is identified by the gazetteer like any other slot, and a name of the
+identity layer counts as known only when the gazetteer identifies it. This last choice has a price on the
+hand-written corpora (section 3), and it is listed in section 4 as a choice `[TO CONFIRM]`.
+
+#### 2. Siblings by class, and the code of v2.0.7 and v2.0.8
+
+`tests/test_d38_identification.py`, written by the builder with fixtures of its own (every entity invented, never
+the strings of hand-20): 16 wordings - words that state a change of the capital, the holders, the directors or the
+office; with and without a numeral; of the form of an Italian place name and of another form - in 13 slots and
+positions - the town (after and before its words), the street (before the number, inside it), the province (inside
+the parentheses), the company's name (before the legal form, after its first word, before it, after the legal form,
+inside the legal form), a title (before its closing mark), a label (after and before its words) - each with 3
+sources: stated alike by 2 documents and by 3 documents (the class of run 20), and by one document beside a second
+that states the slot without them (the class of run 18). 624 cases. A case is published wrongly when a field the
+words may change is published as fact, the office or the name that holds the words is shown as a fact or as one
+value of a DISCREPANCY, or a holding is derived from a table the words may contradict; a FAILED run publishes
+nothing and is counted apart (none on any code). The same file was run on clones of `v2.0.7-freeze` and
+`v2.0.8-freeze`.
+
+| Siblings, `tests/test_d38_identification.py` | cases | v2.0.7 | v2.0.8 | v2.0.9 |
+|---|---|---|---|---|
+| words of the capital | 156 | 72 | 44 | **0** |
+| words of the holders | 156 | 87 | 50 | **0** |
+| words of the directors | 156 | 60 | 32 | **0** |
+| words of the office | 156 | 48 | 28 | **0** |
+| with a numeral / without | 312 / 312 | 123 / 144 | 68 / 86 | **0 / 0** |
+| place-name form / other form | 312 / 312 | 216 / 51 | 128 / 26 | **0 / 0** |
+| town (after, before), each | 48 | 21 | 14 | 0 |
+| street (before the number, inside), each | 48 | 21 | 14 | 0 |
+| province, inside the parentheses | 48 | 0 | 0 | 0 |
+| company's name: before the legal form, after its first word, before it, each | 48 | 27 | 18 | 0 |
+| company's name: after the legal form, inside it, each | 48 | 0 | 0 | 0 |
+| title, before its closing mark | 48 | 30 | 0 | 0 |
+| label (after, before its words), each | 48 | 36 | 22 | 0 |
+| 2 documents alike / 3 documents alike | 208 / 208 | 89 / 89 | 77 / 77 | **0 / 0** |
+| 1 document, a second without the words | 208 | 89 | 0 | **0** |
+| **all siblings: published wrongly** | 624 | **267** | **154** | **0** |
+
+v2.0.8 closed the class of run 18 (one document, a second without the words: 89 -> 0) and left the class of run 20
+open (77 + 77 alike); v2.0.9 closes both. The run-18 and run-20 classes, by their shape, are also tested one by one
+(`D38_Hand20Classes`: a town with a numeral in two documents blocks and its record names `IDN-010`; a name with a
+numeral in every header blocks and its record names `NAM-005`; words without a numeral keep every field
+`[TO CONFIRM]`). The sibling suites of D36 and D37 stay at 0 published wrongly (`tests/test_d36_forms.py`,
+`tests/test_d37_forms.py`, `tests/test_d37_slots.py`), and the last now with 0 FAILED: its six fail-closed
+cases of v2.0.8, a person's name of the identity layer in a company's name stated by one document, are not
+identified (`NAM-005`) and publish every field `[TO CONFIRM]`.
+
+hand-20, scored by `eval/score.py`: 8 never-events on v2.0.8 (run 20, and the builder's re-run in run 21), 0 on
+v2.0.9. E-0009 and E-0010 publish nothing: each blocks, because the slot holds a numeral (`IDN-010`: line 9 of the
+deed of E-0009, the office; line 8 of the deed of E-0010, the name) and such a line may state a holding
+(`OWN-015`); without the numeral the same words keep every field `[TO CONFIRM]` (`tests/test_d37_score.py`
+`hand20`, `D38_Hand20Classes`).
+
+#### 3. The price of (a)
+
+Measured by the builder on every corpus already recorded (`eval/history.json` run 21, NOT blind), against the code
+of `v2.0.8-freeze` run by the builder on the same commands (every count of it equals runs 19 and 20). **No field is
+published that v2.0.8 kept `[TO CONFIRM]`; no entity is published that v2.0.8 blocked.**
+
+| Result | published, v2.0.8 -> v2.0.9 | blocked wrongly | facts exact | fields `[TO CONFIRM]` |
+|---|---|---|---|---|
+| development, holdout, stress | unchanged (139, 137, 137 of 150) | unchanged | unchanged | unchanged |
+| seeds 20261011 to 20261017, plain and perturbed | unchanged | unchanged | unchanged | unchanged |
+| **seed 20261018, plain / perturbed** | **133/150 / 133/150, unchanged** | **4 / 4, unchanged** | **1008/1279 / 474/1279, unchanged** | **271/1379 / 839/1379, unchanged** |
+| out-of-pool corpus of run 5 | 94/150 -> 93/150 | 44 -> 45 | 216/925 -> 82/918 | 727/986 -> 860/978 |
+| hand (run 7) | 1/2 -> 0/2 | 0 -> 1 | 10/10 -> 0/0 | 0/11 -> 0/0 |
+| hand-9 | 6/9 -> 0/9 | 2 -> 8 | 24/48 -> 0/0 | 27/51 -> 0/0 |
+| hand-11 | 10/15 -> 0/15 | 3 -> 13 | 5/71 -> 0/0 | 66/86 -> 0/0 |
+| hand-14 | 9/15 -> 0/15 | 5 -> 14 | 14/64 -> 0/0 | 50/72 -> 0/0 |
+| **hand-16** | **14/28 -> 0/28** | **13 -> 27** | **33/102 -> 0/0** | **69/118 -> 0/0** |
+| **hand-18** | **16/27 -> 0/27** | **10 -> 26** | **35/111 -> 0/0** | **79/134 -> 0/0** |
+| **hand-20** | **27/34 -> 1/34** | **6 -> 32** | **48/169 -> 0/5** | **121/216 -> 5/8** |
+
+Where it comes from. The generated corpora do not move at all, and that says little: their places, streets, trade
+words and names are drawn from the very lists the gazetteer is made of, so they are identified by construction.
+The hand-written corpora show the price. Their writers use places, trades and names of their own: every header name
+of every hand corpus is unidentified (`NAM-005`: 2, 9, 15, 15, 28, 27 and 35 entities), which keeps every field
+`[TO CONFIRM]`; and their holders' rows name persons that the gazetteer does not hold, so the rows are read by no
+rule and may state a holding (`HEV-010` on most entities, `HEV-030`, `HEV-040`, `HEV-060` on the others), and the
+entity **blocks** (`OWN-015`). The one hand-20 entity still published (E-0028) has its eight fields `[TO CONFIRM]`.
+On the out-of-pool corpus the labels that many documents state alike are no longer facts (`TXT-020`, in the records
+of 104 entities): E-0144 now blocks (a label line that may state a holding, `HEV-080`), and 134 facts move to
+`[TO CONFIRM]` or out of the published entity. The same documents leave what is derived from those fields undecided
+too: effective holdings exact out-of-pool 13/60 -> 4/60, hand-20 7/21 -> 0/1, every other hand corpus to 0.
+
+The price is accepted on the ground of the asymmetry of the pack (one wrong figure published as fact is worse than
+any number of `[TO CONFIRM]`), and on the order of D38: a smaller safe gain with 0 never-events is worth more than a
+bigger one with any. What would lower it is a decision, not a rule of the builder: a gazetteer made of real
+registers for real documents (`identification_source`, `[TO CONFIRM with legal]`), and the choice of section 4 on
+persons.
+
+#### 4. What the proof still rests on, for v2.0.9 (section 4 of entry 2.0.8, rewritten)
+
+Entry 2.0.8 closed the free-text slots by corroboration and declared its premise - two documents that state the
+same text alike state it - outside its two classes. Run 20 showed that the premise publishes. This section says, for
+every slot of `classified_lines`, how it is decided, and for each thing that still rests on a list or on form, what
+it does to the entity, with only two classes: **blocks** or **keeps `[TO CONFIRM]`**. Nothing in it may publish,
+and nothing in it is left outside the two classes.
+
+Census of the free-text slots (`identification_slot_classes` and the groups of `classified_lines`):
+
+- **Decided by identification, then by corroboration and equality** (since v2.0.9): the address of the office and
+  of the previous office (`w_office`, `w_previous`: `IDN-*`, then `address_corroboration`); the company's name of
+  the header `Entity:` and of the slots of the entity's own name (`w_name`: `IDN-*`, equal to its header since
+  v2.0.6, then `name_corroboration`); a person's name beside an identifier (`w_person`, `w_person_first`: `IDN-*`,
+  and equal to that identifier's own known name, `CLS-005`); the title of `CLS-900` and the label of `CLS-250`
+  (`w_title`, `w_label`: a recognised text, `TXT-005`). An unidentified slot opens its line: every field **keeps
+  `[TO CONFIRM]`**; with a numeral, or when the line may state a holding, the entity **blocks**.
+- **Decided by equality**: the document type (`doc_kinds`, `KIND-010` to `KIND-080`); the fixed words of each shape
+  of `classified_lines` (the pack's own wording, matched whole).
+- **Decided by grammar**: amounts (currency and figure) and counts (figure and unit noun) - any other word opens the
+  line; the house number of an address; a share (per cent, fraction, words of a whole per cent or a simple
+  fraction).
+
+What still rests on a list or on form, each with its class:
+
+1. **The gazetteer** (identification): a word that is an entry of the gazetteer, in its place in the pattern, is
+   taken to be the place, street, trade or name the list says. The patterns admit exactly one entry per place, so
+   no free word can stand beside the entries. A slot made only of entries that differs between two documents is a
+   genuine difference, shown side by side (`DISC-020`), or a name that differs (`NAM-999`, `DISC-038`: **keeps
+   `[TO CONFIRM]`**). Whether an entry is the right one - two documents that both name the wrong town of the
+   gazetteer - is a question of the inputs, not of reading: the pack does not claim to see it. Anything not in the
+   gazetteer: **keeps `[TO CONFIRM]`**, or **blocks** with a holding or a numeral.
+2. **The numeral list** (`numeral_token`): a number word that it misses is a word that the gazetteer does not hold
+   either (the gazetteer holds no number word), so the slot is unidentified all the same (`IDN-999`): **keeps
+   `[TO CONFIRM]`**, or **blocks** when the line may state a holding. The numeral list decides only between those
+   two classes.
+3. `holders_evidence` (`HEV-*`) and `unread_fields` (`FEV-*`), the words that say whether an open line, an open
+   name or an unread document may state a holding: under `every_field` they decide only between **blocks**
+   (`OWN-015`) and **keeps `[TO CONFIRM]`** (`DISC-005`, `DISC-006`); no word of these lists lets a field be
+   published. Since v2.0.9 they are no longer applied to any slot of `identification_slot_classes` to decide whether
+   it closes (D38 (b), section 5).
+4. `list_end_sentence` and the item grammar (form): where a list ends. A line that is not a full sentence or a
+   heading is a row of the list; a row that cannot be read leaves the list unread - holders **block**, directors
+   **keep `[TO CONFIRM]`**. A line that ends the list is classified on its own; if no rule of its kind explains it,
+   every field **keeps `[TO CONFIRM]`** and, when it may state a holding, the entity **blocks**.
+5. The shapes of `classified_lines` (form): a line that no shape matches is `CLS-999` - every field **keeps
+   `[TO CONFIRM]`**, or **blocks** with a holding. A shape matches only its fixed words around typed slots, and
+   every free-text slot is identified word by word, so no free word of a closed line is left undecided.
+6. The date criterion of `DISC-005`/`DISC-006`: a document older than the latest event of a field cannot change
+   it. It decides between the field read from the newer event and **keeps `[TO CONFIRM]`**; it publishes nothing
+   that the newer event does not state.
+7. **Persons identified by the gazetteer, a choice `[TO CONFIRM]`**: a person's name beside an identifier closes its
+   line only when the gazetteer identifies it and it equals the identifier's own name of the identity layer. The
+   other choice - a name of the identity layer is its own proof - rests again on a premise of agreement (the hand
+   writes the identity layer and the documents), so it was not taken. Its class: a holders' row whose person the
+   gazetteer does not hold **blocks**; any other line **keeps `[TO CONFIRM]`**. Its price is section 3: every
+   hand-written corpus blocks. Whether a person may be identified by the identity layer of the input is a decision
+   of the owner and of counsel, not of the builder.
+
+**The premise of corroboration of entry 2.0.8 is closed**: two documents that state the same words alike no longer
+make them a fact (`ADR-020` and `NAM-020` apply only to identified slots, `TXT-020` reads nothing).
+`tests/test_d36_forms.py` `D36_ResidualWordList` is no longer an expected failure; `tests/test_d37_forms.py`
+`D37_EqualityPremise` and `tests/test_d37_slots.py` `D37_NameEqualityPremise` keep their names and now state the
+opposite of v2.0.8. What the pack takes as written is a slot whose every word is of the gazetteer, stated alike by
+two documents: the gazetteer itself (item 1, and `identification_source`, `[TO CONFIRM with legal]`).
+
+#### 5. (b) The own name and the topic words
+
+In v2.0.8 `_slot_closes` (`dossier/s1_extract.py` line 848) applied the whole list of topic words (`slot_topics`:
+the topic rules of `unread_fields` and `holders_evidence`) to every free-text slot, the slot of the entity's own name
+among them, and closed the slot only when its topics were all of the fields of the line. A word of the office's topic
+(`FEV-030`: `Borgo`, `Corso`, `Largo`, `Viale` ...) in a company's own name therefore left that name unread in every
+document and kept every field of the entity `[TO CONFIRM]`; at field level it masked two probes of run 20 (E-0007,
+E-0020). Since v2.0.9 no slot of `identification_slot_classes` - the seven free-text groups: `w_office`,
+`w_previous`, `w_name`, `w_person`, `w_person_first`, `w_title`, `w_label` - is decided by topic words: it closes
+when it is identified (and, for an address, holds no name known to the corpus). Tested both ways
+(`D38_OwnNameStreetWord`): four own names that open with a street word (`Borgo`, `Corso`, `Largo`, `Viale`) are
+names, every field published, with a copy of the rules whose gazetteer holds them; with the pack's gazetteer, which
+does not, they are not read and every field stays `[TO CONFIRM]`.
+
+Does any other slot apply a topic list that is not its own? Before v2.0.9, yes: every group above, the person's
+name and the title included. Since v2.0.9 none of the seven. The topic words are still applied in two places: the
+label of `CLS-250` names with them the field its line states (`_label_line_fields`), which is its own function, and
+since v2.0.9 no label closes a line (`text_recognised` holds no label), so it decides nothing that is published; and
+the name beside an identifier in a row of a list (`_label_ok`), only when that name is not the identifier's own
+known name - such a row is open whatever its words (checked by the builder: a row whose name is not its own blocks
+with and without a street word) - so there the topic list decides between two blocks.
+
+#### 6. (c) The limits of run 20, declared
+
+Tested by class with fixtures of the builder's own (`tests/test_d38_identification.py` `D38_DeclaredLimits`):
+
+- E-0030 of hand-20, by class: holders' rows framed by vertical bars (`| P-001 (...) | 60% |`) with no header row
+  - not read - **blocks** (unchanged since v2.0.8, now declared);
+- the capitalised particle of hand-20 (`Via Del ...`): the gazetteer holds `del Collaudo`, matched whole, case
+  included - the address is not identified (`IDN-999`) - every field **keeps `[TO CONFIRM]`**; when the line may
+  state a holding - **blocks**;
+- E-0062 of hand-20, by class: a registry extract filed with the documents of one entity whose content names
+  another entity (another registry number) that has no folder of its own in the input. Until v2.0.8 it was built as
+  an entity of its own and nothing told the entity of its folder. Since v2.0.9 it is still built for the entity its
+  content names, as ever, and it is also an unclassified document of the entity of its folder (`DISC-005`,
+  `every_field`, `dossier/s1_extract.py` `extract_corpus`): which of the two it belongs to is not the pack's to
+  choose. **E-0026 must abstain, and does**: every field of the entity of the folder **keeps `[TO CONFIRM]`** from
+  the date of that document; its holders are checked as an unread document's - **blocks** when they are not read
+  whole. On hand-20 E-0026 blocks (its own holders' rows, section 3) and E-0062 blocks. A control: when the entity
+  the content names has a folder of its own, nothing changes (the generator's `folder` fault, decided as before).
+- `slot_note_2_0_7` item (3) was corrected in D37's follow-up; unchanged here.
+
+#### 7. (d) Windows long paths
+
+A build in a work folder of about 230 characters, and `tests/test_determinism.py` with a `TEMP` of about 100
+characters, failed on a machine without long-path support (`WinError 206`, `FileNotFoundError`: the staging files of
+the shareable layer pass 260 characters). Since v2.0.9 the work folder carries the `\\?\` prefix on Windows
+(`dossier/run.py`, `dossier/lib/jsonio.py` `ext`), and every place that opens a file by a path of its own goes
+through it too (`dossier/s6_build.py`, `dossier/s7_audit.py` `read_docx`, `dossier/s8_shareable.py`,
+`dossier/lib/zipnorm.py`, `tests/support.py` `tree_hashes`). Measured on this machine (`LongPathsEnabled` = 0):
+`tests/test_determinism.py` with a `TEMP` of 103 characters passes its build tests on v2.0.9 and fails on
+`v2.0.8-freeze` (`test_two_builds_of_the_dev_corpus_in_different_folders`: exit codes 2 and 3). Regression tests:
+`tests/test_d38_long_paths.py` - a build in a work folder of 230 characters (scenario S07, no `WinError`, the tree
+equal to a short build, the longest path over 260) and the folder shape of `test_determinism` under a `TEMP` of 100
+characters. Both fail on the code of `v2.0.8-freeze`. Elsewhere than on Windows the prefix is not added.
+
+#### 8. (e) The measurer's two flags: false positives, nothing changed
+
+- E10 flags `claude-sonnet-5` in `tests/test_shareable.py` line 87: it is the refused value of the negative test
+  `test_only_two_models_are_allowed` (the model hook must refuse any identifier but the two of `MODEL.md`). The
+  string is there to be refused; removing it would remove the test.
+- E1 reports `readme_run_block` false: the four commands of the README section "Re-run it" are an indented code
+  block (CommonMark), and the measurer looks for fenced blocks only. The block is there and runs as written.
+
+#### 9. The numbers, measured on every corpus already seen
+
+Run 21 (v2.0.9, builder's hand, NOT blind): the commands of run 19 plus seed 20261018 plain and perturbed and
+hand-20, on the files of the code commit extracted with `git archive`. The code of `v2.0.8-freeze` was re-run by the
+builder on all twenty-seven: every count and metric equals runs 19 and 20. **Never-events 0 on all twenty-seven
+results**; every never_event_list is empty and every `<kind>_wrong_committed` is 0.
+
+| Result | never-events | published | blocked wrongly | facts exact | fields `[TO CONFIRM]` |
+|---|---|---|---|---|---|
+| hand-20 | 8 -> **0** | 27/34 -> 1/34 | 6 -> 32 | 48/169 -> 0/5 | 121/216 -> 5/8 |
+| hand-18 | 0 -> 0 | 16/27 -> 0/27 | 10 -> 26 | 35/111 -> 0/0 | 79/134 -> 0/0 |
+| hand-16 | 0 -> 0 | 14/28 -> 0/28 | 13 -> 27 | 33/102 -> 0/0 | 69/118 -> 0/0 |
+| 20261018 plain | 0 -> 0 | 133/150 -> 133/150 | 4 -> 4 | 1008/1279 -> 1008/1279 | 271/1379 -> 271/1379 |
+| 20261018 perturbed | 0 -> 0 | 133/150 -> 133/150 | 4 -> 4 | 474/1279 -> 474/1279 | 839/1379 -> 839/1379 |
+| 20261017 plain | 0 -> 0 | 137/150 -> 137/150 | 3 -> 3 | 1082/1294 -> 1082/1294 | 212/1408 -> 212/1408 |
+| 20261017 perturbed | 0 -> 0 | 137/150 -> 137/150 | 3 -> 3 | 542/1294 -> 542/1294 | 786/1408 -> 786/1408 |
+| every other result | 0 -> 0 | section 3 | section 3 | section 3 | section 3 |
+
+### Known limits of v2.0.9
+
+The complete list: those of v2.0.8, restated where v2.0.9 changes them, and those of v2.0.9. Each limit is marked
+with what it does to the entity, with two classes only: **blocks** or **keeps `[TO CONFIRM]`**. **No known limit
+may publish.** What the proof still rests on is section 4, with the same two classes.
+
+Since v2.0.9 (D38):
+
+- a free-text slot that the gazetteer does not identify word by word (`IDN-999`): a town, a street, a province, a
+  trade word, a first name or a surname that it does not hold, words added anywhere, a particle written otherwise
+  (`Via Del ...`), a name written surname first, a street named after a person, a Roman numeral, a real town of two
+  words - the line is read by no rule: every field the document may change **keeps `[TO CONFIRM]`** (`DISC-006`), no
+  value of the slot is read; when the line may state a holding - **blocks** (`OWN-015`);
+- a free-text slot that holds a numeral (`IDN-010`): digits, an Italian or English number word, a Roman numeral -
+  the line may state a quantity - **blocks** when it may state a holding (a holders' table or the capital in the
+  same document), else every field **keeps `[TO CONFIRM]`**;
+- a company's name of a header that is not identified (`NAM-005`), even when every document states it alike: every
+  field of that document **keeps `[TO CONFIRM]`**, no name of it is read; when the name may state a holding -
+  **blocks**;
+- a holders' row whose person is not identified by the gazetteer, or is not its identifier's own name of the
+  identity layer: the row is read by no rule - **blocks** (`OWN-015`); a directors' row - **keeps `[TO CONFIRM]`**.
+  The choice of section 4 item 7, `[TO CONFIRM]`; every hand-written corpus blocks by it;
+- a title that is not one of the titles the pack's own builders write, and every label of `CLS-250` (no label is a
+  recognised text), even when other documents state it alike (`TXT-020`, `TXT-999`): its line is read by no rule -
+  every field **keeps `[TO CONFIRM]`**; when it may state a holding - **blocks**;
+- E-0030 of hand-20, by class: holders' rows framed by vertical bars without a header row - **blocks** (section 6);
+- E-0062 of hand-20, by class: a document filed under one entity whose content names an entity with no folder of
+  its own: it is built for that entity, and the entity of its folder reads it as an unclassified document - every
+  field **keeps `[TO CONFIRM]`** from its date; its holders not read whole - **blocks** (section 6);
+- the name beside an identifier in a row of a list that is not the identifier's own known name, with or without a
+  word of the topic lists: the row is open - holders **block**, directors **keep `[TO CONFIRM]`** (section 5).
+
+Since v2.0.8 (D37), unchanged unless said:
+
+- an address that no second document of the entity states alike, token for token (`ADR-999`): the fields that
+  document may change (every field but the office), when it is not older than the latest event of a field, **keep
+  `[TO CONFIRM]`** (`DISC-006`); the office **keeps `[TO CONFIRM]`** when no current source of it is corroborated
+  (`DISC-038`); when the line may state a holding - **blocks** (`OWN-015`). A genuine difference of two whole
+  identified addresses is shown side by side as a DISCREPANCY (`DISC-020`), the other fields **keep
+  `[TO CONFIRM]`**. Since v2.0.9 an address is also read only when it is identified (above);
+- an address equal to another of the entity plus words (`ADR-010`): every field **keeps `[TO CONFIRM]`**, no address
+  of that line is read; when the line may state a holding - **blocks**;
+- a company's name in the header `Entity:` equal to another header of the entity plus words (`NAM-010`): every
+  field **keeps `[TO CONFIRM]`**, no name of that document is read; when the name may state a holding -
+  **blocks**. A header name that one document alone states (`NAM-999`): every other field of that document, when
+  it is not older than the latest event, and the name (`DISC-038`) **keep `[TO CONFIRM]`**;
+- a company's name, stated by one document only, that holds a person's name of the identity layer: when the run of
+  the entity ends FAILED by the leak check of the shareable layer (A6), nothing of it is published - **blocks**
+  (fail-closed); since v2.0.9 such a name is not identified (`NAM-005`) and every field **keeps `[TO CONFIRM]`**;
+- a title or a label equal to another plus words (`TXT-010`) - every field **keeps `[TO CONFIRM]`**; when it may
+  state a holding - **blocks**. A short sentence of one to eight words ending in a full stop right after a holders'
+  list (no blank line) - **blocks** (`tests/test_d36_forms.py` `D36_ListEnd`);
+- E-0020 of hand-18, by class: holder rows that name the holder by a person's name alone, with no identifier, and a
+  holders' heading of another noun (`Members of the company`) - **blocks**;
+- E-0025 of hand-18, by class: a lettered item with the share before the holder, separated by a vertical bar -
+  **blocks**;
+- E-0026 of hand-18, by class: an ordinal word before the holders' heading (`Fourth. Holders:`) - **blocks**;
+- E-0012 of hand-18, by class: the capital stated in a clause of a shape the pack does not have (`The founders
+  bring in ...`) - every field the document may change, the capital among them, **keeps `[TO CONFIRM]`**.
+
+From v2.0.7 and earlier, unchanged unless said:
+
+- holders stated in a sentence rather than in a list under a heading, including a holder noun in a sentence of
+  a memorandum, a resolution or an appointment (hand-9 E-0003, E-0007; hand-14 E-0005, E-0007, E-0009): not
+  read, by the owner's risk decision D31 - **blocks**;
+- a row naming several holders with "each" (hand-14 E-0003) - **blocks**;
+- a qualifier meaning "current" in free words in the heading (hand-11 E-0002), and a participle of another class
+  than "registered" after a comma in the heading - **blocks**;
+- a table with a header row (hand-11 E-0011, hand-9 E-0003, hand-14 E-0014) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners, members) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words - **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them (`OWN-015`) - **blocks**;
+- shares planted as illegible block by design (D26) - **blocks**;
+- a document of unrecognised type (a type label the rules do not list) not older than the latest event of a
+  field: every field (`DISC-005`, `every_field`) - **keeps `[TO CONFIRM]`**; when it holds a line that may state
+  a holding (`holders_evidence`), or a holders' table that is not read whole - **blocks** (`OWN-015`);
+- a document of a recognised type with a body line that no rule of its kind explains (`CLS-999`; since v2.0.8
+  also a line whose address, name, title or label is not corroborated, since v2.0.9 one whose free-text slot is
+  not identified): every field, when the document is not older than the latest event (`DISC-006`) - **keeps
+  `[TO CONFIRM]`**; when the line may state a holding - **blocks** (`OWN-015`);
+- a closed line that states a field of its kind where no rule of its kind read it (the office-transfer wording
+  "The seat of the company is moved", scenario S09, among them), or a field its kind does not read: that field,
+  when the document is not older than the latest event - **keeps `[TO CONFIRM]`**;
+- a holders' table in a document of a kind not read for the holders: read whole and summed, then the holders
+  **keep `[TO CONFIRM]`**; not read, or two of them - **blocks**;
+- a row of a list of a recognised document whose share is illegible or not typed - every field **keeps
+  `[TO CONFIRM]`**, and when the row may state a holding - **blocks**;
+- a line right after a list with no blank line that is neither a heading nor a full sentence of the form
+  `list_end_sentence` - a sentence that names an identifier, a share or a figure with a unit noun (hand-16 E-0010),
+  a wrapped row: a row of the list the grammar cannot read - holders **block**, directors **keep `[TO CONFIRM]`**;
+- a name slot that is not its identifier's or its entity's own known name, a name beside an identifier that is not
+  its own (`CLS-005`), or the entity's own name slot that differs from its `Entity:` header: the line is one no rule
+  explains - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**.
+  Since v2.0.9 a name is known only when the gazetteer identifies it (above);
+- a name beside an identifier whose own name the corpus does not know (not in the identity layer, no `Entity:`
+  header of its own; every person when the identity layer names nobody): the line is open - every field **keeps
+  `[TO CONFIRM]`**, and the holders **block** (`OWN-015`);
+- an address without a house number, or with a name the corpus knows inside it: the line is open and the office
+  is not read from it - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding -
+  **blocks**. Since v2.0.9 the form of a place name (`slot_address_word`) no longer decides anything that
+  identification does not: an address is read only when it is identified and corroborated (above);
+- a company name whose legal form differs from the legal form stated (`S.r.l.s.` against `S.r.l.` included, by
+  design) - the name is a discrepancy and the legal form **keeps `[TO CONFIRM]`** (`DISC-035`).
+
+Count of limits marked **may publish**: v2.0.4 1, v2.0.5 0, v2.0.6 0, v2.0.7 0 (but its section 4 left a residual
+risk outside the list, and run 18 found it), v2.0.8 0 (but its section 4 left a premise outside the two classes, and
+run 20 found it), v2.0.9 0, with section 4 in the same two classes and nothing outside them.
+
+### Tests and numbers
+
+- `tests/test_d38_identification.py`, 15 tests in 6 classes: the 624 siblings of section 2 (267 published
+  wrongly on the code of `v2.0.7-freeze`, 154 on `v2.0.8-freeze`, 0 on v2.0.9; no FAILED), the two classes of
+  hand-20 by their shape, what still publishes (plain documents, a genuine difference side by side) and what a word
+  outside the gazetteer costs, the own name both ways (b), the limits of (c) with a control, and the audit against
+  the extractor (`D38_AuditAgrees`: the same outcome for every value, with the gazetteer of the pack and with one
+  whose trade, town and first name hold two words). The audit identifies with its own code
+  (`dossier/s7_audit.py` `_Ident`, line 307); its first version cut a name after its first word, so a trade of two
+  words - which the gazetteer of the pack does not hold - was identified by the extractor and not by the audit, and
+  the run ended FAILED (fail-closed, nothing published). `tests/test_d37_score.py` found it before the commit;
+  every way of cutting the name is now tried, each part matched whole.
+- `tests/test_d38_long_paths.py`, 2 tests (d); both fail on the code of `v2.0.8-freeze`.
+- Tests whose expectation v2.0.9 changes, each with the reason written beside it: `tests/test_d36_forms.py`
+  (`D36_ResidualWordList` no longer an expected failure; the plain addresses use the gazetteer, those outside it are
+  a test of the price; hand-16 E-0014 blocks), `tests/test_d37_forms.py` and `tests/test_d37_slots.py` (the equality
+  premises now state the opposite; a label stated alike no longer closes; a rename uses a name of the gazetteer),
+  `tests/test_d37_score.py` (hand-20 added to the recorded hand corpora, 0 never-events, E-0009, E-0010 and E-0026
+  checked; the hand corpus of run 7 scored with a copy of the rules whose gazetteer holds its words, so that the
+  scorer is still checked on a published entity), `tests/test_d30b_forms.py` and `tests/test_d35_forms.py` (hand-11
+  and hand-14 now block: the price of section 3).
+- `tests/test_rules.py` counts 108 rules (100 + `IDN-010`, `IDN-020`, `IDN-030`, `IDN-040`, `IDN-050`, `IDN-999`,
+  `NAM-005`, `TXT-005`); `free_text_identification` ends with a default and has its exception on top; 12 legal
+  assumptions (`identification_source` added).
+- 339 tests: `OK`. Scenarios 10/10. Rebuild identical (README).
+- Measured by the builder on corpora already seen (`eval/history.json` run 21; NOT blind): sections 3 and 9.
+
 ## [2.0.8] - 2026-10-01 (freeze tag `v2.0.8-freeze`; not yet run blind)
 
 ### D37 - blind run of v2.0.7, run 18: four never-events in one entity (words added inside a town), three forms that block undeclared

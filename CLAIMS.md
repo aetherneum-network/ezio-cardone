@@ -268,3 +268,11 @@ unread in every document, which keeps every field of the entity `[TO CONFIRM]` a
 level (E-0007, E-0020); a capitalised particle in a street (`Via Del ...`) keeps every field `[TO CONFIRM]`
 without being named among the limits; a registry extract filed with another entity's documents is built as an
 entity of its own (E-0062). A block or a field kept open publishes nothing, so they touch no claim.
+
+## 11. v2.0.9
+
+v2.0.9 has not been run blind, nothing is upgraded. What it changes for A2 (finding D38: a free-text slot is a fact
+only when every word of it is identified, whatever the documents agree on) is in `CHANGELOG.md` 2.0.9, measured
+by the builder on corpora already seen only (`eval/history.json` run 21, NOT blind). Row A2 stays downgraded for
+`v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10): a downgrade is lifted only by a blind
+run that passes, never by the builder.
