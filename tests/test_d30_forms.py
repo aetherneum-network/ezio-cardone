@@ -98,7 +98,13 @@ class C1_HeadingForms(_Published):
     def test_shareholding_structure_at_the_document_date(self):   # hand-9 E-0007, statement (type not recognised)
         stmt = _doc(2, "2025-02-01", "Statement of shareholdings", "STATEMENT/1",
                     ["Shareholding structure at the document date (synthetic):", *mk._holders(H)])
-        self.assertPublished([DEED, stmt], stated=OTHER_FIELDS)
+        # the heading is read (the table is checked and sums to the whole); the type is not recognised, so since
+        # v2.0.4 (D30b, unread_document_scope every_field) every field is [TO CONFIRM] - v2.0.3 stated the others
+        doc = s1_extract.parse_document(stmt[1], stmt[0], s.rules())
+        hc = s1_extract.holders_check(doc, s.rules())
+        self.assertEqual(hc["status"], "read", hc)
+        self.assertEqual({r["holder"]: r["share"] for r in hc["tables"][0]["value"]}, TABLE)
+        self.assertPublished([DEED, stmt], table=None, to_confirm=OTHER_FIELDS + ("shareholders",))
 
 
 class C2_ItemForms(_Published):
@@ -175,26 +181,39 @@ class C5_DirectorsForms(_Published):
 
 
 class C6_UnreadDocumentScope(_Published):
-    """DISC-005 is scoped to the fields the unread document may state (root cause of the over-reach:
-    dossier/s3_discrepancy.py unread_that_matter took every unclassified document as able to change every field)."""
+    """DISC-005. v2.0.3 scoped it to the fields the unread document may state (fields_it_may_state); the blind run
+    of v2.0.3 (eval/history.json run 11, E-0015) showed a sentence that changes a field without naming it, so since
+    v2.0.4 (D30b) the default is every_field again: the three documents below keep every field [TO CONFIRM]. With
+    the narrow scope (OFF, rules/discrepancy.json unread_document_scope) they keep only the fields named."""
 
-    def test_ledger_of_unrecognised_type_that_agrees_changes_nothing(self):   # hand-9 E-0006
-        ledger = _doc(3, "2026-06-10", "Ledger of quotaholders", "LEDGER/1",
-                      ["Entries of the ledger as at the document date (synthetic).", "Quotaholders:", *mk._holders(H)])
-        view = self.assertPublished([DEED, EXTRACT, ledger], stated=OTHER_FIELDS)
-        self.assertEqual(view["fields"]["shareholders"].get("unread_agreeing"), ["DOC-E0001-03"])
+    LEDGER = _doc(3, "2026-06-10", "Ledger of quotaholders", "LEDGER/1",
+                  ["Entries of the ledger as at the document date (synthetic).", "Quotaholders:", *mk._holders(H)])
 
-    def test_register_with_another_table_keeps_the_holders_only(self):
+    def test_ledger_of_unrecognised_type_that_agrees_keeps_every_field(self):   # hand-9 E-0006
+        view = self.assertPublished([DEED, EXTRACT, self.LEDGER], table=None,
+                                    to_confirm=OTHER_FIELDS + ("shareholders",))
+        self.assertNotIn("unread_agreeing", view["fields"]["shareholders"])
+
+    def test_register_with_another_table_keeps_every_field(self):
         reg = _retype(_doc(3, "2026-06-10", "Holders' ledger", "LEDGER/1",
                            ["Members at the document date:", *mk._holders([("P-001", "1/2"), ("P-002", "1/2")])]),
                       "Register of members")
-        self.assertPublished([DEED, EXTRACT, reg], table=None, stated=OTHER_FIELDS, to_confirm=["shareholders"])
+        self.assertPublished([DEED, EXTRACT, reg], table=None, to_confirm=OTHER_FIELDS + ("shareholders",))
 
-    def test_minutes_of_a_change_of_seat_keep_the_office_only(self):
+    def test_minutes_of_a_change_of_seat_keep_every_field(self):
         doc = _retype(mk.office_transfer("E-0001", 3, "2025-05-05", "The registered office is transferred from "
                                          f"{mk.OFFICE_A} to {mk.OFFICE_B}."), "Minutes - change of seat")
-        self.assertPublished([DEED, doc], to_confirm=["registered_office"],
-                             stated=[f for f in OTHER_FIELDS if f != "registered_office"])
+        self.assertPublished([DEED, doc], table=None, to_confirm=OTHER_FIELDS + ("shareholders",))
+
+    def test_the_narrow_scope_is_an_option_that_is_off(self):
+        self.assertEqual(s.rules().param("discrepancy", "unread_document_scope"), "every_field")
+        # with the option on (v2.0.3's default) the agreeing ledger changes nothing - the behaviour it was made for
+        work = s.tmp()
+        code, _, report = s.run(s.tiny([DEED, EXTRACT, self.LEDGER], "2026-06-30"), work,
+                                rules_dir=s.rules_narrow_scope())
+        view = jsonio.load(work / "views" / "E-0001.json")
+        self.assertEqual(view["fields"]["shareholders"]["status"], "STATED")
+        self.assertEqual(view["fields"]["shareholders"].get("unread_agreeing"), ["DOC-E0001-03"])
 
     def test_a_line_no_topic_explains_keeps_every_field(self):
         doc = _doc(3, "2025-05-05", "Memorandum", "MEMO/1", ["Reference: ABC-17"])

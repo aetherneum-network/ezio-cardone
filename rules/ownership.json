@@ -1,6 +1,6 @@
 {
   "file": "ownership.json",
-  "version": "2.0.2",
+  "version": "2.0.4",
   "reading": "Cap-table and ownership-chain decisions. Ordered rules, first match wins, exceptions on top. All arithmetic is exact (fractions); no float, no rounding, no tolerance.",
   "parameters": {
     "sum_must_equal": {
@@ -32,7 +32,7 @@
       "id": "OWN-010",
       "when": "holder_table_sum_not_whole",
       "outcome": "BLOCKED",
-      "rationale": "Exception on top of everything: a holders' table that does not sum to the whole blocks the build of that entity. It is never rendered and never footnoted.",
+      "rationale": "Exception on top of everything: a holders' table that does not sum to the whole blocks the build of that entity. It is never rendered and never footnoted. Since v2.0.4 (D30b) a table whose document states a Total line is whole only when the Total equals the exact sum of its rows: a Total that differs blocks here too.",
       "tests": [
         {
           "tables": {
@@ -56,6 +56,18 @@
             "outcome": "BLOCKED",
             "sum": "9999/10000"
           }
+        },
+        {
+          "tables": {"E-0001": [["P-001", "1/2"], ["P-002", "1/2"]]},
+          "stated_totals": {"E-0001": "9/10"},
+          "target": "E-0001",
+          "expect": {"outcome": "BLOCKED", "sum": "1/1", "why": "its Total line states 9/10"}
+        },
+        {
+          "tables": {"E-0001": [["P-001", "1/2"], ["P-002", "2/5"]]},
+          "stated_totals": {"E-0001": "9/10"},
+          "target": "E-0001",
+          "expect": {"outcome": "BLOCKED", "sum": "9/10"}
         }
       ]
     },

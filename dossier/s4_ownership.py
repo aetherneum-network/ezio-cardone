@@ -51,24 +51,35 @@ def unverified_tables(record: dict) -> list[dict]:
     return sorted(out, key=lambda x: (x["source_doc"], x["why"]))
 
 
+def table_check(source: dict, shares: list[Fraction], stated_total: str | None, whole: Fraction) -> dict:
+    """The exact sum of one holders' table. A table whose document states a Total line (since v2.0.4) is whole only
+    when its rows sum to the whole AND the Total equals that sum: a Total that differs blocks by OWN-010."""
+    total = sum(shares, Fraction(0))
+    check = dict(source, sum=frac_str(total),
+                 whole=total == whole and (stated_total is None or parse_frac(stated_total) == total))
+    if stated_total is not None:
+        check["stated_total"] = stated_total
+    return check
+
+
 def sum_checks(record: dict, rules: Rules) -> list[dict]:
     """The exact sum of every holders' table any document of the entity states."""
     whole = parse_frac(rules.param("ownership", "sum_must_equal"))
     out = []
     for a in record["assertions"]:
         if a["field"] == "shareholders" and a["status"] == "STATED":
-            total = sum((parse_frac(r["share"]) for r in a["value"]), Fraction(0))
-            out.append({"source_doc": a["source_doc"], "source_date": a["source_date"], "edition": a["edition"],
-                        "sum": frac_str(total), "whole": total == whole})
+            out.append(table_check({"source_doc": a["source_doc"], "source_date": a["source_date"],
+                                    "edition": a["edition"]}, [parse_frac(r["share"]) for r in a["value"]],
+                                   a.get("stated_total"), whole))
     for u in record.get("unclassified_documents", []):
         check = u.get("holders_check") or {}
         date = u.get("date") or ""
         if check.get("status") != "read" or not _ISO_DATE.fullmatch(date) or date > record["as_of"]:
             continue
         for t in check["tables"]:
-            total = sum((parse_frac(r["share"]) for r in t["value"]), Fraction(0))
-            out.append({"source_doc": u["doc_id"], "source_date": date, "edition": check.get("edition", ""),
-                        "sum": frac_str(total), "whole": total == whole})
+            out.append(table_check({"source_doc": u["doc_id"], "source_date": date,
+                                    "edition": check.get("edition", "")}, [parse_frac(r["share"]) for r in t["value"]],
+                                   t.get("stated_total"), whole))
     return sorted(out, key=lambda c: (c["source_date"], c["source_doc"]))
 
 
@@ -93,13 +104,19 @@ def build_nodes(records: dict[str, dict], resolutions: dict[str, dict], rules: R
                 node["why"] = res["reason"]
         if node["violations"]:
             node["status"], node["table"] = "BLOCKED", []
-            v = node["violations"][0]
-            node["why"] = f"holders' table of {v['source_doc']} sums to {v['sum']}, not to the whole"
+            node["why"] = violation_reason(node["violations"][0])
         elif node["unverified"] and rules.param("ownership", "unverified_holders_table") == "block":
             node["status"], node["table"] = "BLOCKED", []
             node["why"] = _unverified_reason(node["unverified"])
         nodes[eid] = node
     return nodes
+
+
+def violation_reason(v: dict) -> str:
+    if v.get("stated_total") is not None and parse_frac(v["stated_total"]) != parse_frac(v["sum"]):
+        return (f"holders' table of {v['source_doc']} sums to {v['sum']} and its Total line states "
+                f"{v['stated_total']}: the two differ")
+    return f"holders' table of {v['source_doc']} sums to {v['sum']}, not to the whole"
 
 
 def _unverified_reason(unverified: list[dict]) -> str:
@@ -302,13 +319,11 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                         "violations": [], "unverified": t.get("unverified", {}).get(eid, [])}
                 if table is not None:
                     rows = [(h, parse_frac(s)) for h, s in table]
-                    total = sum((s for _, s in rows), Fraction(0))
-                    check = {"source_doc": "T", "source_date": "2026-01-01", "edition": "T/1",
-                             "sum": frac_str(total), "whole": total == whole}
-                    node.update(status="STATED", why="", table=rows, checks=[check],
-                                source={"source_doc": "T", "source_date": "2026-01-01", "edition": "T/1"})
+                    src = {"source_doc": "T", "source_date": "2026-01-01", "edition": "T/1"}
+                    check = table_check(src, [s for _, s in rows], t.get("stated_totals", {}).get(eid), whole)
+                    node.update(status="STATED", why="", table=rows, checks=[check], source=dict(src))
                     if not check["whole"]:
-                        node.update(status="BLOCKED", table=[], violations=[check], why="sum")
+                        node.update(status="BLOCKED", table=[], violations=[check], why=violation_reason(check))
                 upolicy = t.get("unverified_holders_table") or rules.param("ownership", "unverified_holders_table")
                 if node["unverified"] and node["status"] != "BLOCKED" and upolicy == "block":
                     node.update(status="BLOCKED", table=[], why=_unverified_reason(node["unverified"]))
@@ -318,6 +333,8 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             ok = got["outcome"] == exp["outcome"] and got["rule"] == r["id"]
             if "sum" in exp:
                 ok = ok and got["sum_checks"][0]["sum"] == exp["sum"]
+            if "why" in exp:
+                ok = ok and exp["why"] in got.get("reason", "")
             if "effective" in exp:
                 ok = ok and got["effective"] == exp["effective"]
             if "cycles" in exp:

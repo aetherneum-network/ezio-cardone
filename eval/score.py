@@ -19,6 +19,11 @@ is the definition of a never-event, word for word, in README.md and in section 1
 * a published cap table that does not sum to the whole;
 * an effective holding shown where the gold abstains, or different from the gold;
 * a figure without source document, source date or edition.
+
+Since v2.0.4 (D30b, finding of the blind run of v2.0.3, eval/history.json run 11) the scorer also counts what falls
+in entities that were not published, which until then was never scored: the gold [TO CONFIRM] values and the
+file-name divergences of every blocked (or failed) entity, split by whether the gold blocks the entity too. These
+are counts beside the others; they are not never-events and do not change any other count.
 """
 from __future__ import annotations
 
@@ -75,11 +80,23 @@ def score(work: Path, gold: dict) -> dict:
         "superseded_gold", "superseded_linked", "cycles_gold", "cycles_found",
         "effective_gold", "effective_exact", "effective_abstained",
         "filename_gold", "filename_found", "filename_extra",
-        "figures_total", "figures_with_source")}
+        "figures_total", "figures_with_source",
+        "unpublished_to_confirm_gold", "unpublished_to_confirm_gold_blocked_wrongly",
+        "unpublished_filename_gold", "unpublished_filename_gold_blocked_wrongly")}
     never: list[str] = []
 
     def ne(text: str) -> None:
         never.append(text)
+
+    def unpublished(g: dict, wrongly: bool) -> None:
+        """What the gold says of an entity that was not published (D30b): counted, never scored as an event."""
+        n_tc = sum(1 for gf in g["fields"].values() if gf["status"] == "TO_CONFIRM")
+        n_fd = len(g.get("filename_divergences", []))
+        c["unpublished_to_confirm_gold"] += n_tc
+        c["unpublished_filename_gold"] += n_fd
+        if wrongly:
+            c["unpublished_to_confirm_gold_blocked_wrongly"] += n_tc
+            c["unpublished_filename_gold_blocked_wrongly"] += n_fd
 
     for eid, g in sorted(gold["entities"].items()):
         c["entities"] += 1
@@ -91,9 +108,12 @@ def score(work: Path, gold: dict) -> dict:
                 c["blocked_correct"] += 1
             else:
                 ne(f"{eid}: cap table does not sum to the whole, run status {st}, dossier published: {prov_path.exists()}")
+            if not prov_path.exists():
+                unpublished(g, wrongly=False)
             continue
         if st != "OK" or not prov_path.exists():
             c["blocked_wrongly" if st == "BLOCKED" else "failed"] += 1
+            unpublished(g, wrongly=True)
             continue
         c["published"] += 1
         prov = jsonio.load(prov_path)
@@ -186,6 +206,11 @@ def score(work: Path, gold: dict) -> dict:
         "effective_holdings_exact": ratio(c["effective_exact"], c["effective_gold"]),
         "filename_divergences_found": ratio(c["filename_found"], c["filename_gold"]),
         "figures_with_source": ratio(c["figures_with_source"], c["figures_total"]),
+        # D30b: in entities not published - not never-events, counted beside them
+        "blocked_entities_gold_to_confirm": c["unpublished_to_confirm_gold"],
+        "blocked_wrongly_entities_gold_to_confirm": c["unpublished_to_confirm_gold_blocked_wrongly"],
+        "blocked_entities_filename_divergences_gold": c["unpublished_filename_gold"],
+        "blocked_wrongly_entities_filename_divergences_gold": c["unpublished_filename_gold_blocked_wrongly"],
     }
     return {"metrics": metrics, "counts": c, "never_event_list": never,   # every one, never capped (D30)
             "run": {"status": report["status"], "counts": report["counts"], "as_of": report["as_of"]}}
@@ -214,7 +239,10 @@ def line(result: dict) -> str:
     return (f"{result['label']} seed={result['seed']} as_of={result['as_of']} never_events={m['never_events']} "
             f"conflicts recall={m['conflicts_recall']} precision={m['conflicts_precision']} "
             f"fields exact={m['fields_exact']} abstained={m['fields_abstained']} "
-            f"blocked={m['blocked_correct']} figures_with_source={m['figures_with_source']}")
+            f"blocked={m['blocked_correct']} figures_with_source={m['figures_with_source']} "
+            f"blocked_wrongly={result['counts']['blocked_wrongly']} to_confirm_kept={m['to_confirm_kept']} "
+            f"unpublished: gold_to_confirm={m['blocked_entities_gold_to_confirm']} "
+            f"filename_divergences={m['blocked_entities_filename_divergences_gold']}")
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -151,15 +151,38 @@ def _field_name(template: str, doc: Document) -> str:
 def _expand(text: str, rules: Rules) -> str:
     """Substitute the shared pieces of rules/extract.json parameters into a pattern."""
     p = rules.extract["parameters"]
-    for key in ("holders_heading", "holders_heading_registered", "clause_number", "holders_heading_current",
-                "holders_heading_nouns", "item_holder", "item_person", "list_marker", "item_separator",
-                "amount_token", "amount_separator", "magnitude_words"):
+    for key in ("holders_heading", "holders_heading_bare", "holders_heading_body", "directors_heading",
+                "directors_heading_bare", "directors_heading_body", "holders_heading_registered", "clause_number",
+                "holders_heading_current", "holders_heading_nouns", "item_holder", "item_person", "list_marker",
+                "item_separator", "item_total", "share_token_first", "amount_token", "amount_separator",
+                "magnitude_words", "month_names", "day_ordinals"):
         text = text.replace("{" + key + "}", p[key])
     return text
 
 
-def _item_rx(rule: dict, rules: Rules) -> re.Pattern:
-    return rx(_expand(_expand(rule["item_matches"], rules), rules))
+class _Items:
+    """The item grammars of one list rule, tried in order: item_matches, then (since v2.0.4) item_matches_share_first
+    for a share that stands before the holder. Every grammar names the same groups (id, id_last, share)."""
+
+    def __init__(self, patterns: list[re.Pattern]):
+        self.patterns = patterns
+
+    def match(self, line: str) -> re.Match | None:
+        for pat in self.patterns:
+            m = pat.match(line)
+            if m:
+                return m
+        return None
+
+
+def _item_rx(rule: dict, rules: Rules) -> _Items:
+    keys = ("item_matches", "item_matches_share_first")
+    return _Items([rx(_expand(_expand(rule[k], rules), rules)) for k in keys if rule.get(k)])
+
+
+def _total_rx(rule: dict, rules: Rules) -> re.Pattern | None:
+    """The Total line of a holders' table (rules/extract.json item_total, since v2.0.4), or None."""
+    return rx(_expand(_expand(rule["total_matches"], rules), rules)) if rule.get("total_matches") else None
 
 
 def _item_id(m: re.Match) -> str:
@@ -344,50 +367,73 @@ def count_total(doc: Document, rules: Rules) -> tuple[int | None, int | None, st
     return total, no, ""
 
 
-def _read_items(block: list[tuple[int, str]], item: re.Pattern, extractor: str, doc: Document | None = None,
-                rules: Rules | None = None) -> tuple[list | None, str, int | None]:
-    """(value, "", line of the total or None) of a list read whole, or (None, why, None) at the first line that
-    cannot be read. A table of counts is read only with the total its document states (count_total)."""
+def _read_items(block: list[tuple[int, str]], item: _Items, extractor: str, doc: Document | None = None,
+                rules: Rules | None = None, total_rx: re.Pattern | None = None
+                ) -> tuple[list | None, str, int | None, Fraction | None]:
+    """(value, "", line of the total number of quotas or None, the Total line's value or None) of a list read whole,
+    or (None, why, None, None) at the first line that cannot be read. A table of counts is read only with the total
+    its document states (count_total). A Total line (total_rx) is read only as the last line of a holders' table;
+    its value is returned beside the rows, never in place of them (stage 4 compares it with the exact sum)."""
     if not block:
-        return None, "the list is empty", None
+        return None, "the list is empty", None, None
+    stated = None
+    if extractor == "holders" and total_rx is not None and len(block) > 1:
+        m = total_rx.match(block[-1][1])
+        if m and not item.match(block[-1][1]):
+            stated, block = m.group("share"), block[:-1]
     ids: list[str] = []
     rows: list[dict] = []
     counts: dict[str, int] = {}
     for _, line in block:
         m = item.match(line)
         if not m:
-            return None, "a line of the list could not be read", None
+            return None, "a line of the list could not be read", None, None
         hid = _item_id(m)
         if hid in ids:
-            return None, f"{hid} is listed twice", None
+            return None, f"{hid} is listed twice", None, None
         ids.append(hid)
         if extractor == "holders":
             share, why = parse_share(m.group("share"))
             if share is None:
                 n, _ = parse_count(m.group("share"))
                 if n is None:
-                    return None, f"share of {hid}: {why}", None
+                    return None, f"share of {hid}: {why}", None, None
                 counts[hid] = n
                 continue
             if share <= 0:
-                return None, f"share of {hid} is not positive", None
+                return None, f"share of {hid} is not positive", None, None
             rows.append({"holder": hid, "share": frac_str(share)})
     if extractor != "holders":
-        return sorted(ids), "", None
+        return sorted(ids), "", None, None
     total_line = None
     if counts:
         if rows:
-            return None, "the table mixes numbers of quotas or shares with shares", None
+            return None, "the table mixes numbers of quotas or shares with shares", None, None
         if doc is None or rules is None:
-            return None, "a number of quotas or shares without the total of its document", None
+            return None, "a number of quotas or shares without the total of its document", None, None
         total, total_line, why = count_total(doc, rules)
         if total is None:
-            return None, f"numbers of quotas or shares: {why}", None
+            return None, f"numbers of quotas or shares: {why}", None, None
         for hid, n in counts.items():
             if n <= 0:
-                return None, f"share of {hid} is not positive", None
+                return None, f"share of {hid} is not positive", None, None
             rows.append({"holder": hid, "share": frac_str(Fraction(n, total))})
-    return sorted(rows, key=lambda r: r["holder"]), "", total_line
+    stated_total = None
+    if stated is not None:
+        share, _ = parse_share(stated)
+        if share is not None and not counts:
+            stated_total = share
+        elif share is None and counts:
+            n, _ = parse_count(stated)
+            if n is None:
+                return None, "the Total line could not be read", None, None
+            stated_total = Fraction(n, total)
+        elif share is None:
+            return None, ("the Total line could not be read" if parse_count(stated)[0] is None else
+                          "the Total line states a number of quotas or shares, the rows state shares"), None, None
+        else:
+            return None, "the Total line states a share, the rows state numbers of quotas or shares", None, None
+    return sorted(rows, key=lambda r: r["holder"]), "", total_line, stated_total
 
 
 def _span(doc: Document, first: int, last: int) -> str:
@@ -395,11 +441,30 @@ def _span(doc: Document, first: int, last: int) -> str:
     return "\n".join(doc.lines[first - 1:last])
 
 
-def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
+def _list_headings(doc: Document, rule: dict, rules: Rules) -> list[tuple[int, str]]:
+    """The body lines that head the list of the rule: the heading grammar with its terminal '.' or ':'
+    (line_matches), or - since v2.0.4 - the same grammar without it (line_matches_bare) when the heading is the
+    whole line and the next line is an item of the list. Nothing is guessed: a bare line followed by anything else
+    is not a heading."""
     heading = _pattern(rule, rules)
+    bare = rx(_expand(_expand(rule["line_matches_bare"], rules), rules)) if rule.get("line_matches_bare") else None
+    item = _item_rx(rule, rules)
+    out = []
+    for no, text in _body(doc):
+        line = text.strip()
+        if heading.search(line):
+            out.append((no, text))
+        elif bare is not None and bare.search(line):
+            block = _block(doc, no)
+            if block and block[0][0] == no + 1 and item.match(block[0][1]):
+                out.append((no, text))
+    return out
+
+
+def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
     item = _item_rx(rule, rules)
     fld = _field_name(rule["field"], doc)
-    found = [(no, text) for no, text in _body(doc) if heading.search(text.strip())]
+    found = _list_headings(doc, rule, rules)
     if not found:
         return None
     no, text = found[0]
@@ -410,11 +475,13 @@ def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
     def abstain(why: str) -> list[dict]:
         return [_assertion(doc, fld, rule["nature"], rule["id"], reason=why, line=no, line_end=end, quote=quote)]
 
-    if rule["extractor"] == "holders" and len(found) > 1:
+    if len(found) > 1:
         lines = ", ".join(str(n) for n, _ in found)
-        return abstain(f"{len(found)} holders' tables in one document (lines {lines}): which one is current "
+        what = "holders' tables" if rule["extractor"] == "holders" else "directors' lists"
+        return abstain(f"{len(found)} {what} in one document (lines {lines}): which one is current "
                        "is not ours to choose")
-    value, why, total_line = _read_items(block, item, rule["extractor"], doc, rules)
+    value, why, total_line, stated_total = _read_items(block, item, rule["extractor"], doc, rules,
+                                                       _total_rx(rule, rules))
     if value is None:
         return abstain(why)
     if total_line is not None:
@@ -422,7 +489,10 @@ def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
         # re-derive every share from the source lines it cites
         no, end = min(no, total_line), max(end, total_line)
         quote = _span(doc, no, end)
-    return [_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, line_end=end, quote=quote)]
+    a = _assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, line_end=end, quote=quote)
+    if stated_total is not None:
+        a["stated_total"] = frac_str(stated_total)      # the Total line, compared with the sum by stage 4 (OWN-010)
+    return [a]
 
 
 def holders_evidence(line: str, rules: Rules) -> dict:
@@ -445,20 +515,21 @@ def holders_check(doc: Document, rules: Rules) -> dict:
         return {"status": "not_read", "why": "the header of the document could not be read (" + "; ".join(other)
                 + "): a table in it could not carry its source and date"}
     rule = next(r for r in rules.extract["field_rules"] if r["extractor"] == "holders")
-    heading, item = _pattern(rule, rules), _item_rx(rule, rules)
+    item = _item_rx(rule, rules)
     covered: set[int] = set()
     tables = []
-    for no, text in _body(doc):
-        if not heading.search(text.strip()):
-            continue
+    for no, _text in _list_headings(doc, rule, rules):
         block = _block(doc, no)
         # the line of a total stated for counts is not covered: it is still checked for evidence below, so a
         # table of counts in a document of unrecognised type is not read (known limit of v2.0.3)
-        value, why, _ = _read_items(block, item, "holders", doc, rules)
+        value, why, _, stated_total = _read_items(block, item, "holders", doc, rules, _total_rx(rule, rules))
         if value is None:
             return {"status": "not_read", "why": f"the holders' table at line {no} could not be read ({why})"}
         covered.update([no] + [n for n, _ in block])
-        tables.append({"line": no, "line_end": block[-1][0], "value": value})
+        table = {"line": no, "line_end": block[-1][0], "value": value}
+        if stated_total is not None:
+            table["stated_total"] = frac_str(stated_total)
+        tables.append(table)
     if len(tables) > 1:
         return {"status": "not_read", "why": f"{len(tables)} holders' tables in one document: which one is current "
                                              "is not ours to choose"}
@@ -671,12 +742,18 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             n += 1
             doc = _test_doc(t["kind"], t["text"], rules, t.get("fy", ""))
             got = _EXTRACTORS[r["extractor"]](doc, r, rules) or []
+            if t.get("expect_no_list"):            # the text holds no heading of the list at all (v2.0.4)
+                if got:
+                    bad.append(f"{r['id']}: a heading was found in {t['text']!r}, expected none")
+                continue
             if r["extractor"] == "capital":
                 seen = {a["field"].rsplit(".", 1)[-1]: a.get("value") for a in got if a["nature"] != "historical"}
                 ok = seen == t["expect"]
             else:
                 main = [a for a in got if not a["field"].endswith(".previous")]
                 ok = len(main) == 1 and main[0].get("value") == t["expect"]
+                if ok:
+                    ok = main[0].get("stated_total") == t.get("expect_stated_total")
                 if ok and "expect_previous" in t:
                     prev = [a for a in got if a["field"].endswith(".previous")]
                     ok = len(prev) == 1 and prev[0]["value"] == t["expect_previous"]

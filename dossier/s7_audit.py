@@ -45,7 +45,13 @@ _AMOUNT_IN_QUOTE = re.compile(
 # identifier in parentheses; then a colon, tab, bar, spaced dash or space, and the share.
 _MARK = r"(?:[-*•–—·]|\(?\d{1,3}[.)]|\(\d{1,3}\)|\(?[a-z][.)]|\([a-z]\)|\(?[ivx]{1,5}[.)]|\([ivx]{1,5}\))"
 _HOLDER = r"(?:(P-\d{3}|E-\d{4})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{3}|E-\d{4})\))"
-_SHARE_IN_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?{_HOLDER}\s*(?::|\t|\||\s[-–—]\s|\s)\s*(\S.*?)\s*$", re.I)
+# v2.0.4 (D30b): dot leaders as a separator ('P-014 (Pia Mendaci) ...... 50%'), a share before the holder
+# ('- 60% P-002 (Bruno Simulanti)', per cent or n/d only), and a last line 'Total' that must equal the exact sum.
+_SEP = r"(?::|\t|\||\s[-–—]\s|\s*\.{3,}\s*|\s)"
+_SHARE_IN_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?{_HOLDER}\s*{_SEP}\s*([^\s.].*?)\s*$", re.I)
+_SHARE_FIRST_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(\d{{1,3}}(?:[.,]\d+)?\s*(?:%|per\s*-?\s*cent|percent|pct)"
+                               rf"|\d+\s*/\s*[1-9]\d*)\s*{_SEP}\s*{_HOLDER}\s*$", re.I)
+_TOTAL_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:the\s+)?total\s*{_SEP}\s*([^\s.].*?)\s*$", re.I)
 _PERSON_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:(P-\d{{3}})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{{3}})\))\s*$",
                           re.I)
 _COUNT_IN_LINE = re.compile(r"^(\d{1,3}(?:[.,'’ ]\d{3})+|\d+)\s+(?:(?:ordinary|registered)\s+)?(?:quotas?|shares?)$",
@@ -92,11 +98,19 @@ def _holder_lines(quote: str) -> dict[str, Fraction]:
     out: dict[str, Fraction] = {}
     counts: dict[str, int] = {}
     others: list[str] = []
-    for line in quote.split("\n"):
+    lines = [x for x in quote.split("\n") if x.strip()]
+    stated = None
+    if lines and _TOTAL_LINE.match(lines[-1]):
+        stated = _TOTAL_LINE.match(lines[-1]).group(1)
+        lines = lines[:-1]
+    for line in lines:
         m = _SHARE_IN_LINE.match(line)
         hid = (m.group(1) or m.group(2)) if m else None
         share = parse_share(m.group(3))[0] if m else None
         count = _COUNT_IN_LINE.match(m.group(3).strip()) if m and share is None else None
+        f = _SHARE_FIRST_LINE.match(line) if share is None and not count else None
+        if f:
+            hid, share = f.group(2) or f.group(3), parse_share(f.group(1))[0]
         if share is not None:
             out[hid] = share
         elif count:
@@ -109,7 +123,17 @@ def _holder_lines(quote: str) -> dict[str, Fraction]:
             return {"": Fraction(-1)}
         total = totals.pop()
         out = {h: Fraction(n, total) for h, n in counts.items()}
+        if stated is not None:
+            c = _COUNT_IN_LINE.match(stated.strip())
+            if not c or Fraction(int(re.sub(r"\D", "", c.group(1))), total) != sum(out.values(), Fraction(0)):
+                return {"": Fraction(-1)}
+    elif stated is not None and parse_share(stated)[0] != sum(out.values(), Fraction(0)):
+        return {"": Fraction(-1)}                      # a Total that is not the exact sum of the rows
     return out
+
+
+def _is_holder_row(line: str) -> bool:
+    return bool(_SHARE_IN_LINE.match(line) or _SHARE_FIRST_LINE.match(line) or _TOTAL_LINE.match(line))
 
 
 # ----------------------------------------------------------------------------------------------
@@ -165,7 +189,7 @@ def unread_scope(u: dict, input_dir: Path | str, rules: Rules | None) -> tuple[s
         rows = lines[t["line"]:t["line_end"]]          # the lines after the heading, 0-based t["line"] is next
         got = _holder_lines("\n".join(lines[t["line"] - 1:t["line_end"]]))
         want = {r["holder"]: parse_frac(r["share"]) for r in t["value"]}
-        if t["line"] > start and rows and all(_SHARE_IN_LINE.match(x) for x in rows) and got == want:
+        if t["line"] > start and rows and all(_is_holder_row(x) for x in rows) and got == want:
             skip.update(range(t["line"], t["line_end"] + 1))
             tables.append(t["value"])
     p = rules.extract["parameters"]

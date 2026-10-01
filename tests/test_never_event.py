@@ -4,7 +4,6 @@ Never-event: a figure rendered as fact in the dossier that differs from the gold
 Each test tries to make it happen and checks that the builder, the audit, the run or the scorer refuses.
 """
 import copy
-import shutil
 import json
 import random
 import unittest
@@ -13,7 +12,7 @@ from . import ROOT
 from . import support as s
 from .support import mk
 
-from dossier import rules_engine, s1_extract, s3_discrepancy, s6_build, s7_audit
+from dossier import s1_extract, s3_discrepancy, s6_build, s7_audit
 from dossier.lib import jsonio
 from eval import score
 
@@ -354,9 +353,9 @@ class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
         return code, view["fields"], prov
 
     def test_unknown_document_type_after_the_deed_blocks_the_facts_it_may_change(self):
-        # Named ..._blocks_every_fact until v2.0.2, when every field was [TO CONFIRM] here. Since v2.0.3 (D30,
-        # rules/discrepancy.json unread_document_scope) only the fields the unknown document may state are: this one
-        # speaks of the capital, so the capital is never shown as fact; the other fields are.
+        # Named ..._blocks_every_fact until v2.0.2, when every field was [TO CONFIRM] here. In v2.0.3 (D30, narrow
+        # scope) only the capital was. Since v2.0.4 (D30b, rules/discrepancy.json unread_document_scope every_field)
+        # every field is [TO CONFIRM] again: a capital change may change the holders without naming them (run 11).
         h = [("P-001", "60%"), ("P-002", "40%")]
         deed = mk.deed("E-0001", 1, "2025-03-10", mk.OFFICE_A, mk.FULL.format(a="50.000,00"), h, ["P-001"])
         rel, text = mk.resolution("E-0001", 2, "2026-01-15",
@@ -369,23 +368,19 @@ class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
             code, fields, prov = self._fields([deed, unknown], rules_dir=rules_dir)
             self.assertEqual(code, 0)
             capital = {k for k in fields if k.startswith("share_capital.")}
-            self.assertEqual({fields[k]["status"] for k in capital}, {"TO_CONFIRM"})
-            self.assertEqual({fields[k]["status"] for k in set(fields) - capital}, {"STATED"})
+            self.assertEqual({f["status"] for f in fields.values()}, {"TO_CONFIRM"})
             self.assertEqual([f for f in prov["figures"] if f["section"] in ("facts", "cap_table")
                               and f["field"].startswith("share_capital.")], [])
             self.assertTrue(all(t["marker"] == "[TO CONFIRM]" and "value" not in t for t in prov["to_confirm"]))
-        # with the scope of v2.0.2 (every_field) every field is [TO CONFIRM], as then (stage 3 alone: the inline
-        # tests of the release under DISC-040 hold only for fields_it_may_state, so no full run on that copy)
-        every = s.tmp()
-        shutil.copytree(ROOT / "rules", every / "rules")
-        cfg = json.loads((every / "rules" / "discrepancy.json").read_text(encoding="utf-8"))
-        cfg["parameters"]["unread_document_scope"]["value"] = "every_field"
-        (every / "rules" / "discrepancy.json").write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n",
-                                                          encoding="utf-8", newline="\n")
-        weak = rules_engine.load(every / "rules")
-        raw = s1_extract.extract_corpus(s.tiny([deed, unknown], "2026-06-30"), weak, "2026-06-30")["E-0001"]
-        got = s3_discrepancy.resolve_record(raw, weak)["fields"]
-        self.assertEqual({f["status"] for f in got.values()}, {"TO_CONFIRM"})
+        # with the narrow scope of v2.0.3 (fields_it_may_state, OFF since v2.0.4) only the capital is [TO CONFIRM]
+        code, fields, _ = self._fields([deed, unknown], rules_dir=s.rules_narrow_scope())
+        self.assertEqual(code, 0)
+        capital = {k for k in fields if k.startswith("share_capital.")}
+        self.assertEqual({fields[k]["status"] for k in capital}, {"TO_CONFIRM"})
+        self.assertEqual({fields[k]["status"] for k in set(fields) - capital}, {"STATED"})
+        got = s3_discrepancy.resolve_record(
+            s1_extract.extract_corpus(s.tiny([deed, unknown], "2026-06-30"), s.rules(), "2026-06-30")["E-0001"],
+            s.rules())["fields"]
         self.assertEqual({f["rule"] for f in got.values()}, {"DISC-005"})
         # the same document with a holding in its text may hide a table: blocked, as in v2.0.1 (OWN-015)
         said = (rel, unknown[1].replace("The increase has been", "P-003 now holds 20%. The increase has been"))

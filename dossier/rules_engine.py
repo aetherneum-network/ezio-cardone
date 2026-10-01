@@ -55,6 +55,24 @@ class Rules:
         return out
 
 
+def with_params(rules: Rules, file: str, values: dict[str, Any]) -> Rules:
+    """A copy of the rules with some parameters of one file set to other allowed values (inline tests of an option
+    that is off by default). Values outside a parameter's 'allowed' list are refused."""
+    import copy
+    import dataclasses
+
+    data = copy.deepcopy(getattr(rules, file))
+    for name, value in values.items():
+        p = data["parameters"][name]
+        if isinstance(p, dict) and "allowed" in p and value not in p["allowed"]:
+            raise RuleError(f"{file}.{name}: {value!r} is not allowed")
+        if isinstance(p, dict) and "value" in p:
+            p["value"] = value
+        else:
+            data["parameters"][name] = value
+    return dataclasses.replace(rules, **{file: data})
+
+
 def load(directory: Path | str | None = None) -> Rules:
     d = Path(directory) if directory else RULES_DIR
     data = {}

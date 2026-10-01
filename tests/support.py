@@ -58,6 +58,19 @@ def rules_report_unverified() -> Path:
 
 
 @lru_cache(maxsize=None)
+def rules_narrow_scope() -> Path:
+    """A copy of the rule files with unread_document_scope 'fields_it_may_state' (the default of v2.0.3 only, OFF
+    since v2.0.4): it lets a test show what that option does, and the risk that keeps it off."""
+    dst = tmp("ezio-rules-") / "rules"
+    shutil.copytree(ROOT / "rules", dst)
+    path = dst / "discrepancy.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    obj["parameters"]["unread_document_scope"]["value"] = "fields_it_may_state"
+    path.write_text(json.dumps(obj, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    return dst
+
+
+@lru_cache(maxsize=None)
 def corpus(entities: int = 24, seed: int = DEV_SEED, perturb: bool = False) -> Path:
     """A generated corpus on disk: <base>/input and <base>/gold.json. Only dev seeds are ever inspected."""
     base = tmp("ezio-corpus-")

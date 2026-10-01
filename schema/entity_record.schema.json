@@ -84,7 +84,8 @@
         "rule": {"$ref": "#/$defs/text"},
         "line": {"type": ["integer", "null"], "minimum": 1},
         "line_end": {"type": ["integer", "null"], "minimum": 1},
-        "quote": {"type": "string"}
+        "quote": {"type": "string"},
+        "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"}
       },
       "allOf": [
         {
@@ -166,7 +167,8 @@
             "properties": {
               "line": {"type": "integer", "minimum": 1},
               "line_end": {"type": "integer", "minimum": 1},
-              "value": {"$ref": "#/$defs/holder_table"}
+              "value": {"$ref": "#/$defs/holder_table"},
+              "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"}
             }
           }
         }

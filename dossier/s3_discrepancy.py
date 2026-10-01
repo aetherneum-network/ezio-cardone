@@ -21,6 +21,7 @@ from __future__ import annotations
 import datetime as _dt
 import json
 
+from . import rules_engine
 from .rules_engine import Rules, first_match
 
 SOURCE_KEYS = ("source_doc", "source_file", "source_date", "edition", "line", "line_end", "quote", "nature", "rule")
@@ -218,7 +219,9 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 else:
                     x["status"], x["value"] = "STATED", a["value"]
                 assertions.append(x)
-            got = resolve_field(t.get("field", "f"), assertions, rules, t.get("unread"))
+            # a test of an option that is off by default names the parameter value it holds for
+            local = rules_engine.with_params(rules, "discrepancy", t["params"]) if t.get("params") else rules
+            got = resolve_field(t.get("field", "f"), assertions, local, t.get("unread"))
             exp = t["expect"]
             ok = got["status"] == exp["status"] and got["rule"] == r["id"]
             if "value" in exp:

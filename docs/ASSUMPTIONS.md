@@ -59,10 +59,10 @@ A document of the entity that could not be classified (unknown type, broken head
 ## 7. `unread_document_scope`
 
 - File: `rules/discrepancy.json`
-- Value in v2.0: `fields_it_may_state`
+- Value in v2.0: `every_field`
 - Status: [TO CONFIRM with legal]
 
-fields_it_may_state (since v2.0.3, D30): a document whose only problem is its type may change the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table of the recognised sources does not make the shareholders [TO CONFIRM]. A document with any other problem of the header may change every field. every_field: the rule of v2.0.0-v2.0.2, every field (the over-reach that left 780 fields [TO CONFIRM] on the perturbed corpus of seed 20261013).
+every_field (v2.0.0-v2.0.2, and again the default since v2.0.4, D30b): an unread document that is not older than the latest event document of a field may change every field, whatever its title or its lines say. fields_it_may_state (the default of v2.0.3 only; still allowed, OFF): a document whose only problem is its type may change only the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table does not make the shareholders [TO CONFIRM]. Its risk, shown by the blind run of v2.0.3 (eval/history.json run 11, hand entity E-0015): a sentence that changes a field without naming it (a capital raised by a contribution in kind that also changes the holders; a merger; a transfer worded without the word holder) keeps only the fields its topic words name, so the other field is published as fact; and a title word of FEV-920 (Notice, Memorandum, Letter...) can narrow the scope of a whole document. No test shows that this scope never publishes a field an unread document may change, so it stays off; switching it on is a risk decision, not a reading.
 
 ## 8. `unreadable_current_source_blocks_fact`
 

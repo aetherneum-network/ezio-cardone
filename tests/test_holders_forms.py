@@ -152,12 +152,13 @@ class B_UnclassifiedDocumentsAreChecked(unittest.TestCase):
         self.assertEqual(checks["DOC-E0001-02"]["source_date"], "2025-05-05")
 
     def test_register_of_members_with_a_reworded_heading(self):
-        # until v2.0.2 the shareholders were [TO CONFIRM] here; since v2.0.3 (D30, rules/discrepancy.json
-        # unread_document_scope) a table read whole that equals the one current table does not make them so
+        # the table is read and checked (published, not blocked). The shareholders were [TO CONFIRM] here until
+        # v2.0.2, STATED in v2.0.3 (narrow scope, D30), and [TO CONFIRM] again since v2.0.4 (D30b: the unread
+        # document may change every field, rules/discrepancy.json unread_document_scope every_field)
         doc = _retype(_ledger(2, "2025-02-01", "Members at the document date:", H), "Register of members")
         view = self.assertPublished([DEED, doc])
-        self.assertEqual(view["fields"]["shareholders"]["status"], "STATED")
-        self.assertEqual(view["fields"]["shareholders"]["unread_agreeing"], ["DOC-E0001-02"])
+        self.assertEqual(view["fields"]["shareholders"]["status"], "TO_CONFIRM")
+        self.assertNotIn("unread_agreeing", view["fields"]["shareholders"])
 
 
 class B_UnclassifiedDocumentsThatStillBlock(unittest.TestCase):
