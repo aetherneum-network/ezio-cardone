@@ -4,7 +4,8 @@
     python tools/manifest.py --write     # rewrite MANIFEST.sha256
 
 Documents that are appended to after the freeze (README, CLAIMS, CHANGELOG, eval/history.json,
-eval/BLIND_PROTOCOL.md, eval/results.json) are outside the manifest on purpose. Offline; standard library only.
+eval/BLIND_PROTOCOL.md, eval/results.json) are outside the manifest on purpose. Offline; standard library only (plus the
+path helper of the pack, dossier/lib/jsonio.py, itself standard library only).
 """
 from __future__ import annotations
 
@@ -14,6 +15,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from dossier.lib import jsonio  # noqa: E402
+
+# v2.0.10 (D39): the tree is read with the extended-length prefix, as the pipeline writes, so that a clone in a deep
+# folder is hashed whole (a plain is_file() there is False and --write would drop the file without a word)
+ROOT = Path(jsonio.ext(ROOT))
 MANIFEST = ROOT / "MANIFEST.sha256"
 FROZEN_DIRS = ("corpus", "dossier", "rules", "schema", "scenarios", "tests", "tools")
 FROZEN_FILES = ("eval/__init__.py", "eval/score.py", "requirements.txt", "docs/ASSUMPTIONS.md")

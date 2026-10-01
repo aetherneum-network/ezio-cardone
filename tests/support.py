@@ -1,6 +1,7 @@
 """Shared fixtures of the test suite: small corpora built once per process, child processes offline."""
 from __future__ import annotations
 
+import atexit
 import datetime
 import io
 import json
@@ -25,8 +26,32 @@ DEV_SEED = generate.SUITES["dev"]["seed"]
 AS_OF = "2026-09-30"
 
 
+_CREATED: list[str] = []
+
+
+def _remove_created() -> None:
+    """v2.0.10 (D39 d): remove, when the process ends, every folder that tmp() created in it, and nothing else. Until
+    v2.0.9 none was removed (39,109 entries piled up in one scratch TEMP). The fixtures built once per process (corpus,
+    built, scenario_run) are shared by many tests, so the folders go at the end of the process, not of each test. A
+    folder that cannot be removed is said on stderr; it never changes a test's outcome."""
+    left = []
+    for path in reversed(_CREATED):
+        shutil.rmtree(jsonio.ext(path), ignore_errors=True)
+        if os.path.exists(jsonio.ext(path)):
+            left.append(path)
+    if left:
+        print(f"tests/support.py: {len(left)} temporary folder(s) of this process not removed, e.g. {left[0]}",
+              file=sys.stderr)
+
+
+atexit.register(_remove_created)
+
+
 def tmp(prefix: str = "ezio-test-") -> Path:
-    return Path(tempfile.mkdtemp(prefix=prefix))
+    """A new temporary folder (under tempfile's folder, so a test may move it), removed when the process ends."""
+    path = tempfile.mkdtemp(prefix=prefix)
+    _CREATED.append(path)
+    return Path(path)
 
 
 def write_tree(root: Path, files: dict[str, str]) -> Path:
@@ -146,7 +171,11 @@ def offline_env() -> dict[str, str]:
 
 
 def child(args: list[str], cwd: Path = ROOT, timeout: int = 600, **env_extra: str) -> subprocess.CompletedProcess:
-    return subprocess.run([sys.executable, *args], cwd=str(cwd), env={**offline_env(), **env_extra},
+    # v2.0.10 (D39 d): a child process gets a TEMP of its own, made by tmp(), so that what it leaves there (the work
+    # folders of the scenario checks, of a rebuild) is removed with it when this process ends
+    own = str(tmp("ezio-child-"))
+    env = {**offline_env(), "TEMP": own, "TMP": own, "TMPDIR": own, **env_extra}
+    return subprocess.run([sys.executable, *args], cwd=str(cwd), env=env,
                           capture_output=True, text=True, encoding="utf-8", timeout=timeout)
 
 

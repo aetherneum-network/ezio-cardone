@@ -32,8 +32,10 @@ def expected(sid: str) -> dict:
 
 
 def workdir(sid: str) -> Path:
-    """A fresh temporary folder for the outputs of one check."""
-    return Path(tempfile.mkdtemp(prefix=f"ezio-{sid}-"))
+    """A fresh temporary folder for the outputs of one check. Since v2.0.10 (D39) it carries the extended-length prefix,
+    as the pipeline's work folder does, so that every check reads a build under a deep TEMP whole: a plain path there
+    made 'no DOCX written' and 'not published' true by not reading (scenario S02)."""
+    return Path(jsonio.ext(tempfile.mkdtemp(prefix=f"ezio-{sid}-")))
 
 
 def run(input_dir: Path, work: Path, as_of: str | None = None, **kw) -> tuple[int, str, dict]:

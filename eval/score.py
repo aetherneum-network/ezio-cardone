@@ -30,6 +30,18 @@ Since v2.0.8 (D37) the metrics also give one count per kind of never-event above
 same call that writes a never-event into the list, so each equals by construction the number of never-events of its
 kind and their sum equals ``never_events``. The sum is named outside the pattern ``*wrong*committed*`` so that a tool
 summing every such field does not count it twice. No existing field is changed.
+
+Since v2.0.10 (D39, defect D1 of the blind run of v2.0.9, eval/history.json run 22) the scorer reads the way the
+pipeline writes: every path below the work folder carries the Windows extended-length prefix (``jsonio.ext``), so a
+build in a folder deeper than 260 characters is read whole on a machine without long-path support. Until v2.0.9 it
+tested ``dossiers/<entity>/provenance.json`` by a plain path: in such a folder every built entity counted as
+``failed``, 0 fields were scored, 0 never-events were reported and the exit code was 0. A measurement that measured
+nothing is now FAILED, never a quiet 0: every result carries ``measurement`` (``status`` OK or FAILED, and its
+``problems``), FAILED when an entity the run reports as built (status OK) cannot be read, when the run built entities
+and no field was scored, when the scorer's count of what it read differs from ``run.counts``, when the run's counts
+differ from its own entity list, or when a gold entity is missing from the run. Exit codes of ``main``: 0 no
+never-event, 1 at least one never-event, 3 a measurement FAILED (said on stderr, and on stdout under the summary
+line; it wins over 1, because a count that was not measured is not a count). A run that raises is FAILED too (3).
 """
 from __future__ import annotations
 
@@ -90,7 +102,23 @@ WRONG_COMMITTED = (
 )
 
 
+MEASUREMENT_FAILED = 3                     # v2.0.10 (D39): the exit code of a measurement that did not measure
+
+
+def _read(path: Path) -> tuple[dict | None, str]:
+    """(provenance, "") when the file is read whole, (None, why) otherwise - never a quiet absence."""
+    try:
+        return jsonio.load(path), ""
+    except FileNotFoundError:
+        return None, "no file"
+    except (OSError, ValueError) as exc:
+        return None, f"{type(exc).__name__}: {exc}"
+
+
 def score(work: Path, gold: dict) -> dict:
+    # v2.0.10 (D39): the work folder carries the extended-length prefix, as in dossier.run (every path below is derived
+    # from it), so that a deep folder is read whole without long-path support
+    work = Path(jsonio.ext(work))
     report = jsonio.load(work / "run_report.json")
     c = {k: 0 for k in (
         "entities", "published", "blocked_gold", "blocked_correct", "blocked_wrongly", "failed",
@@ -105,6 +133,8 @@ def score(work: Path, gold: dict) -> dict:
         "unpublished_filename_gold", "unpublished_filename_gold_blocked_wrongly")}
     never: list[str] = []
     wrong = {k: 0 for k in WRONG_COMMITTED}
+    unread: list[str] = []                # v2.0.10 (D39): entities the run reports OK whose provenance is not read
+    read_ok = 0                           # entities the run reports OK whose provenance is read whole
 
     def ne(text: str, kind: str) -> None:
         never.append(text)
@@ -124,6 +154,12 @@ def score(work: Path, gold: dict) -> dict:
         c["entities"] += 1
         st = report["entities"].get(eid, {"status": "ABSENT"})["status"]
         prov_path = work / "dossiers" / eid / "provenance.json"
+        prov, why = _read(prov_path) if st == "OK" else (None, "")
+        if st == "OK":
+            if prov is None:
+                unread.append(f"{eid} ({why})")
+            else:
+                read_ok += 1
         if g["build"] == "BLOCKED":
             c["blocked_gold"] += 1
             if st == "BLOCKED" and not prov_path.exists():
@@ -134,12 +170,11 @@ def score(work: Path, gold: dict) -> dict:
             if not prov_path.exists():
                 unpublished(g, wrongly=False)
             continue
-        if st != "OK" or not prov_path.exists():
+        if st != "OK" or prov is None:
             c["blocked_wrongly" if st == "BLOCKED" else "failed"] += 1
             unpublished(g, wrongly=True)
             continue
         c["published"] += 1
-        prov = jsonio.load(prov_path)
         for f in prov["figures"]:
             c["figures_total"] += 1
             if all(f.get(k) not in (None, "", []) for k in ("value", "source_doc", "source_date", "edition")):
@@ -219,6 +254,28 @@ def score(work: Path, gold: dict) -> dict:
 
     false_conflicts = c["fact_false_conflict"]
     fields_scored = c["fields_gold_fact"] + c["fields_gold_conflict"] + c["fields_gold_to_confirm"]
+
+    # v2.0.10 (D39): a measurement that measured nothing is FAILED, never a quiet 0 (R4)
+    for eid in sorted(e for e, v in report["entities"].items() if v["status"] == "OK" and e not in gold["entities"]):
+        prov, why = _read(work / "dossiers" / eid / "provenance.json")
+        if prov is None:
+            unread.append(f"{eid} ({why})")
+        else:
+            read_ok += 1
+    problems: list[str] = []
+    if unread:
+        problems.append(f"{len(unread)} entities the run reports as built (status OK) cannot be read: "
+                        + ", ".join(unread[:10]) + (" ..." if len(unread) > 10 else ""))
+    tally = {s: sum(1 for v in report["entities"].values() if v["status"] == s) for s in ("OK", "BLOCKED", "FAILED")}
+    if any(report["counts"].get(s, 0) != n for s, n in tally.items()):
+        problems.append(f"the run's counts {report['counts']} differ from its own entity list {tally}")
+    if read_ok != report["counts"].get("OK", 0):
+        problems.append(f"the scorer read {read_ok} built entities, the run counts {report['counts'].get('OK', 0)}")
+    if report["counts"].get("OK", 0) and not fields_scored:
+        problems.append(f"the run built {report['counts']['OK']} entities and no field was scored")
+    missing = sorted(set(gold["entities"]) - set(report["entities"]))
+    if missing:
+        problems.append(f"{len(missing)} entities of the gold are not in the run: " + ", ".join(missing[:10]))
     metrics = {
         "never_events": len(never),
         "conflicts_recall": ratio(c["conflict_found"], c["fields_gold_conflict"]),
@@ -242,23 +299,28 @@ def score(work: Path, gold: dict) -> dict:
     metrics.update(wrong)                 # v2.0.8 (D37): additive, one per kind of never-event
     metrics["never_events_by_kind_total"] = sum(wrong.values())
     return {"metrics": metrics, "counts": c, "never_event_list": never,   # every one, never capped (D30)
-            "run": {"status": report["status"], "counts": report["counts"], "as_of": report["as_of"]}}
+            "run": {"status": report["status"], "counts": report["counts"], "as_of": report["as_of"]},
+            "measurement": {"status": "FAILED" if problems else "OK", "problems": problems}}   # v2.0.10 (D39)
 
 
 def evaluate(label: str, *, seed: int | None = None, perturb: bool = False, corpus: Path | None = None,
              gold_path: Path | None = None, work: Path | None = None, entities: int = 150) -> dict:
     """Generate (or take) a corpus, build every dossier, score. Nothing is read from the network."""
-    base = Path(work) if work else Path(tempfile.mkdtemp(prefix=f"eval-{label}-"))
+    # v2.0.10 (D39): every folder carries the extended-length prefix (jsonio.ext), the generated corpus included, so
+    # that a deep --work folder is written, built and read whole; the pipeline derives its paths from the same prefix
+    base = Path(jsonio.ext(work if work else tempfile.mkdtemp(prefix=f"eval-{label}-")))
     if corpus is None:
         files = generate.build_files(seed, entities=entities, perturb=perturb)
         generate.write(files, base / "corpus")
         corpus, gold_path = base / "corpus" / "input", base / "corpus" / "gold.json"
-    gold = json.loads(Path(gold_path).read_text(encoding="utf-8"))
+    corpus = Path(jsonio.ext(corpus))
+    gold = json.loads(jsonio.read_text(gold_path))
     sink = io.StringIO()
     code, _ = dossier_run.run(corpus, base / "work", out=sink)
     result = score(base / "work", gold)
     # exit_code is the pipeline's own exit code (dossier.run: 0 OK, 2 BLOCKED - at least one entity blocked -, 3
-    # FAILED), never the exit of this scorer, which is 1 only when a result has a never-event (main below);
+    # FAILED), never the exit of this scorer, which is 1 only when a result has a never-event and (since v2.0.10, D39)
+    # 3 when a measurement FAILED (main below);
     # pipeline_status (since v2.0.6, D35) names it, so that a reader does not take exit_code 2 for a failed run
     status = {v: k for k, v in dossier_run.EXIT.items()}.get(code, "UNKNOWN")
     result.update({"label": label, "seed": seed, "perturbed": perturb, "exit_code": code, "pipeline_status": status,
@@ -289,27 +351,36 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--work", help="new or empty folder for the corpus and the build (default: a temp folder)")
     ap.add_argument("--json", help="write the results to this file")
     a = ap.parse_args(argv)
+    if a.corpus and not a.gold:
+        ap.error("--corpus needs --gold")
     results = []
-    if a.corpus:
-        if not a.gold:
-            ap.error("--corpus needs --gold")
-        results.append(evaluate(a.label, corpus=Path(a.corpus), gold_path=Path(a.gold),
-                                work=Path(a.work) if a.work else None))
-    elif a.seed is not None:
-        results.append(evaluate(a.label, seed=a.seed, perturb=a.perturb, work=Path(a.work) if a.work else None))
-    else:
-        for name in a.suite or ["dev"]:
-            s = SUITES[name]
-            r = evaluate(name, seed=s["seed"], perturb=s["perturb"],
-                         work=Path(a.work) / name if a.work else None)
-            r["role"] = s["role"]
-            results.append(r)
+    try:
+        if a.corpus:
+            results.append(evaluate(a.label, corpus=Path(a.corpus), gold_path=Path(a.gold),
+                                    work=Path(a.work) if a.work else None))
+        elif a.seed is not None:
+            results.append(evaluate(a.label, seed=a.seed, perturb=a.perturb, work=Path(a.work) if a.work else None))
+        else:
+            for name in a.suite or ["dev"]:
+                s = SUITES[name]
+                r = evaluate(name, seed=s["seed"], perturb=s["perturb"],
+                             work=Path(a.work) / name if a.work else None)
+                r["role"] = s["role"]
+                results.append(r)
+    except Exception as exc:              # v2.0.10 (D39): a run that raises is a FAILED measurement, said as such
+        print(f"MEASUREMENT FAILED - {type(exc).__name__}: {exc}", file=sys.stderr)
+        return MEASUREMENT_FAILED
     for r in results:
         print(line(r))
         for text in r["never_event_list"][:10]:
             print("  NEVER-EVENT:", text)
+        for text in r["measurement"]["problems"]:
+            print("  MEASUREMENT FAILED:", text)
+            print(f"MEASUREMENT FAILED - {r['label']}: {text}", file=sys.stderr)
     if a.json:
         jsonio.write(Path(a.json), {"schema": "eval-results/2.0.0", "results": results})
+    if any(r["measurement"]["status"] != "OK" for r in results):
+        return MEASUREMENT_FAILED
     return 1 if any(r["metrics"]["never_events"] for r in results) else 0
 
 

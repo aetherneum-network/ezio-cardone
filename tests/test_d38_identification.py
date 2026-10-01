@@ -402,7 +402,7 @@ class D38_DeclaredLimits(unittest.TestCase):
         self.assertIsNone(prov)
 
     def test_a_capitalised_particle_keeps_every_field_to_confirm(self):
-        """hand-20 E-0007, by class: 'Via Del ...' - the gazetteer holds 'del Collaudo', not 'Del Collaudo' (each entry
+        """hand-20 E-0025, by class: 'Via Del ...' - the gazetteer holds 'del Collaudo', not 'Del Collaudo' (each entry
         is matched whole, case included): the address is not identified (IDN-999), every field keeps [TO CONFIRM]."""
         addr = "Via Del Collaudo 7, Borgoprova (ZZ)"
         status, view, prov = _run([deed(office=addr), extract(office=addr)])

@@ -20,8 +20,10 @@ Any problem makes the run FAILED and the dossier is not published.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+import weakref
 from fractions import Fraction
 from pathlib import Path
 
@@ -314,6 +316,7 @@ class _Ident:
     of an address and in the whole of any other slot."""
 
     def __init__(self, rules: Rules):
+        self.key = _rules_key(rules)        # since v2.0.10 (D39 d): the rule set it was built from (own_names' cache)
         p = rules.extract["parameters"]
         self.towns, self.provinces = set(p["gazetteer_town"]), set(p["gazetteer_province"])
         self.streets = sorted({f"{t} {n}" for t in p["gazetteer_street_type"] for n in p["gazetteer_street_name"]},
@@ -367,13 +370,34 @@ class _Ident:
         return {"address": self.address, "company": self.company, "person": self.person}[cls](value)
 
 
-_IDENT_CACHE: dict[int, _Ident] = {}
+_DIGESTS: dict[int, tuple[weakref.ref, str]] = {}
+_IDENT_CACHE: dict[str, _Ident] = {}
+
+
+def _rules_key(rules: Rules) -> str:
+    """The content of a rule set, as the key of the audit's caches (v2.0.10, D39 d). Until v2.0.9 they were keyed by
+    id(rules): rules_engine.load() makes a new Rules for every run, and once one is freed its id may be handed to the
+    next, so a process that ran with two rule sets (the suite does: copies of the rules with another gazetteer) could be
+    served the identification built from the other set - an audit that disagrees with the extractor, intermittently,
+    as the allocator happens to reuse an address (400 alternating loads on the v2.0.9 code: 7 reuses, 7 wrong
+    answers). A SHA-256 of the four rule files is equal for equal rules and differs otherwise; it is computed once per
+    Rules object, which is checked to be the very same object by a weak reference, never by its id alone."""
+    hit = _DIGESTS.get(id(rules))
+    if hit is not None and hit[0]() is rules:
+        return hit[1]
+    text = json.dumps([rules.extract, rules.figure_nature, rules.discrepancy, rules.ownership], sort_keys=True,
+                      ensure_ascii=False)
+    key = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    rid = id(rules)
+    _DIGESTS[rid] = (weakref.ref(rules, lambda _r: _DIGESTS.pop(rid, None)), key)
+    return key
 
 
 def _ident(rules: Rules) -> _Ident:
-    if id(rules) not in _IDENT_CACHE:
-        _IDENT_CACHE[id(rules)] = _Ident(rules)
-    return _IDENT_CACHE[id(rules)]
+    key = _rules_key(rules)
+    if key not in _IDENT_CACHE:
+        _IDENT_CACHE[key] = _Ident(rules)
+    return _IDENT_CACHE[key]
 
 
 def name_audit(read: list[tuple[dict, dict]], ident: _Ident | None = None) -> dict:
@@ -460,8 +484,9 @@ def own_names(input_dir: Path | str, ident: _Ident | None = None) -> dict[str, s
     root = Path(input_dir)
     files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
     layer = root / "identity" / "persons.json"
-    key = (str(root.resolve()), id(ident)) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
-                                                    for f in files + ([layer] if layer.exists() else []))
+    # since v2.0.10 (D39 d): the rule set the identification was built from, not the id of an object that may be freed
+    key = (str(root.resolve()), ident.key if ident is not None else None) + tuple(
+        (str(f), f.stat().st_size, f.stat().st_mtime_ns) for f in files + ([layer] if layer.exists() else []))
     if key in _KNOWN_CACHE:
         return _KNOWN_CACHE[key]
     out: dict[str, set[str]] = {}
@@ -506,7 +531,9 @@ def corpus_texts(input_dir: Path | str, rules: Rules) -> dict[tuple[str, tuple[s
     p = rules.extract["parameters"]
     root = Path(input_dir)
     files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
-    key = (str(root.resolve()),) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns) for f in files)
+    # since v2.0.10 (D39 d): the rule set is part of the key (its patterns and recognised texts decide the answer)
+    key = (str(root.resolve()), _rules_key(rules)) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
+                                                          for f in files)
     if key in _TEXT_CACHE:
         return _TEXT_CACHE[key]
     pats = [(rx(_expand_all(r["pattern"], p)), g) for r in rules.extract["classified_lines"]["rules"]

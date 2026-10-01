@@ -22,11 +22,22 @@ if str(ROOT) not in sys.path:
 
 from corpus import generate  # noqa: E402
 from dossier import run as runner  # noqa: E402
+from dossier.lib import jsonio  # noqa: E402
+
+
+class NothingRead(RuntimeError):
+    """A build folder was walked and no file was read: two empty trees are not 'identical' (v2.0.10, D39)."""
 
 
 def tree(root: Path) -> dict[str, str]:
-    return {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
-            for p in sorted(root.rglob("*")) if p.is_file()}
+    # v2.0.10 (D39): read the way the pipeline writes (extended-length prefix), so that a build under a deep TEMP is
+    # walked whole without long-path support; a walk that reads nothing is a failure, never an empty tree
+    root = Path(jsonio.ext(root))
+    out = {p.relative_to(root).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+           for p in sorted(root.rglob("*")) if p.is_file()}
+    if not out:
+        raise NothingRead(f"no file read in the build folder {root.name}")
+    return out
 
 
 def digest(hashes: dict[str, str]) -> str:
@@ -37,7 +48,7 @@ def digest(hashes: dict[str, str]) -> str:
 def build_twice(input_dir: Path) -> tuple[dict[str, str], dict[str, str]]:
     out = []
     for name in ("first build", "second build in another folder"):
-        work = Path(tempfile.mkdtemp(prefix="ezio-rebuild-")) / name
+        work = Path(jsonio.ext(tempfile.mkdtemp(prefix="ezio-rebuild-"))) / name
         runner.run(input_dir, work, out=io.StringIO())
         out.append(tree(work))
     return out[0], out[1]
@@ -59,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not a.quick:
         suite = generate.SUITES["dev"]
-        base = Path(tempfile.mkdtemp(prefix="ezio-rebuild-corpus-"))
+        base = Path(jsonio.ext(tempfile.mkdtemp(prefix="ezio-rebuild-corpus-")))
         generate.write(generate.build_files(suite["seed"]), base)
         first, second = build_twice(base / "input")
         same &= first == second
