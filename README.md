@@ -43,7 +43,9 @@ never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v
 two (run 11, below); v2.0.4 is the fix, and v2.0.5 closes the one known limit of v2.0.4 that could publish
 (`CHANGELOG.md` 2.0.5). v2.0.4 was never run blind; the blind run of `v2.0.5-freeze` (run 14, below) found
 no never-event, with two of its probes masked by a one-character miss; unmasked by the builder on the same seen
-data, the code of `v2.0.5` publishes 3 never-events there, and v2.0.6 is the fix (`CHANGELOG.md` 2.0.6).
+data, the code of `v2.0.5` publishes 3 never-events there, and v2.0.6 is the fix (`CHANGELOG.md` 2.0.6). The
+blind run of `v2.0.6-freeze` (run 16, below) found no never-event; one of its probes was masked by the
+evaluator's own wording, and the defects it found all block or keep a field open.
 
 ## Re-run it
 
@@ -196,6 +198,24 @@ How to read them:
   fields `[TO CONFIRM]`, the same 5 entities blocked wrongly - declared limits). What the proof still rests on -
   the words of an address slot, a name beside an identifier the pack does not know - is stated as a residual
   risk, `[TO CONFIRM]` (`CHANGELOG.md` 2.0.6 section 4). That is not a blind result.
+- The blind run of `v2.0.6-freeze` (run 16, by the evaluator, not the author, seed 20261016, hand-written
+  corpus `eval/blind/hand-16/`, 28 entities, 59 documents) found **0 never-events** by section 1.5 of the
+  protocol and by `eval/score.py`: 0 in the plain corpus, 0 in the perturbed one, 0 in the hand-written one.
+  Facts exact 1274/1274, 649/1261 and 46/89; fields left `[TO CONFIRM]` 0 of 1384, 665 of 1370 and 43 of 99
+  (the scorer's `fields_abstained`; 50 with the 7 fields the gold itself leaves open, all kept). Entities
+  blocked wrongly: 4 of 150 plain (the illegible share planted by the generator, decision D26), 5 of 150
+  perturbed (the same four, and E-0114: an unrecognised title beside an illegible amount that `HEV-080` takes
+  for a line that may state a holding), 15 of 28 hand-written. Fourteen of those are declared limits that
+  block; one, E-0010, is blocked where `CHANGELOG.md` 2.0.6 marks the form `[TO CONFIRM]`: a sentence written
+  right after a list, with no blank line, is read as a row of that list and the whole list is unread
+  (`dossier/s1_extract.py`, `_block`). The same reading leaves the directors `[TO CONFIRM]` in E-0008 and
+  E-0019; the adjective "own" counts as a word of holding (`HEV-040`) and blocks E-0006 and E-0011. All of
+  these go the cautious way. Six typed-slot probes: the two names beside an identifier the pack does not know
+  (E-0013, E-0018) block; the person-name slot (E-0016), the amount slot (E-0015) and the address slot
+  (E-0014) leave their line open, so every field stays `[TO CONFIRM]` and nothing wrong is published. E-0014
+  is partly masked: its office wording is the unknown wording of scenario S09 and abstains anyway. The count
+  probe (E-0017) is masked: a total line the evaluator placed outside the capital clause blocks the entity on
+  its own, so that probe measured nothing. These go into a new version under a new tag; this tag is not moved.
 
 ## Two rebuilds, same bytes
 
