@@ -11,10 +11,15 @@ documents for a company) does the same, by CLS-005. A name whose legal form diff
 discrepancy of its own (DISC-035 of rules/discrepancy.json): both readings listed with their sources, nothing
 reconciled, the name and the legal form [TO CONFIRM].
 
+A slot of the entity's own name (parameter slot_own_name_groups) closes its line only when it is the name of the
+document's own header 'Entity:', legal form aside: a word of no class of the lexicon is told from a name by that
+equality (for a person, by CLS-005 against the identity layer), not by the lexicon.
+
 The siblings are tested by class, never by literal strings (R6): person slots with trailing words in director lines
 (deed, extract, appointment) and in holder rows (deed, extract, transfer, ledger), each in the form 'ID (name)' and
 'name (ID)'; company names whose legal form differs from the one stated; company names with words that are not part
-of a name; address slots and amount slots with a trailing clause. The base is a deed and a registry extract that agree;
+of a name; the same slots with words of no class of the lexicon; address slots and amount slots with a trailing
+clause. The base is a deed and a registry extract that agree;
 a later document is dated after both. Every case must end with the fields it may change not published as fact, or
 blocked. tests/test_d35_forms.py was also run on the code of v2.0.5 (CHANGELOG 2.0.6 gives the count, by class).
 
@@ -25,6 +30,7 @@ import unittest
 from . import support as s
 from .support import mk
 
+from dossier import rules_engine, s1_extract
 from dossier.lib import jsonio
 
 E = "E-0001"
@@ -47,6 +53,12 @@ TRAILING = (
     ("function words", "Who Holds It All"),
     ("Italian holding", "Socio Unico"),
     ("Italian time", "Ora Titolare"),
+)
+# words of no class of the lexicon: only equality with the identity layer (a person) or with the document's own header
+# 'Entity:' (the company) can tell them from a name
+NO_CLASS = (
+    ("one word of no class", "Padrona"),
+    ("two words of no class", "Vecchie Zeta"),
 )
 
 
@@ -91,8 +103,8 @@ def person_rows(t: str, share: str | None):
     return (("ID (name)", f"- P-001 (Aldo Finti {t}){tail}"), ("name (ID)", f"- Aldo Finti {t} (P-001){tail}"))
 
 
-def _director_cases():
-    for wname, t in TRAILING:
+def _director_cases(words=TRAILING):
+    for wname, t in words:
         for form, row in person_rows(t, None):
             yield wname, form, "deed", [deed(directors=[row]), extract()]
             yield wname, form, "extract", [deed(), extract(directors=[row])]
@@ -101,8 +113,8 @@ def _director_cases():
                                                                      row])]
 
 
-def _holder_cases():
-    for wname, t in TRAILING:
+def _holder_cases(words=TRAILING):
+    for wname, t in words:
         for form, row in person_rows(t, "60%"):
             other = mk._holders([("P-002", "40%")])
             yield wname, form, "deed", [deed(holders=[row, *other]), extract()]
@@ -136,6 +148,17 @@ def cases():
         yield "A company name slot with words that are not part of a name", f"{wname}, extract", \
             [deed(), extract(name_line=f"Name: {BARE} {t} {FORM}")], ALL
         yield "A company name slot with words that are not part of a name", f"{wname}, deed", \
+            [deed(name_line=f"1. Name and form. The company is named {BARE} {t} {FORM}; its legal form is {FORM}"),
+             extract()], ALL
+    for wname, form, place, docs in _director_cases(NO_CLASS):
+        yield "A person slot with words of no class (director line)", f"{wname}, {form}, {place}", docs, \
+            ("directors", "shareholders")
+    for wname, form, place, docs in _holder_cases(NO_CLASS):
+        yield "A person slot with words of no class (holder row)", f"{wname}, {form}, {place}", docs, ("shareholders",)
+    for wname, t in NO_CLASS:
+        yield "A company name slot with words of no class", f"{wname}, extract", \
+            [deed(), extract(name_line=f"Name: {BARE} {t} {FORM}")], ALL
+        yield "A company name slot with words of no class", f"{wname}, deed", \
             [deed(name_line=f"1. Name and form. The company is named {BARE} {t} {FORM}; its legal form is {FORM}"),
              extract()], ALL
     for wording, docs, changes in (
@@ -201,7 +224,7 @@ class D35_TypedSlotSiblings(unittest.TestCase):
             with self.subTest(cls=cls, wording=wording):
                 n += 1
                 self.assertEqual(unsafe(*_run(docs), changes), "")
-        self.assertEqual(n, len(TRAILING) * 2 * 3 + len(TRAILING) * 2 * 4 + 7 + len(TRAILING) * 2 + 5 + 4)
+        self.assertEqual(n, (len(TRAILING) + len(NO_CLASS)) * (2 * 3 + 2 * 4 + 2) + 7 + 5 + 4)
 
 
 class D35_ExactFormProbes(unittest.TestCase):
@@ -246,6 +269,79 @@ class D35_PlainNamesStillPublish(unittest.TestCase):
         for f in ALL:
             self.assertEqual(view["fields"][f]["status"], "STATED", (f, view["fields"][f]))
         self.assertEqual(view["warnings"]["classified_checks"], [])
+
+
+def memo(body: list[str]):
+    """A document of a type the rules do not know, dated after the deed and the extract."""
+    return mk._file(E, "2026-08-20_memorandum.txt", mk._head(E, 3, "Memorandum", "2026-08-20", "MEMO/1") + body)
+
+
+class D35_UnreadScopeReported(unittest.TestCase):
+    """Goal (b), hand-14 E-0013: the fields check of an unread document reports what DISC-005 applies. Under the
+    default scope every_field it reports every field, and keeps the judgement of the lines as a note; under the
+    narrow scope (OFF) it reports the fields its lines may state, as before."""
+
+    LINES = ["The share capital is EUR 90.000,00."]
+
+    def _check(self, rules):
+        rel, text = memo(self.LINES)
+        doc = s1_extract.parse_document(text, rel, rules)
+        return s1_extract.fields_check(doc, rules, s1_extract.holders_check(doc, rules))
+
+    def test_default_scope_reports_every_field(self):
+        got = self._check(s.rules())
+        self.assertEqual(got["may_change"], ["*"])
+        self.assertIn("every_field", got["why"])
+        self.assertIn("DISC-005", got["why"])
+        self.assertIn("share_capital", got["why"])           # the judgement of the lines, kept as a note
+
+    def test_narrow_scope_reports_the_fields_named(self):
+        got = self._check(rules_engine.load(s.rules_narrow_scope()))
+        self.assertNotIn("*", got["may_change"])
+        self.assertIn("share_capital.*", got["may_change"])
+
+    def test_the_record_says_every_field_end_to_end(self):
+        status, view, _ = _run([deed(), extract(), memo(self.LINES)])
+        fc = [u["fields_check"] for u in view["warnings"]["unclassified_documents"] if u.get("fields_check")]
+        self.assertTrue(fc, view["warnings"])
+        self.assertEqual(fc[0]["may_change"], ["*"])
+        for f in ALL:
+            self.assertNotEqual(view["fields"][f]["status"], "STATED", f)
+
+
+class D35_HeadingWithParticipialClause(unittest.TestCase):
+    """Goal (d), hand-14 E-0007: a holders' heading whose qualifier of the class 'registered' follows the noun after a
+    comma is the same heading as without the comma. A participle of another class after a comma is not a heading."""
+
+    def test_comma_qualifier_reads_like_the_plain_one(self):
+        for heading in ("4. Shareholdings, entered in the register:",
+                        "4. Members, as recorded in the book of members:"):
+            with self.subTest(heading=heading):
+                status, view, prov = _run([(deed()[0], deed()[1].replace("4. Holders.", heading)), extract()])
+                self.assertEqual(status, "OK", view["ownership"])
+                self.assertEqual(view["fields"]["shareholders"]["status"], "STATED")
+                self.assertEqual(view["warnings"]["classified_checks"], [])
+
+    def test_other_participle_is_not_a_heading(self):
+        heading = "4. Shareholdings, transferred on 1 May:"
+        status, view, prov = _run([(deed()[0], deed()[1].replace("4. Holders.", heading)), extract()])
+        self.assertTrue(status == "BLOCKED" or view["fields"]["shareholders"]["status"] != "STATED", status)
+
+
+class D35_HandCorpus14(unittest.TestCase):
+    """Goal (c) and (f), through the scorer: hand-14 (eval/history.json run 14) with the one-character cliff read,
+    0 never-events, every gold [TO CONFIRM] kept; the result names the pipeline's exit code (pipeline_status)."""
+
+    def test_hand_14(self):
+        from eval import score
+        from dossier import run as dossier_run
+        d = s.ROOT / "eval" / "blind" / "hand-14"
+        got = score.evaluate("hand-14", corpus=d / "input", gold_path=d / "gold.json", work=s.tmp())
+        self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
+        self.assertEqual(got["metrics"]["to_confirm_kept"], "7/7")
+        self.assertGreaterEqual(got["counts"]["fact_exact"], 27)        # v2.0.5: 2/64 (run 14)
+        self.assertIn("exit_code", got)
+        self.assertEqual(dossier_run.EXIT[got["pipeline_status"]], got["exit_code"])
 
 
 if __name__ == "__main__":

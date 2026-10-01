@@ -233,6 +233,14 @@ def _tail_form(value, whole: bool) -> str | None:
     return code
 
 
+def _bare_name(value: str) -> str:
+    """A company name without the legal form at its end, spaces collapsed (the audit's own reading)."""
+    m = _NAME_TAIL.search(value)
+    if m and re.sub(r"[^a-z]", "", m.group(1).lower()) in _FORM_CODES:
+        value = value[:m.start(1)]
+    return " ".join(value.split())
+
+
 def form_clash(by_field: dict[str, list[dict]]) -> bool:
     """Whether a current name ends with a legal form other than a current legal form, by the audit's own reading."""
     names = [json.loads(k) for k in current_values(by_field.get("name", []))[0]] if by_field.get("name") else []
@@ -390,6 +398,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
     start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
     fy = next((m.group(1) for x in lines[1:start] for m in [_FY_HEADER.match(x.strip())] if m), "")
     kind = d["kind"]
+    own = next((m.group(1) for x in lines[1:start] for m in [_ENTITY_HEADER.match(x.strip())] if m), "")
     expected = {t.replace("{fy}", fy) for t in rules.extract["expected_fields"][kind]}
     spans: dict[str, list[tuple[int, int]]] = {}
     for a in record["assertions"]:
@@ -435,6 +444,9 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
             m = rx(_expand_all(r["pattern"], p)).search(line)
             if not m:
                 continue
+            if own and any(v and _bare_name(v) != _bare_name(own) for k, v in m.groupdict().items()
+                           if k in p["slot_own_name_groups"]):
+                continue          # the entity's own name slot is not the name of its header (v2.0.6)
             if r["when"] == "label":      # a label and a typed value: the fields both name, by the audit's words
                 g = m.groupdict()
                 label = words.name(g["w_label"])

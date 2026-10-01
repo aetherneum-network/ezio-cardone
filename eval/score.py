@@ -228,7 +228,11 @@ def evaluate(label: str, *, seed: int | None = None, perturb: bool = False, corp
     sink = io.StringIO()
     code, _ = dossier_run.run(corpus, base / "work", out=sink)
     result = score(base / "work", gold)
-    result.update({"label": label, "seed": seed, "perturbed": perturb, "exit_code": code,
+    # exit_code is the pipeline's own exit code (dossier.run: 0 OK, 2 BLOCKED - at least one entity blocked -, 3
+    # FAILED), never the exit of this scorer, which is 1 only when a result has a never-event (main below);
+    # pipeline_status (since v2.0.6, D35) names it, so that a reader does not take exit_code 2 for a failed run
+    status = {v: k for k, v in dossier_run.EXIT.items()}.get(code, "UNKNOWN")
+    result.update({"label": label, "seed": seed, "perturbed": perturb, "exit_code": code, "pipeline_status": status,
                    "source_documents": sum(g["documents"] for g in gold["entities"].values()),
                    "as_of": gold["as_of"], "scope": "internal consistency on synthetic data"})
     return result

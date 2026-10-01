@@ -595,8 +595,15 @@ def fields_check(doc: Document, rules: Rules, holders: dict) -> dict:
     if EVERY_FIELD in may:
         return {"may_change": [EVERY_FIELD],
                 "why": f"line {lines[EVERY_FIELD][0]} may state any field (rules/extract.json unread_fields)"}
-    return {"may_change": sorted(may), "why": "; ".join(f"{f}: line {', '.join(str(n) for n in lines[f])}"
-                                                     for f in sorted(lines)) or "no line states a field"}
+    judged = "; ".join(f"{f}: line {', '.join(str(n) for n in lines[f])}" for f in sorted(lines)) \
+        or "no line states a field"
+    if rules.param("discrepancy", "unread_document_scope") != "fields_it_may_state":
+        # since v2.0.6 (D35, hand-14 E-0013): the record says what DISC-005 applies - every field under the default
+        # every_field - and keeps the judgement of the lines, which decides nothing under that scope, as a note
+        return {"may_change": [EVERY_FIELD],
+                "why": "every field: rules/discrepancy.json unread_document_scope is every_field (DISC-005); the "
+                       f"lines alone (rules/extract.json unread_fields, not applied) would name {judged}"}
+    return {"may_change": sorted(may), "why": judged}
 
 
 _EXTRACTORS = {"text": _extract_text, "amount": _extract_amount, "capital": _extract_capital,
@@ -652,6 +659,20 @@ def _label_ok(label: str | None, fld: str, rules: Rules) -> bool:
 
 
 _LABEL_AFTER_ID = re.compile(r"(P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+
+
+def own_name_differs(doc: Document, value: str, rules: Rules) -> bool:
+    """A slot of the entity's own name (parameter slot_own_name_groups, since v2.0.6) that is not the name of the
+    document's own header, spaces collapsed and the legal form at the end of each set aside. A document whose header
+    names no entity has nothing to compare: False."""
+    if not doc.entity_name.strip():
+        return False
+    pat = rx(rules.param("discrepancy", "legal_form_in_name"))
+
+    def bare(text: str) -> str:
+        m = pat.search(text)
+        return " ".join((text[:m.start("form")] if m else text).split())
+    return bare(value) != bare(doc.entity_name)
 
 
 def labelled_identifiers(line: str, rules: Rules) -> list[tuple[str, str]]:
@@ -719,6 +740,7 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
     identity layer for persons, the entity's own headers for companies; CLS-005, since v2.0.6)."""
     kind_topics = {_topic(_field_name(t, doc)) for t in rules.extract["expected_fields"].get(doc.kind, [])}
     name_groups = set(rules.extract["parameters"]["slot_name_groups"])
+    own_groups = set(rules.extract["parameters"]["slot_own_name_groups"])
     line = text.strip()
     for r in rules.extract["classified_lines"]["rules"]:
         if r.get("kinds") and doc.kind not in r["kinds"]:
@@ -741,6 +763,8 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
         m = rx(_expand(r["pattern"], rules)).search(line)
         if not m:
             continue
+        if any(v and own_name_differs(doc, v, rules) for k, v in m.groupdict().items() if k in own_groups):
+            continue              # the entity's own name slot holds more, or other, than the entity's name (v2.0.6)
         if w == "label":
             fields = _label_line_fields(doc, m, r, kind_topics, rules)
             if fields:
@@ -1064,6 +1088,7 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
         for t in r.get("tests", []):
             n += 1
             doc = _test_doc(t["kind"], t["text"], rules, t.get("fy", ""))
+            doc.entity_name = t.get("entity", "")            # a test without 'entity' has no own name to compare
             no = doc.body_start + 1 + t.get("line", 1)       # the line-th line of the test body
             known = {k: set(v) for k, v in t.get("known", {}).items()} or None
             got_rule, got = classify_line(doc, no, doc.lines[no - 1], _list_lines(doc, rules), rules, known)
