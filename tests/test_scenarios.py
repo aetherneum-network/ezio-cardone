@@ -2,12 +2,15 @@
 import copy
 import json
 import unittest
+from pathlib import Path
 
 from . import ROOT
 from . import support as s
 
 import _common
 import run_all
+
+from dossier.lib import jsonio
 
 SIDS = [f"S{n:02d}" for n in range(1, 11)]
 
@@ -37,14 +40,17 @@ class ScenariosCanFail(unittest.TestCase):
     """Mutation: with a wrong expected value the check must say FAIL (it compares, it does not just run)."""
 
     def _with_expected(self, sid, change):
-        real = _common.expected
+        real, real_workdir = _common.expected, _common.workdir
         exp = copy.deepcopy(real(sid))
         change(exp)
         _common.expected = lambda _sid: exp
+        # v2.0.10 (D39 d): the check runs in this process, so its work folders are made by support.tmp() and removed
+        # when the process ends (in v2.0.9 each of these checks left its folders in TEMP)
+        _common.workdir = lambda _sid: Path(jsonio.ext(s.tmp(f"ezio-{_sid}-")))
         try:
             return run_all.load_check(sid)()
         finally:
-            _common.expected = real
+            _common.expected, _common.workdir = real, real_workdir
 
     def _fails(self, sid, change):
         ok, line, _ = self._with_expected(sid, change)
