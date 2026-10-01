@@ -259,6 +259,45 @@ class D35_ExactFormProbes(unittest.TestCase):
             self.assertEqual(view["fields"][f]["status"], "STATED", f)
 
 
+def hand_14_variant(work) -> tuple:
+    """A fixture of this test, built at run time from the seen corpus eval/blind/hand-14 (which is not changed):
+    entities E-0011 and E-0012 with the deed's legal-form clause in the exact form v2.0.5 reads ('S.r.l.' then the
+    end of the line, not 'S.r.l..'), so that nothing else in the entity makes it abstain. (input, gold)"""
+    import json
+    hand = s.ROOT / "eval" / "blind" / "hand-14"
+    inp = work / "input"
+    for eid in ("E-0011", "E-0012"):
+        for f in sorted((hand / "input" / "entities" / eid).glob("*.txt")):
+            text = f.read_text(encoding="utf-8").replace("; its legal form is S.r.l..\n", "; its legal form is S.r.l.\n")
+            jsonio.write_bytes(inp / "entities" / eid / f.name, text.encode("utf-8"))
+    persons = jsonio.load(hand / "input" / "identity" / "persons.json")
+    jsonio.write(inp / "identity" / "persons.json", {k: persons[k] for k in ("P-002", "P-003", "P-015", "P-016")})
+    jsonio.write_bytes(inp / "config.json", (hand / "input" / "config.json").read_bytes())
+    gold = json.loads((hand / "gold.json").read_text(encoding="utf-8"))
+    gold["entities"] = {k: v for k, v in gold["entities"].items() if k in ("E-0011", "E-0012")}
+    jsonio.write(work / "gold.json", gold)
+    return inp, work / "gold.json"
+
+
+class D35_HandFourteenExactForm(unittest.TestCase):
+    """Goal (a) on seen data: hand-14 E-0011 and E-0012 unmasked (the deed in the exact form). v2.0.5 publishes 3
+    never-events on this variant (E-0011 holders and effective holdings, E-0012 legal form); v2.0.6 none."""
+
+    def test_unmasked_probes_publish_nothing_wrong(self):
+        from eval import score
+        work = s.tmp()
+        inp, gold = hand_14_variant(work)
+        got = score.evaluate("hand-14-exact-form", corpus=inp, gold_path=gold, work=work / "run")
+        self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
+        self.assertEqual(got["metrics"]["to_confirm_kept"], "2/2")
+        v11 = jsonio.load(work / "run" / "work" / "views" / "E-0011.json")
+        self.assertTrue(all(f["status"] != "STATED" for f in v11["fields"].values()), v11["fields"])
+        v12 = jsonio.load(work / "run" / "work" / "views" / "E-0012.json")
+        self.assertEqual((v12["fields"]["legal_form"]["status"], v12["fields"]["legal_form"]["rule"]),
+                         ("TO_CONFIRM", "DISC-035"))
+        self.assertEqual(v12["fields"]["name"]["status"], "DISCREPANCY")
+
+
 class D35_PlainNamesStillPublish(unittest.TestCase):
     """The cost side: the documents of the generator's own forms are still read."""
 

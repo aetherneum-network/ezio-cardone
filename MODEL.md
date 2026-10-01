@@ -38,6 +38,13 @@
   that could publish. Its rules were written with the corpora already recorded and the hand-written documents
   of runs 7, 9 and 11 in view, and its sibling cases (`tests/test_d34_forms.py`) were written by the same
   hand. The same limit applies: its numbers (run 13) are not blind.
+- **The change of v2.0.6** (finding D35: typed name slots that admit more than a name, the legal form read with
+  its sentence's own full stop, `DISC-035`, the fields check of an unread document under `every_field`, a
+  holders' heading with a participial clause, `pipeline_status` in the scorer) was written with the same model,
+  in a separate session on 2026-10-01, as the builder's hand, after reading the results and the hand-written
+  documents of the blind run of v2.0.5 (run 14, seed 20261015, `eval/blind/hand-14/`). Its rules and its 192
+  sibling cases (`tests/test_d35_forms.py`) were written by the same hand with those documents in view. The same
+  limit applies: hand-14 is now seen, and its numbers (run 15) are not blind.
 
 ## What runs at runtime
 

@@ -158,3 +158,28 @@ publish. The price is coverage on the reworded corpora (run 13: facts exact on s
 out-of-pool corpus 330 -> 290 of 925; the plain corpora do not move). The row A2 above stays downgraded for
 `v2.0.3-freeze`; v2.0.5 has been measured by the author on data already seen (run 13: 0 never-events on all
 fifteen results) and has not been run blind, so nothing is upgraded here.
+
+### What the blind run of v2.0.5 found, and what v2.0.6 does for A2 (not run blind)
+
+The blind run of `v2.0.5-freeze` (run 14, by the evaluator, seed 20261015, hand corpus `eval/blind/hand-14/`)
+found 0 never-events, but two of its probes of the residual risk declared by `CHANGELOG.md` 2.0.5 section 4 were
+masked by a one-character miss of the deeds (`its legal form is S.r.l..`). Unmasked by the builder on the same
+seen data, the code of `v2.0.5-freeze` publishes **3 never-events** on them: the holders of E-0011 and the
+effective holding derived from them (a person slot of an appointment admitted `Sole Proprietress Henceforth`),
+and the legal form of E-0012 (a name ending in `S.p.A.` beside `Legal form: S.r.l.`). The sentence "no case is
+known" of that section was wrong, and A2 was not demonstrated for `v2.0.5-freeze` on that class either.
+
+v2.0.6 (tag `v2.0.6-freeze`, finding D35): a name slot carrying a word that cannot be part of a name does not
+close its line; a person's name beside its identifier must be that person's name in the identity layer, and the
+entity's own name must be the name of its `Entity:` header (equality, not a word list); a company name whose legal
+form differs from the legal form stated is shown as a discrepancy, both readings with their sources, the legal
+form `[TO CONFIRM]` (`DISC-035`) - the sentence of A2, "surfaced side by side rather than silently reconciled",
+for a conflict inside one source. On 192 siblings of nine classes (`tests/test_d35_forms.py`) the v2.0.5 code
+publishes 147 wrongly, v2.0.6 none; the unmasked variant of E-0011/E-0012 has 0 never-events. Since v2.0.6 the
+fields check of a document of unrecognised type records what `DISC-005` applies (every field), not the narrower
+judgement of its lines. What still rests on a word list - the words of an address slot, a name beside an
+identifier the pack does not know - is a residual risk, `[TO CONFIRM]`, stated in `CHANGELOG.md` 2.0.6 section 4;
+`CHANGELOG.md` 2.0.6 lists the known limits: none of them may publish. On the corpora already seen (run 15: 0
+never-events on all eighteen results) seventeen results do not move and hand-14 goes from 2/64 to 27/64 facts
+exact. The row A2 above stays downgraded for `v2.0.3-freeze`; v2.0.6 has not been run blind, so nothing is
+upgraded here.

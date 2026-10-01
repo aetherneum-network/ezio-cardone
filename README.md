@@ -42,7 +42,8 @@ current sources disagree both values are shown with their sources. The blind run
 never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v2.0.3-freeze` found
 two (run 11, below); v2.0.4 is the fix, and v2.0.5 closes the one known limit of v2.0.4 that could publish
 (`CHANGELOG.md` 2.0.5). v2.0.4 was never run blind; the blind run of `v2.0.5-freeze` (run 14, below) found
-no never-event, with two of its probes masked by a one-character miss.
+no never-event, with two of its probes masked by a one-character miss; unmasked by the builder on the same seen
+data, the code of `v2.0.5` publishes 3 never-events there, and v2.0.6 is the fix (`CHANGELOG.md` 2.0.6).
 
 ## Re-run it
 
@@ -53,13 +54,13 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 275 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
+Expected last lines: `OK` after 286 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 13, code at commit `f76dfad` (pipeline, rules, tests and scorer of the tag
-`v2.0.5-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's
-hand, not blind: every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
+Source: `eval/history.json`, run 15, code at commit `a982b7b` (pipeline, rules and scorer of the tag
+`v2.0.6-freeze`; the tag adds the documents, one test fixture and the manifest), measured on 2026-10-01 (UTC) by
+the builder's hand, not blind: every seed had been seen. The three rows are identical to those of v2.0.5 (run 13). Reference date of every corpus as of 2026-09-30. 150 entities per suite.
 Command: `python -m eval.score --suite dev --suite holdout --suite stress`.
 
 | Suite | Never-events | Dossiers published | Conflicts found | Conflicts reported that are real | Facts exact | Fields left `[TO CONFIRM]` | Blocks correct | Figures with source |
@@ -90,7 +91,7 @@ How to read them:
 - The first stress run (run 2, commit `9a50ea3`) had **32 never-events**. It was fixed in the rule files, not in
   the outputs; the price was abstention: the rules read one wording and abstain on the others. Every run,
   the bad ones included, is in `eval/history.json`.
-- The holdout was scored eight times (runs 2, 3, 4, 6, 8, 10, 12, 13) and is no longer a clean holdout.
+- The holdout was scored nine times (runs 2, 3, 4, 6, 8, 10, 12, 13, 15) and is no longer a clean holdout.
 - The blind run of `v2.0.0-freeze` (run 5, by the evaluator, not the author) found **13 never-events**: 0 in the
   plain corpus, 1 in the perturbed one, 12 in the out-of-pool one. Five were capital figures read a thousand
   times too small (`EUR 150'000.00` read as `150.00`, finding T16); eight were dossiers published for
@@ -181,20 +182,36 @@ How to read them:
   limits marks a document of unrecognised type as one that keeps `[TO CONFIRM]`; with a line that may state a
   holding it blocks (E-0005, and E-0054 of the perturbed corpus) - more cautious than declared. These go into a
   new version under a new tag; this tag is not moved.
+- v2.0.6 (finding D35) is the answer to run 14. A name slot that holds a word that cannot be part of a name, a
+  name beside an identifier that is not that identifier's own (`CLS-005`), or the entity's own name slot that is
+  not the name of its `Entity:` header leaves its line open, so the document may change every field
+  (`DISC-006`) or the entity blocks; a company name whose legal form differs from the legal form stated is a
+  discrepancy, the legal form `[TO CONFIRM]` (`DISC-035`); the legal form followed by its sentence's own full
+  stop (`S.r.l..`) is read; the fields check of a document of unrecognised type says every field under
+  `every_field`; a holders' heading takes "entered in the register" after a comma; `eval/score.py` adds
+  `pipeline_status` next to `exit_code`. On 192 siblings of nine classes (`tests/test_d35_forms.py`) the v2.0.5
+  code publishes 147 wrongly, v2.0.6 none; a variant of hand-14 E-0011 and E-0012 with the deed in the exact form
+  has 3 never-events on v2.0.5 and 0 on v2.0.6. On the corpora already seen (run 15) it has 0 never-events on all
+  eighteen results; seventeen do not move at all, and hand-14 goes from 2/64 to 27/64 facts exact (63/72 to 37/72
+  fields `[TO CONFIRM]`, the same 5 entities blocked wrongly - declared limits). What the proof still rests on -
+  the words of an address slot, a name beside an identifier the pack does not know - is stated as a residual
+  risk, `[TO CONFIRM]` (`CHANGELOG.md` 2.0.6 section 4). That is not a blind result.
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `f76dfad`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `a982b7b`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `a47ca34a58610239d956052b444580533c389b74e9fad8430cadc261d9dcf152` |
-| S03, `dossier_shareable.docx` of E-0004 | `1290fae169fddb0ec50212f78a3872306c2facd1cd3a4967c52f6debe9ad9be6` |
-| S03, whole build (11 files) | `1995b2bcc76f0c518d958c8d77b4fab7af870019d368473dd9e9c7e31010c32f` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `23c563692420db81afecb4950b0a84ebc2bfe992ffb40f509a399e389ad60570` |
+| S03, `dossier.docx` of E-0004 | `9b729f7ebb22b189ab6f17ac5c3aad58aa0db31b34d36f293cfa79b03ee715a8` |
+| S03, `dossier_shareable.docx` of E-0004 | `c81c2515437fbe8d8f3a8bd3e00d31dfc8cca7ebc7df123888fbe948d31a01c9` |
+| S03, whole build (11 files) | `441ad30bbb60f4dc11045050f55aa6524bf05a95dec93882bc12b5f986d02488` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `2c514e9ba6cb190914309f3e40b1c5bae7e6e3c8d9ff4b90ede01b985aee08ee` |
 
-The hashes differ from those of v2.0.4 because the dossier names its generator (`dossier 2.0.5`) and the note of
+The hashes differ from those of v2.0.5 because the dossier names its generator (`dossier 2.0.6`) and the note of
+the legal assumption `unread_document_scope` it lists now says what the fields check records under
+`every_field`; the same entities are blocked. The v2.0.5 hashes differed from those of v2.0.4 because the dossier names its generator (`dossier 2.0.5`) and the note of
 the legal assumption `unverified_holders_table` it lists now covers documents of a recognised type; the same
 entities are blocked. The v2.0.4 hashes differed from those of v2.0.3 because the
 dossier named its generator (`dossier 2.0.4`) and the legal assumption `unread_document_scope` had the value

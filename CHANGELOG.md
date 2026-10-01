@@ -2,6 +2,247 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.6] - 2026-10-01 (freeze tag `v2.0.6-freeze`; not yet run blind)
+
+### D35 - blind run of v2.0.5, run 14: two probes masked by a one-character miss, a judgement shown wrongly, a limit marked wrongly
+
+Source: the evaluator's blind run of `v2.0.5-freeze`, `eval/history.json` run 14, seed 20261015 and the hand
+corpus `eval/blind/hand-14/` (15 entities, 40 documents): 0 never-events on the three corpora. Found: (a) two
+probes of the residual risk of section 4 of entry 2.0.5 - a person slot that admitted `Hilde Simulanti Sole
+Proprietress Henceforth` (E-0011) and an extract whose `Name:` ends in `S.p.A.` beside `Legal form: S.r.l.`
+(E-0012) - passed the pack's checks and were not published only because of (c); (b) the fields check of a
+document of unrecognised type named the directors only (E-0013) while `DISC-005` kept every field; (c) every deed
+of the corpus ends its first clause with `its legal form is S.r.l..`, which `CLS-110` and `EXT-FORM-010` did not
+match, so 62 of 64 gold facts were abstained; (d) 5 of 15 entities blocked wrongly; (e) the list of known limits
+marked a document of unrecognised type as one that keeps `[TO CONFIRM]`, while with a line that may state a
+holding it blocks; (f) `exit_code` in a result object of `eval/score.py` is the pipeline's status, not the
+scorer's exit. Fixed by the builder's hand in this order: (a) first, then (c) - fixing (c) alone would have
+unmasked (a). `OWN-015` stays `block` (D26), holders in a sentence stay unread (D31), `DISC-005` stays
+`every_field`, `DISC-006` stays. Measured on corpora already seen only (`eval/history.json` run 15): not blind.
+
+**Two statements of entry 2.0.5 were wrong, and are corrected here (the entry 2.0.5 is kept as written):**
+
+- section 4 of 2.0.5, "Residual risk of the premise (not a known limit: no case is known)": a case existed in the
+  very shape that section describes. E-0011 of hand-14 is one, and the 192 siblings of section 2 below show that
+  the class was wide: on the v2.0.5 code 147 of them publish a wrong value. "No case is known" was a statement
+  about what had not been looked for, not about the code.
+- `CHANGELOG.md:189-190` at `v2.0.5-freeze`, "a document of unrecognised type ... **keeps `[TO CONFIRM]`**": that
+  marking is incomplete. When such a document holds a line that may state a holding (`holders_evidence`), or a
+  holders' table that is not read whole, the holders cannot be summed and `OWN-015` **blocks** the entity
+  (hand-14 E-0005, perturbed E-0054 of run 14). More cautious than declared, but marked wrongly; the list below
+  gives both outcomes.
+
+#### 1. The rule (a): a typed slot that admits more than its own value does not pass
+
+- `rules/extract.json:70-72`, parameters `slot_name_groups` (the groups of `classified_lines` that hold a name:
+  `w_name`, `w_office`, `w_previous`, `w_person`, `w_person_first`), `slot_not_name_word` (words that cannot be
+  part of a name, by class: role, holding, time, function words, their Italian forms, and English suffix classes
+  such as `-ly`, `-ship`, `-hood`) and `slot_own_name_groups` (`w_name`); `dossier/s1_extract.py:625`
+  `not_name_words`. A name slot holding such a word does not close its line: the line falls to `CLS-999` and the
+  document may change every field (`DISC-006`), or the entity blocks when the line may state a holding.
+- Equality where the identity is known, not the lexicon: `CLS-005` (`rules/extract.json:619`,
+  `dossier/s1_extract.py:689` `label_not_its_own`) - a name beside an identifier that is not that identifier's
+  own name (the identity layer for a person `P-...`, the `Entity:` header of the entity's documents for a company)
+  makes the line one no rule explains; and the slot of the entity's own name (the deed's `is named`, the
+  extract's `Name:`, a label line with a company name) closes its line only when it is the name of the
+  document's own `Entity:` header, spaces collapsed and the legal form at the end set aside
+  (`dossier/s1_extract.py:664` `own_name_differs`, applied at `:766`). A word of no class of the lexicon in a
+  person or company name slot is caught by that equality.
+- `DISC-035` (`rules/discrepancy.json:465`, parameter `legal_form_in_name` at `:37`; `dossier/s3_discrepancy.py:158`
+  `legal_form_clash`): a company name whose legal form at its end differs from the legal form stated (`S.p.A.`
+  against `S.r.l.`, `S.r.l.s.` against `S.r.l.`, dotted or not, any case) is a discrepancy of its own. Both
+  readings are listed with their sources, nothing is reconciled, the legal form is `[TO CONFIRM]` and the name is
+  shown as a discrepancy (`DISC-020` when the names differ). Placed above `DISC-040`, below `DISC-020`/`DISC-030`.
+- The audit re-derives all three in its own code (`dossier/s7_audit.py:236` `_bare_name`, `:244` `form_clash`,
+  `:341` `_not_its_own`, `:448` the own-name slot) and reports a record less strict than its reading.
+
+#### 2. Siblings by class (`tests/test_d35_forms.py`), and the code of v2.0.5
+
+Every case below is a deed and a registry extract that agree, with one slot changed, or a later document dated
+after both. A case is unsafe when a field it may change is published as fact, or a holding is derived from a
+table the slot may contradict. The same file was run on the code of `v2.0.5-freeze` (commit `267ea87`).
+
+| Class | Cases | Unsafe on v2.0.5 | Unsafe on v2.0.6 |
+|---|---|---|---|
+| person slot with trailing words in a director line (deed, extract, appointment; `ID (name)` and `name (ID)`) | 54 | 42 | 0 |
+| person slot with trailing words in a holder row (deed, extract, transfer, ledger) | 72 | 56 | 0 |
+| company name whose legal form differs from the one stated | 7 | 4 | 0 |
+| company name slot with words that are not part of a name | 18 | 12 | 0 |
+| person slot with words of no class of the lexicon, director line | 12 | 12 | 0 |
+| person slot with words of no class of the lexicon, holder row | 16 | 16 | 0 |
+| company name slot with words of no class of the lexicon | 4 | 4 | 0 |
+| address slot with a trailing clause | 5 | 1 | 0 |
+| amount slot with a trailing clause | 4 | 0 | 0 |
+| all | 192 | 147 | 0 |
+
+No case failed (raised) on either code. The trailing words are of nine classes (`Sole Proprietress Henceforth`,
+`Sole Owner`, `Managing Director`, `Henceforth`, `Solely`, `Partnership`, `Who Holds It All`, `Socio Unico`,
+`Ora Titolare`) and two of no class (`Padrona`, `Vecchie Zeta`); none is a literal string of hand-14 except the
+first, which is its class.
+
+The exact-form probes (goal (a) on seen data): `tests/test_d35_forms.py` class `D35_HandFourteenExactForm` builds
+at run time, from `eval/blind/hand-14/` (not changed), E-0011 and E-0012 with the deed's legal-form clause in the
+exact form v2.0.5 reads (`S.r.l.` then the end of the line). On the v2.0.5 code that variant has **3
+never-events** (E-0011 holders shown as fact, E-0011 effective holdings derived, E-0012 legal form shown as
+fact); on v2.0.6 0: every field of E-0011 is `[TO CONFIRM]` (the appointment's director line falls to `CLS-999`,
+`DISC-006`), E-0012 shows the name as a discrepancy (`DISC-020`) and the legal form `[TO CONFIRM]` (`DISC-035`).
+`D35_ExactFormProbes` repeats both shapes on entities of the test.
+
+#### 3. The rule (c): the legal form followed by its sentence's own full stop
+
+`CLS-110` and `EXT-FORM-010` (`rules/extract.json:654`, `:194`) read `its legal form is S.r.l..` and
+`S.p.A..` together, by class (any recognised abbreviation, then the sentence's full stop); `CLS-150` and
+`EXT-FORM-020` (`:711`, `:206`) do the same for the label line `Legal form: S.r.l..`. The value never includes
+the second stop. hand-14, three stages, same command: v2.0.5 (run 14) facts exact 2/64, fields `[TO CONFIRM]`
+63/72, conflicts 0/1; with (a) only 1/64, 64/72 (E-0011's directors went to `[TO CONFIRM]`); with (a) and (c)
+27/64, 37/72, conflicts 1/1. Never-events 0, blocked wrongly 5, `[TO CONFIRM]` kept 7/7 at every stage.
+
+#### 4. The premise of the proof, for v2.0.6 (what still rests on it)
+
+The proof of entry 2.0.5 section 1 assumes that a typed slot states nothing but the value of its own field.
+v2.0.6 tightens it where the identity is known: the name of a person beside its identifier must be that
+person's name in the identity layer, and the entity's own name must be the name of its `Entity:` header (both by
+equality, not by a word list); a company name must not carry another legal form. What **still rests on the word
+list** `slot_not_name_word` (and on the lists of `unread_fields` and `holders_evidence`, which run 11 showed
+incomplete for sentences): the words of an address slot (street and town), the name in a label beside an
+identifier that neither the identity layer nor an `Entity:` header of the corpus knows, and the name of another
+company in a label line. A change of
+another field written entirely inside such a slot, in capitalised words of no class of those lists, would not be
+seen and could publish. That is a residual risk, `[TO CONFIRM]`: no case of it is in the corpora seen, the
+siblings above do not cover it, and the blind protocol asks the next hand to probe it, unmasked. It is not
+written as "no case is known".
+
+#### 5. (b) The fields check says what `DISC-005` applies
+
+`dossier/s1_extract.py:576` `fields_check`: under `unread_document_scope` = `every_field` (the default) the
+record of a document of unrecognised type says every field (`*`) and names the scope; what its lines alone would
+name (`unread_fields`) is kept as a note, never as the fields it may change. hand-14 E-0013: the record said
+`directors: line 9`; it now says every field, with the note. Under the narrow scope (OFF) nothing changes.
+`tests/test_d35_forms.py` `D35_UnreadScopeReported`.
+
+#### 6. (d) What is read by class, and what stays blocked
+
+- Read: a holders' heading whose qualifier of the class "registered" follows the noun after a comma
+  (`(4) Shareholdings, entered in the register:`, `Members, as recorded in the book of members:`), the same
+  heading as without the comma (`rules/extract.json:23` `holders_heading_body`, 2 new tests of `EXT-HOLD-010`,
+  `D35_HeadingWithParticipialClause`). A participle of another class after the comma (`transferred on 1 May`) is
+  not a heading: it blocks.
+- Not read, declared, **blocks**: a row naming several holders with "each" (`- P-007 and P-008 (...): 30% each`,
+  hand-14 E-0003) - reading it would need the number of holders and the share each from one row, in the reader,
+  the holders' check and the audit; not done in this cycle; holder nouns in a sentence (hand-14 E-0005
+  memorandum, E-0007 resolution "becomes its third member", E-0009 appointment) - D31; a table with a header row
+  (hand-14 E-0014, hand-11 E-0011, hand-9 E-0003) - not read safely in this cycle.
+
+#### 7. (f) `pipeline_status`
+
+`eval/score.py:233-235`: each result object carries `pipeline_status` (`OK`, `BLOCKED`, `FAILED`) next to
+`exit_code`, which is unchanged and still the pipeline's own exit code (0 OK, 2 BLOCKED - at least one entity
+blocked -, 3 FAILED). The scorer process exits 1 only when a result has a never-event. Documented in
+`eval/BLIND_PROTOCOL.md`.
+
+#### 8. The price, measured on every corpus already seen
+
+Run 15 (v2.0.6, commit `a982b7b`), the same commands as run 13 plus seed 20261015 plain and perturbed and
+hand-14, builder's hand, NOT blind, UTC 2026-10-01T04:46:38Z to 2026-10-01T04:52:41Z. Compared with v2.0.5:
+run 13 for fifteen results, run 14 (the evaluator, same code) for 20261015 plain, perturbed and hand-14.
+Never-events 0 on all eighteen results; every never_event_list is empty; every command exits 0 (the scorer),
+every `pipeline_status` is `BLOCKED` (`exit_code` 2: at least one entity blocked, as expected).
+
+**Seventeen of the eighteen results do not move at all** - every count and every metric of `eval/score.py` is
+identical to v2.0.5: dev, holdout, stress, seeds 20261011 to 20261015 plain and perturbed, the out-of-pool corpus
+of run 5, hand (run 7), hand-9, hand-11. The generator writes the legal form without the second stop and no name
+slot of those corpora carries a word of `slot_not_name_word`, a name that is not its identifier's or an own name
+other than its header (counted by the builder on the inputs: 0), so the checks of (a) cost nothing there.
+
+| hand-14 (run 14 -> run 15) | v2.0.5 | v2.0.6 |
+|---|---|---|
+| never-events | 0 | 0 |
+| facts exact | 2/64 | 27/64 |
+| fields `[TO CONFIRM]` | 63/72 | 37/72 |
+| conflicts found / reported that are real | 0/1, 0/0 | 1/1, 1/1 |
+| effective holdings exact | 0/5 | 3/5 |
+| superseded values linked | 3/7 | 1/7 |
+| figures with source | 117/117 | 115/115 |
+| blocked wrongly, `[TO CONFIRM]` kept | 5, 7/7 | 5, 7/7 |
+
+The two superseded links lost are those of E-0011's directors: the appointment's director line carries
+`Sole Proprietress Henceforth`, so since (a) it is a line no rule explains and every field of E-0011 is
+`[TO CONFIRM]` (`DISC-006`) - the price of (a), accepted. The 44 fields `[TO CONFIRM]` of the nine published
+hand-14 dossiers (37 gold facts or conflicts and the 7 gold `[TO CONFIRM]`), counted by the builder from the
+views: every field of E-0004, E-0006 and E-0013 (`DISC-005`, a document of unrecognised type) and of E-0008 and
+E-0011 (`DISC-006`, a line no rule explains), the office of E-0001 and the office and the holders of E-0010
+(`DISC-006`), the legal form of E-0012 (`DISC-035`); E-0015 none. The five blocked wrongly are the limits of
+section 6: E-0003 "each", E-0005 and E-0009 holder nouns in a sentence, E-0007 "becomes its third member" in the
+resolution, E-0014 a header row.
+
+### Known limits of v2.0.6
+
+Each limit is marked with what it does to the entity: **blocks**, **keeps `[TO CONFIRM]`** or **may publish**.
+**No known limit may publish.** The residual risk of section 4 is stated there, as `[TO CONFIRM]`.
+
+- holders stated in a sentence rather than in a list under a heading, including a holder noun in a sentence of
+  a memorandum, a resolution or an appointment (hand-9 E-0003, E-0007; hand-14 E-0005, E-0007, E-0009): not
+  read, by the owner's risk decision D31 - **blocks**;
+- a row naming several holders with "each" (hand-14 E-0003) - **blocks**;
+- a qualifier meaning "current" in free words in the heading (hand-11 E-0002), and a participle of another class
+  than "registered" after a comma in the heading - **blocks**;
+- a table with a header row (hand-11 E-0011, hand-9 E-0003, hand-14 E-0014) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words - **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them (`OWN-015`) - **blocks**;
+- shares planted as illegible block by design (D26) - **blocks**;
+- a document of unrecognised type (a type label the rules do not list, e.g. `Minutes`, `Memorandum`, `Extract
+  from the test registry`) not older than the latest event of a field: every field (`DISC-005`, `every_field`;
+  since v2.0.6 the record says so) - **keeps `[TO CONFIRM]`**; when it holds a line that may state a holding
+  (`holders_evidence`), or a holders' table that is not read whole - **blocks** (`OWN-015`; hand-14 E-0005,
+  perturbed E-0054 of run 14). Corrected marking: 2.0.5 gave the first outcome only;
+- a document of a recognised type with a body line that no rule of its kind explains (`CLS-999`): every field,
+  when the document is not older than the latest event (`DISC-006`) - **keeps `[TO CONFIRM]`**; when the line
+  may state a holding - **blocks** (`OWN-015`);
+- a closed line that states a field of its kind where no rule of its kind read it, or a field its kind does not
+  read: that field, when the document is not older than the latest event - **keeps `[TO CONFIRM]`**;
+- a holders' table in a document of a kind not read for the holders: read whole and summed, then the holders
+  **keep `[TO CONFIRM]`**; not read, or two of them - **blocks**;
+- a row of a list of a recognised document whose share is illegible or not typed - every field **keeps
+  `[TO CONFIRM]`**, and when the row may state a holding - **blocks**;
+- since v2.0.6, a name slot with a word of `slot_not_name_word`, a name beside an identifier that is not its own
+  (`CLS-005`), or the entity's own name slot that differs from its `Entity:` header: the line is one no rule
+  explains - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**.
+  A real name that holds such a word (a person or company called `Sole`, `Ora`, `Partnership`...) costs the same;
+- since v2.0.6, a company name whose legal form differs from the legal form stated (`S.r.l.s.` against `S.r.l.`
+  included, by design) - the name is a
+  discrepancy and the legal form **keeps `[TO CONFIRM]`** (`DISC-035`).
+
+Count of limits marked **may publish**: v2.0.4 1, v2.0.5 0 (as written; one marking corrected above), v2.0.6 0.
+
+### Tests and numbers
+
+- `tests/test_d35_forms.py`, 11 tests in 7 classes: the 192 siblings (147 unsafe on the v2.0.5 code, 0 on
+  v2.0.6), the exact-form probes on test entities and on the hand-14 variant, the plain documents that still
+  publish, the fields check under both scopes, the heading with a participial clause, hand-14 through the
+  scorer (never-events 0, `[TO CONFIRM]` kept 7/7, facts exact at least 27, `pipeline_status` names
+  `exit_code`).
+- Inline rule tests: `classified_lines` 66 -> 83 (`CLS-005` 4 new, `CLS-110` 2 -> 4, `CLS-150` 1 -> 2,
+  `CLS-999` 17 -> 26), field rules 61 -> 66 (`EXT-FORM-010` 1 -> 3, `EXT-FORM-020` 1 -> 2, `EXT-HOLD-010` 27 ->
+  29), discrepancy rules 21 -> 28 (`DISC-035` 3 new, `DISC-020` 3 -> 4, `DISC-040` 5 -> 8).
+  `tests/test_rules.py` counts 90 rules (88 + `CLS-005` + `DISC-035`). 286 tests in all (275 in v2.0.5).
+- Measured by the builder on corpora already seen (`eval/history.json` run 15, commit `a982b7b`; NOT blind):
+  section 8.
+
 ## [2.0.5] - 2026-10-01 (freeze tag `v2.0.5-freeze`; not yet run blind)
 
 ### D34 - the limit "may publish" of v2.0.4 closed: every body line of a document of a recognised type is decided
