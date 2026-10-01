@@ -349,7 +349,10 @@ class D36_HandSixteenUnmasked(unittest.TestCase):
         got = score.evaluate("hand-16-unmasked", corpus=inp, gold_path=gold, work=work / "run")
         self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
         report = jsonio.load(work / "run" / "work" / "run_report.json")
-        self.assertEqual(report["entities"]["E-0014"]["status"], "OK")
+        # v2.0.7 and v2.0.8: E-0014 OK with every field [TO CONFIRM]; since v2.0.9 (D38) E-0014 is blocked: the persons
+        # of its holders' rows are not of the gazetteer (free_text_identification), the rows are read by no rule and may
+        # state a holding (OWN-015); the price of CHANGELOG 2.0.9 section 3
+        self.assertEqual(report["entities"]["E-0014"]["status"], "BLOCKED")
         self.assertEqual(report["entities"]["E-0017"]["status"], "BLOCKED")
         v14 = jsonio.load(work / "run" / "work" / "views" / "E-0014.json")
         self.assertTrue(all(f["status"] == "TO_CONFIRM" for f in v14["fields"].values()), v14["fields"])
@@ -359,12 +362,13 @@ class D36_HandSixteenUnmasked(unittest.TestCase):
 
 
 class D36_PlainAddressesStillRead(unittest.TestCase):
-    """The cost side: the addresses of the generator's forms, a street with a particle and a Roman numeral, an
-    'interno', are still read and published; a street named after nobody the corpus knows is a street."""
+    """The cost side: the addresses of the generator's forms, with a house number and an 'interno', are still read and
+    published. Changed in v2.0.9 (D38): a street with a Roman numeral, a street or a town that the gazetteer does not
+    hold is no longer read (test_addresses_outside_the_gazetteer, below; the price of CHANGELOG 2.0.9 section 3)."""
 
     def test_plain_addresses(self):
-        for addr in (mk.OFFICE_A, "Via XX Settembre 4, Borgoprova (ZZ)", "Corso dell'Arsenale 12/B, Montefinto (ZZ)",
-                     "Via Giuseppe Collaudi 3, San Fittizio (ZZ) - interno 4", "Via Nuova 1, Montefinto (ZZ)"):
+        for addr in (mk.OFFICE_A, "Corso della Prova 12/B, Montefinto (ZZ)",
+                     "Piazza Inventata 3, Valcollaudo (ZZ) - interno 4", "Viale Simulato 1, Montefinto (ZZ)"):
             with self.subTest(addr=addr):
                 status, view, prov = _run([deed(office_line=f"2. Registered office. The registered office is at {addr}."),
                                            extract(office_line=f"Registered office: {addr}")])
@@ -373,6 +377,22 @@ class D36_PlainAddressesStillRead(unittest.TestCase):
                                   view["fields"]["registered_office"].get("value")), ("STATED", addr))
                 for f in ("directors", "shareholders", *CAPITAL_FIELDS):
                     self.assertEqual(view["fields"][f]["status"], "STATED", f)
+
+    def test_addresses_outside_the_gazetteer(self):
+        """The price, declared in CHANGELOG 2.0.9: the addresses v2.0.8 read here - a Roman numeral in the street, a
+        particle the gazetteer does not hold, a street named after a person, a town of two words, a street named
+        'Nuova' - are not identified (IDN-010, IDN-999): the line is open, every field stays [TO CONFIRM] (DISC-006)
+        and no value of the office is read from it, however many documents agree. A line that holds a numeral in the
+        slot (IDN-010) or a person's surname (HEV-080) may state a holding, and the entity blocks (OWN-015)."""
+        for addr, want in (("Via XX Settembre 4, Borgoprova (ZZ)", "BLOCKED"),
+                           ("Corso dell'Arsenale 12/B, Montefinto (ZZ)", "OK"),
+                           ("Via Giuseppe Collaudi 3, San Fittizio (ZZ) - interno 4", "BLOCKED"),
+                           ("Via Nuova 1, Montefinto (ZZ)", "OK")):
+            with self.subTest(addr=addr):
+                status, view, prov = _run([deed(office_line=f"2. Registered office. The registered office is at {addr}."),
+                                           extract(office_line=f"Registered office: {addr}")])
+                self.assertEqual(status, want)
+                self.assertTrue(all(f["status"] == "TO_CONFIRM" for f in view["fields"].values()), view["fields"])
 
     def test_no_house_number_is_a_declared_limit(self):
         """The price, declared in CHANGELOG 2.0.7: an address without a house number is no longer an address (v2.0.6
@@ -583,9 +603,12 @@ class D36_ResidualWordList(unittest.TestCase):
     the corpus knows and state something with a verb of no class of slot_not_name_word ('governa', 'presiede'). The
     address passes every check of the slot, the line closes, and every field is published - the directors included,
     whatever those words were meant to say. No grammar tells such a street from 'Via Giuseppe Garibaldi 1'. When this
-    test passes, the residual is closed and section 4 must say so."""
+    test passes, the residual is closed and section 4 must say so.
 
-    @unittest.expectedFailure
+    Closed in v2.0.9 (D38, CHANGELOG 2.0.9 sections 1 and 4): an address is taken as written only when every word is
+    identified by the gazetteer (rules/extract.json free_text_identification), so these streets and towns are not
+    addresses; the test passes and is no longer marked as an expected failure."""
+
     def test_vowel_words_of_no_class_inside_an_address(self):
         published = []
         for addr in ("Via Ugo Nessuno Governa 1, Montefinto (ZZ)", "Via Nuova 1, Montefinto Ugo Nessuno Presiede (ZZ)"):

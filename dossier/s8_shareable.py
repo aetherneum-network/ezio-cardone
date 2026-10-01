@@ -105,7 +105,7 @@ def leaks(out_dir: Path | str, identity: dict) -> list[str]:
     """Identity-layer strings found in the shareable files of a folder (must be empty)."""
     d = Path(out_dir)
     text = jsonio.read_text(d / NAMES[1]) + jsonio.read_text(d / "graph.json")
-    doc = Document(str(d / NAMES[0]))
+    doc = Document(jsonio.ext(d / NAMES[0]))
     parts = [p.text for p in doc.paragraphs]
     for t in doc.tables:
         parts.extend(c.text for r in t.rows for c in r.cells)

@@ -1,6 +1,6 @@
 {
   "file": "extract.json",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
@@ -75,13 +75,37 @@
     "slot_address_part": "^(?P<street>{slot_street}) {slot_house_number}, (?P<town>{slot_town}) {slot_province}(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?$",
     "slot_address_word": "^(?:[^\\W\\d_]*[aeiouàáèéìíòóùú]|{slot_particle}|d|dell|nell|sull|all|dall|sant|l|san|gran|castel|col|mar|pian|fior|val|bel|mont|pont|(?-i:[IVXLCDM]{1,6}))$",
     "slot_address_note": "Since v2.0.7 (D36): the street and the town of an address (slot_address_part) are made of words of the form of an Italian place name: each run of letters ends in a vowel, or is a particle (slot_particle, or an elided one: d', dell', nell', sull', all', dall', sant', l'), a truncated form of a place name (San, Gran, Castel, Col, Mar, Pian, Fior, Val, Bel, Mont, Pont) or a Roman numeral (Via XX Settembre). A word of any other form (every English word that ends in a consonant: a verb in -s, -ed, -ing, a noun of role) makes the address one that holds more than an address: the line is open (CLS-999, DISC-006) and the office is not read from it (value_slot). Counted by the builder with this function on the recorded corpora (the suites, seeds 20261011 to 20261016 plain and perturbed, the out-of-pool corpus of run 5, the hand corpora of runs 7, 9, 11, 14 and 16, the scenarios): 8845 of 8848 addresses pass; the 3 that do not are one address without a house number (hand-11 E-0009, 'Piazza Senza Numero'), which is no longer read as an address - a known limit that keeps every field [TO CONFIRM] (CHANGELOG 2.0.7); in hand-11 its fields were [TO CONFIRM] already (DISC-005). A word of this form that states something (an Italian or English word ending in a vowel that is none of the classes of slot_not_name_word) is not caught: [TO CONFIRM], CHANGELOG 2.0.7 section 4.",
-    "slot_note_2_0_7": "Since v2.0.7 (D36, the blind run of v2.0.6, eval/history.json run 16: the typed-slot probes of hand-16, and their siblings by class in tests/test_d36_forms.py). (1) An address is a street, a house number, a town and the province in parentheses (optionally ' - interno', ' - scala' or ' - piano' and a mark), then nothing but the end of the line or the sentence's own full stop: the house number is no longer optional, so that no word stands in its place, and the readers of the registered office (EXT-OFFICE-010, -020, -030) read only such an address (value_slot: each address read is judged as the slot w_office of classified_lines; one that fails, and the office is not read from the line). (2) slot_not_name_word adds the endings of English verb forms that no Italian name has (-ing, -s; -ed was there) and the commonest irregular past forms (sold, bought, took, left, paid...): a capitalised verb inside a street or a town is a statement, not a name. (3) Equality where the corpus knows the value: the name beside an identifier closes its line only when it is that identifier's own known name (CLS-005: an identifier whose own name is known nowhere in the corpus cannot be checked, and its line is open), and a value that is its identifier's or its entity's own known name is a name whatever its words (so 'Holding' or 'Trading' in a company's own name is not a verb); a known person's or company's name inside an address (the groups of slot_address_groups) leaves the line open. What still rests on a word list: a street or a town of words that are none of these classes ([TO CONFIRM], CHANGELOG 2.0.7 section 4).",
+    "slot_note_2_0_7": "Since v2.0.7 (D36, the blind run of v2.0.6, eval/history.json run 16: the typed-slot probes of hand-16, and their siblings by class in tests/test_d36_forms.py). (1) An address is a street, a house number, a town and the province in parentheses (optionally ' - interno', ' - scala' or ' - piano' and a mark), then nothing but the end of the line or the sentence's own full stop: the house number is no longer optional, so that no word stands in its place, and the readers of the registered office (EXT-OFFICE-010, -020, -030) read only such an address (value_slot: each address read is judged as the slot w_office of classified_lines; one that fails, and the office is not read from the line). (2) slot_not_name_word adds the endings of English verb forms that no Italian name has (-ing, -s; -ed was there) and the commonest irregular past forms (sold, bought, took, left, paid...): a capitalised verb inside a street or a town is a statement, not a name. (3) Equality where the corpus knows the value: the name beside an identifier closes its line only when it is that identifier's own known name (CLS-005: an identifier whose own name is known nowhere in the corpus cannot be checked, and its line is open), and a value that is its identifier's or its entity's own known name is not tested by slot_not_name_word (so 'Holding' or 'Trading' in a company's own name is not a verb) [corrected in v2.0.9, D38: first written 'is a name whatever its words', which did not hold - the topic words (slot_topics) were still applied to it, and a street word such as 'Borgo' in an own name opened its line (hand-20 E-0007, E-0020); since v2.0.9 an own name is decided by equality with its header and by identification, slot_note_2_0_9]; a known person's or company's name inside an address (the groups of slot_address_groups) leaves the line open. What still rests on a word list: a street or a town of words that are none of these classes ([TO CONFIRM], CHANGELOG 2.0.7 section 4).",
     "slot_own_name_groups": ["w_name"],
     "slot_own_name_note": "Since v2.0.6 (D35): a slot that holds the entity's own name (the deed's 'is named', the extract's 'Name:', a label line with a company name) closes its line only when it is the name of the document's own header 'Entity:', spaces collapsed and the legal form at its end set aside (rules/discrepancy.json legal_form_in_name: a legal form that differs is DISC-035's, not a word of the name). Any other word makes it differ: the line falls to the next rule, and to CLS-999. A document whose header names no entity has no own name to compare: its slots are judged by slot_not_name_word only.",
     "slot_note_2_0_6": "Since v2.0.6 (D35, probes E-0011 and E-0012 of the blind run of v2.0.5, eval/history.json run 14): a slot that holds a name - a person, a company, a street or a town (the groups of slot_name_groups, and the name beside an identifier in a list line) - holds only words that can be part of a name. Every word of it (a run of letters) is tested, case ignored, against slot_not_name_word, by class: role and office nouns, nouns and adjectives of holding and ownership (sole, owner, proprietress, holder, member, majority...), adverbs of time and manner (henceforth, now, until, since...), English function words (articles, pronouns, auxiliaries, prepositions, conjunctions), the Italian words of role, holding and time, and the endings of English words that no Italian name has (-ly, -forth, -after, -ward(s), -ship, -hood, -ness, -ess, -trix, -tion, -sion, -ment, -ity, -ous, -ed). One such word and the slot names every field: no rule closes the line, which falls to CLS-999 (the document may change every field, DISC-006; the line is checked for holdings, OWN-015). The person slot of 2.0.5 admitted 'Hilde Simulanti Sole Proprietress Henceforth' (five capitalised words) with no check; a capitalised word that is none of these classes still passes this test, so the name beside an identifier is also compared with its own value where one is known (CLS-005).",
     "slot_text_groups": ["w_title", "w_label"],
     "text_recognised": {"w_title": ["Minutes of the holders' meeting (synthetic)", "Notice of a transfer of shares (synthetic)"], "w_label": []},
     "slot_note_2_0_8": "Since v2.0.8 (D37): the free-text slots that decide a field or close a line are decided by corroboration and equality, never by the form or the list of their words: an address (address_corroboration), the company's name of the header 'Entity:' (name_corroboration), the title of CLS-900 and the label of CLS-250 (text_corroboration, groups slot_text_groups). text_recognised: the titles and labels that the pack's own builders write (corpus/templates.py, scenarios/make_inputs.py), which count as corroborated as a document type label does (doc_kinds): by equality, whole text, nothing normalised but spaces. The builders write no label that CLS-250 closes (their headings are closed as lists, CLS-020).",
+    "gazetteer_town": ["Montefinto", "Valfittizia", "Borgoprova", "Collesintesi", "Roccaesempio", "Pietrafinta", "Campomodello", "Pontecollaudo", "Villasimulata", "Portoinventato", "Selvaprototipo", "Fontesegnaposto", "Castelfittizio", "Pratofinto", "Rivaprova", "Poggioesempio", "Torremodello", "Lagosintetico", "Serrafinta", "Casalprova", "Monteprototipo", "Valcollaudo", "Aurelia", "Collelungo", "Monteverde"],
+    "gazetteer_province": ["ZZ"],
+    "gazetteer_street_type": ["Via", "Viale", "Piazza", "Corso", "Vicolo", "Largo"],
+    "gazetteer_street_name": ["del Collaudo", "del Campione", "della Prova", "dei Modelli", "Fittizio", "degli Esempi", "Simulato", "dei Prototipi", "del Segnaposto", "Inventata"],
+    "gazetteer_trade": ["Officine", "Cantieri", "Molini", "Vetrerie", "Cartiere", "Conserve", "Laterizi", "Falegnamerie", "Distillerie", "Fonderie", "Tipografie", "Frantoi", "Saline", "Filande", "Ceramiche", "Immobiliare", "Finanziaria", "Fornaci", "Fornace", "Tessiture"],
+    "gazetteer_first_name": ["Aldo", "Bice", "Carlo", "Dora", "Elio", "Franca", "Gino", "Ida", "Livio", "Mara", "Nino", "Olga", "Piero", "Rita", "Sergio", "Tina", "Ugo", "Vera", "Walter", "Zita", "Lia", "Remo", "Nora", "Dino", "Fulvia"],
+    "gazetteer_surname": ["Finti", "Provetti", "Sintetici", "Esempi", "Fittizi", "Immaginari", "Modelli", "Segnaposto", "Collaudi", "Simulati", "Inventati", "Prototipi", "Campioni", "Fantasmi", "Fasulli", "Ipotetici", "Campione", "Posticci"],
+    "gazetteer_street": "<street_type> <street_name>",
+    "identification_source": {
+      "value": "pack_gazetteer",
+      "allowed": ["pack_gazetteer"],
+      "status": "[TO CONFIRM with legal]",
+      "note": "A town, a province, a street, a company's name (its legal form set aside) and a person's name are taken as written only when every word is identified by the gazetteer of the pack (rules/extract.json gazetteer_*, the closed list of the synthetic world) and holds no numeral (free_text_identification); anything else keeps every field the document may change [TO CONFIRM], and blocks when it may state a holding. On real documents the list would be an official one - the register of municipalities and provinces, the street register of each municipality, the name registered with the business register for a company, the register of persons for a person: which list identifies which slot, and whether a value no list holds may ever be taken as written, is a legal question. Added in v2.0.9 (D38, eval/history.json run 20)."
+    },
+    "identify_address": "^<street> {slot_house_number}, <town> \\(<province>\\)(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?$",
+    "identify_company": "^(?:<trade> <town>|(?-i:Holding) <town> (?-i:Partecipazioni))$",
+    "identify_person": "^<first_name> <surname>$",
+    "gazetteer_note": "Since v2.0.9 (D38, the blind run of v2.0.8, eval/history.json run 20: hand-20 E-0009 wrote 'Monte Spurio Dotazione Novantamila' as the town of its office alike in the deed and the extract, E-0010 'Birrificio Pieve Supposta Dotazione Novantamila S.r.l.' as its name alike in every document; corroborated, both published the capital those words speak of). The gazetteer is the closed list of the synthetic world: the places, the street types and street names, the trade words and the first names and surnames that the generator draws from (corpus/world.py TOPONYMS, STREETS, SECTORS, FIRST, LAST) and that the pack's own builders write (scenarios/make_inputs.py: the places Aurelia, Collelungo and Monteverde and the trade words Fornace and Tessiture of its four companies, the first name Fulvia and the surnames Campione and Posticci of its persons); the province is the invented (ZZ). Each entry is matched whole, case and particles included, nothing normalised but spaces (<x> in identify_address, identify_company, identify_person and gazetteer_street is one entry of gazetteer_x; {x} is a slot parameter). The patterns state how the entries combine: an address is a street (a street type and a street name), a house number of the slot grammar, a town and the province, and optionally ' - interno', ' - scala' or ' - piano' and a mark; a company's name, its legal form at the end set aside (rules/discrepancy.json legal_form_in_name: the legal form is DISC-035's), is a trade word and a town, or 'Holding', a town and 'Partecipazioni'; a person's name is a first name and a surname. For real use the gazetteer is the official list of the municipalities and provinces, the street register of each municipality, the name registered with the business register for a company and with the register of persons for a person: [TO CONFIRM with legal] (docs/ASSUMPTIONS.md).",
+    "numeral_word_it": "(?:zero|un[oa]?|due|tr[eé]|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici|tredici|quattordici|quindici|sedici|diciassette|diciotto|diciannove|venti?|trenta?|quaranta?|cinquanta?|sessanta?|settanta?|ottanta?|novanta?|cento|mille|mila|milion[ei]|miliard[oi]|mezz[oa]|metà|terz[oi]|quart[oi]|decim[oi]|centesim[oi]|millesim[oi])+",
+    "numeral_word_en": "(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|half|halves|quarters?|thirds?|dozens?)(?:-(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|half|quarters?|thirds?))*",
+    "numeral_token": "^(?:.*\\d.*|{numeral_word_it}|{numeral_word_en}|(?-i:(?=[MDCLXVI]{2,}$)M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})))$",
+    "numeral_note": "Since v2.0.9 (D38): a word of a free-text slot is a numeral when it holds a digit, is an Italian number word (its whole made of the parts of numeral_word_it: tremila, novantamila, duecento, ventuno, metà, terzi...), an English number word (numeral_word_en, hyphenated compounds included) or a Roman numeral of two letters or more (XX). The words of a slot are its runs of letters and digits (an apostrophe or a hyphen inside a run keeps it whole); of an address only the street and the town are tested (the house number and the mark of ' - interno' are typed by the slot grammar, the province is two letters). A numeral in a slot means the slot may state a quantity (free_text_identification IDN-010).",
+    "identification_slot_classes": {"w_office": "address", "w_previous": "address", "w_name": "company", "w_person": "person", "w_person_first": "person", "w_title": "title", "w_label": "label"},
+    "slot_note_2_0_9": "Since v2.0.9 (D38): every free-text slot is decided by positive identification of every word, not by the agreement of the documents, nor by a list of suspicious words, nor by form (rules/extract.json free_text_identification, the gazetteer above): a slot of identification_slot_classes closes its line only when free_text_identification decides it 'identified' (an address also needs no name known to the corpus inside it); the topic words (slot_topics) are no longer applied to such a slot, so the entity's own name is decided by equality with its header and identification, never by a topic list (D38 (b): 'Borgo' in an own name). The names known to the corpus (CLS-005) are the identified ones: a person's name of the identity layer that IDN-040 identifies, a company's name of an Entity: header that IDN-030 identifies. Corroboration (address_corroboration, name_corroboration) stays on top of identification; a title or a label closes its line only when it is a recognised text (text_corroboration TXT-005), no longer because another document states it alike (TXT-020).",
     "filename_pattern":"^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
@@ -681,7 +705,7 @@
         "pattern": "^(?:{clause_number}\\s*)?(?:name\\s+and\\s+form\\.\\s+)?(?:the\\s+company\\s+is\\s+named|the\\s+name\\s+of\\s+the\\s+company\\s+is)\\s+(?P<w_name>{slot_company});\\s+(?:its\\s+legal\\s+form\\s+is|it\\s+takes\\s+the\\s+legal\\s+form\\s+of)\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
         "rationale": "Deed clause on name and form, the whole line: a company name, one of the two legal forms. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by EXT-FORM-010 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
         "tests": [
-          {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.r.l.; its legal form is S.r.l..", "expect": ["name", "legal_form"], "expect_may_change": []},
+          {"kind": "DEED", "text": "1. Name and form. The company is named Fonderie Torremodello S.r.l.; its legal form is S.r.l..", "expect": ["name", "legal_form"], "expect_may_change": []},
           {"kind": "DEED", "entity": "Officine Montefinto S.r.l.", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
           {"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
           {"kind": "DEED", "text": "1. Name and form. The name of the company is Cartiere Villasimulata S.r.l.; it takes the legal form of S.r.l.", "expect": ["name", "legal_form"]}
@@ -727,7 +751,7 @@
         "rationale": "Registry extract line 'Name:': a company name, whose legal form is part of the name.",
         "tests": [
           {"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": ["name"], "expect_may_change": []},
-          {"kind": "EXTRACT", "entity": "Fonderia Torre Esemplare S.r.l.", "text": "Name: Fonderia Torre Esemplare S.p.A.", "expect": ["name"], "expect_may_change": []}
+          {"kind": "EXTRACT", "entity": "Fonderie Torremodello S.r.l.", "text": "Name: Fonderie Torremodello S.p.A.", "expect": ["name"], "expect_may_change": []}
         ]
       },
       {
@@ -847,7 +871,7 @@
         "rationale": "A director line outside a list that EXT-DIR-010 read: a person identifier with a person's name. It states the directors only; when the directors are read from another list, the line was not read: the document may change the directors (DISC-006).",
         "tests": [
           {"kind": "DEED", "text": "5. Board.\n- Lia Fittizi (P-034)", "line": 2, "expect": ["directors"], "expect_may_change": ["directors"]},
-          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)\n\n- P-035 (Ugo Prova)", "line": 4, "expect": ["directors"], "expect_may_change": ["directors"]}
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)\n\n- P-035 (Ugo Provetti)", "line": 4, "expect": ["directors"], "expect_may_change": ["directors"]}
         ]
       },
       {
@@ -878,7 +902,6 @@
         "rationale": "A title, the whole line: a title noun of FEV-920, one phrase with no sentence and no figure in it, marked as invented. Its words may name only the fields of the kind of the document ('Minutes - capital increase' in a resolution); a title that names another field ('... and new seat') is not a title here.",
         "tests": [
           {"kind": "RESOLUTION", "text": "Minutes of the holders' meeting (synthetic).", "expect": []},
-          {"kind": "APPOINTMENT", "text": "Minutes - change of the board (synthetic).", "expect": []},
           {"kind": "TRANSFER", "text": "Notice of a transfer of shares (synthetic).", "expect": []}
         ]
       },
@@ -899,6 +922,9 @@
         "rationale": "Default: a line that no rule above explains may state any field, as a line of an unread document does. The document may change every field of its entity (DISC-006), and the line is checked for holdings (holders_evidence, OWN-015).",
         "tests": [
           {"kind": "RESOLUTION", "text": "The new quotas are subscribed by P-009 (Ugo Apparenti).", "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "APPOINTMENT", "text": "Minutes - change of the board (synthetic).", "expect": ["*"]},
+          {"kind": "EXTRACT", "entity": "Fonderia Torre Esemplare S.r.l.", "text": "Name: Fonderia Torre Esemplare S.p.A.", "expect": ["*"]},
+          {"kind": "DEED", "text": "5. Board.\n- Ugo Prova (P-035)", "line": 2, "expect": ["*"]},
           {"kind": "TRANSFER", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["*"]},
           {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ). P-009 (Ugo Apparenti) is appointed director.", "expect": ["*"]},
           {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Borgo Director Ugo (ZZ).", "expect": ["*"]},
@@ -924,6 +950,91 @@
           {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Owner S.r.l.; its legal form is S.r.l.", "expect": ["*"]},
           {"kind": "EXTRACT", "text": "Seat: Via dei Tralci 14, Costa Apocrifa Now (ZZ)", "expect": ["*"]},
           {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Montefinto Henceforth (ZZ).", "expect": ["*"]}
+        ]
+      }
+    ]
+  },
+  "free_text_identification": {
+    "reading": "Since v2.0.9 (D38, the blind run of v2.0.8, eval/history.json run 20: hand-20 E-0009 and E-0010 wrote words that state a capital inside a town and inside a company's name, alike in every document; corroboration took the agreement of the documents for a fact, and the capital was published). A free-text slot is decided by POSITIVE identification of every one of its words, whether the documents agree or not: each word is accounted for by the gazetteer of the synthetic world (parameters gazetteer_*, combined by identify_address, identify_company, identify_person) or by the pack's own recognised texts (text_recognised), whole, nothing normalised but spaces. No list of suspicious words and no form decides: a word that the gazetteer does not hold is unaccounted for, whatever it says. The class of each slot is parameter identification_slot_classes; a company's name of a header 'Entity:' is of class company, a person's name of the identity layer of class person. The rules are ordered, first match wins, the exception on top. A slot decided 'quantity' or 'unidentified' does not close its line: the line is one that no rule explains (CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event of a field); 'quantity' also means the line may state a holding (OWN-015 blocks). A header name not identified is decided by name_corroboration NAM-005; a name of the identity layer or of a header that is not identified is not a name known to the corpus (CLS-005).",
+    "rules": [
+      {
+        "id": "IDN-010",
+        "when": "numeral",
+        "outcome": "quantity",
+        "rationale": "Exception on top (principle (iii) of D38): a numeral (parameter numeral_token: digits, Italian and English number words, a Roman numeral) in the free words of a slot - for an address, in its street or its town: its house number and the mark of ' - interno' are typed by the slot grammar - means that the slot may state a quantity: an amount, a number of quotas, a share. Not identified, and the line may state a holding: OWN-015 blocks. No entry of the gazetteer holds a numeral.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Montefinto Dotazione Novantamila (ZZ)", "expect": "IDN-010"},
+          {"class": "address", "text": "Via XX Settembre 4, Borgoprova (ZZ)", "expect": "IDN-010"},
+          {"class": "company", "text": "Officine Montefinto Tremila S.r.l.", "expect": "IDN-010"},
+          {"class": "company", "text": "Fornace Aurelia Ninety-Five S.r.l.", "expect": "IDN-010"},
+          {"class": "person", "text": "Aldo Finti Trenta", "expect": "IDN-010"},
+          {"class": "title", "text": "Minutes of the 2 holders' meetings (synthetic)", "expect": "IDN-010"},
+          {"class": "label", "text": "Quota Sessanta", "expect": "IDN-010"}
+        ]
+      },
+      {
+        "id": "IDN-020",
+        "when": "identified",
+        "classes": ["address"],
+        "outcome": "identified",
+        "rationale": "Principles (i) and (ii) of D38: the street is a street type and a street name of the gazetteer, the house number is of the slot grammar, the town and the province are entries of the gazetteer, and an optional ' - interno', ' - scala' or ' - piano' and a mark (parameter identify_address). Every word is accounted for: the slot names the office and nothing else.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova (ZZ)", "expect": "IDN-020"},
+          {"class": "address", "text": "Piazza Inventata 3, Valcollaudo (ZZ) - interno 2", "expect": "IDN-020"},
+          {"class": "address", "text": "Corso della Prova 12/B, Montefinto (ZZ)", "expect": "IDN-020"}
+        ]
+      },
+      {
+        "id": "IDN-030",
+        "when": "identified",
+        "classes": ["company"],
+        "outcome": "identified",
+        "rationale": "Principle (iv) of D38: a company's name is accepted only when it is a name the register of the synthetic world can hold (parameter identify_company: a trade word and a town, or 'Holding', a town and 'Partecipazioni'), the legal form at its end set aside (rules/discrepancy.json legal_form_in_name; a legal form that differs from the one stated is DISC-035's). Any other word, before the legal form, inside it or after it, is unaccounted for.",
+        "tests": [
+          {"class": "company", "text": "Officine Montefinto S.r.l.", "expect": "IDN-030"},
+          {"class": "company", "text": "Holding Borgoprova Partecipazioni S.p.A.", "expect": "IDN-030"},
+          {"class": "company", "text": "Fornace Aurelia S.r.l.s.", "expect": "IDN-030"}
+        ]
+      },
+      {
+        "id": "IDN-040",
+        "when": "identified",
+        "classes": ["person"],
+        "outcome": "identified",
+        "rationale": "Principle (iv) of D38 applied to persons: a person's name is a first name and a surname of the gazetteer (parameter identify_person). A name of the identity layer that is not identified is not a name known to the corpus, and a name beside an identifier closes its line only when it is that identifier's own known name (CLS-005).",
+        "tests": [
+          {"class": "person", "text": "Aldo Finti", "expect": "IDN-040"},
+          {"class": "person", "text": "Fulvia Posticci", "expect": "IDN-040"}
+        ]
+      },
+      {
+        "id": "IDN-050",
+        "when": "identified",
+        "classes": ["title", "label"],
+        "outcome": "identified",
+        "rationale": "A title of CLS-900 or a label of CLS-250 is identified only when it is one of the texts the pack's own builders write (parameter text_recognised, by group), whole, nothing normalised but spaces. That another document states it alike no longer identifies it (text_corroboration TXT-020).",
+        "tests": [
+          {"class": "title", "text": "Minutes of the holders' meeting (synthetic)", "expect": "IDN-050"},
+          {"class": "title", "text": "Notice of a transfer of shares (synthetic)", "expect": "IDN-050"}
+        ]
+      },
+      {
+        "id": "IDN-999",
+        "when": "always",
+        "outcome": "unidentified",
+        "rationale": "Default: a word of the slot is not accounted for - a place, a street, a trade word or a name that the gazetteer does not hold, words added before, inside or after it, a particle written otherwise ('Via Del Collaudo'), a name written surname first. The slot does not close its line: every field [TO CONFIRM] (DISC-006); when the line may state a holding (holders_evidence), OWN-015 blocks.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Monte Spurio Dotazione (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via Del Collaudo 7, Borgoprova (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova Ora (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova (MI)", "expect": "IDN-999"},
+          {"class": "company", "text": "Conceria Borgo Illusorio S.r.l.", "expect": "IDN-999"},
+          {"class": "company", "text": "Officine Soci Cambiati Montefinto S.r.l.", "expect": "IDN-999"},
+          {"class": "company", "text": "Officine Montefinto S.r.l. Quote Cedute", "expect": "IDN-999"},
+          {"class": "person", "text": "Finti Aldo", "expect": "IDN-999"},
+          {"class": "person", "text": "Aldo Finti Amministra", "expect": "IDN-999"},
+          {"class": "title", "text": "Minutes of the board (synthetic)", "expect": "IDN-999"},
+          {"class": "label", "text": "Registered address", "expect": "IDN-999"}
         ]
       }
     ]
@@ -1002,6 +1113,17 @@
         ]
       },
       {
+        "id": "NAM-005",
+        "when": "not_identified",
+        "outcome": "unexplained",
+        "rationale": "Since v2.0.9 (D38, hand-20 E-0010: 'Birrificio Pieve Supposta Dotazione Novantamila S.r.l.' in the header and the name slot of every document, corroborated by NAM-020, and the capital those words speak of published): a header name that free_text_identification does not decide 'identified' (IDN-030) has words that nothing accounts for, however many documents state it alike. The document is one that no rule explains, as with NAM-010: DISC-006 keeps every field [TO CONFIRM] when it is not older than the latest event document of a field; no name of that document is read; the name is checked for holdings (holders_evidence), and a numeral in it (IDN-010) means it may state a holding: OWN-015 blocks. Below NAM-010 only so that a name equal to another plus words keeps that more precise reason; both have the same outcome.",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Birrificio Pieve Supposta Dotazione Novantamila S.r.l."}, {"doc": "D2", "name": "Birrificio Pieve Supposta Dotazione Novantamila S.r.l."}], "header": 0, "expect": "NAM-005"},
+          {"headers": [{"doc": "D1", "name": "Conceria Borgo Illusorio S.r.l."}], "header": 0, "expect": "NAM-005"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Boreale S.r.l."}], "header": 1, "expect": "NAM-005"}
+        ]
+      },
+      {
         "id": "NAM-020",
         "when": "corroborated",
         "outcome": "fact",
@@ -1029,6 +1151,16 @@
     "reading": "Since v2.0.8 (D37: the principle of address_corroboration applied to the free text that closes a line without deciding a field: the title of CLS-900 and the label of CLS-250, the groups of slot_text_groups). Until v2.0.7 their words were checked by topic words (slot_topics), a word list: words of another language or of no list passed, and a title or a label could carry a change of a field that no rule saw. A title or a label closes its line only when it is corroborated. Decided over the whole input, after every document is parsed: a TEXT is the group of slot_text_groups in any body line, of any document that carries the SYNTHETIC marker, that the pattern of CLS-900 or CLS-250 matches (whether the line closes or not); its tokens are its text with spaces collapsed, cut at spaces and before each comma; nothing else is normalised. A title or a label is the form of the corpus, not a statement about one entity: it is corroborated by another document of the input that states it alike, or by being a text the pack's own builders write (parameter text_recognised). The rules are ordered, first match wins, the exception on top. A line that a rule of classified_lines closes with a title or a label that is not corroborated is a line that no rule explains (as CLS-999: DISC-006 every field, OWN-015 when it may state a holding).",
     "rules": [
       {
+        "id": "TXT-005",
+        "when": "recognised",
+        "outcome": "fact",
+        "rationale": "Since v2.0.9 (D38): the text is one of text_recognised (the titles the pack's own builders write), whole, nothing normalised but spaces: identified (free_text_identification IDN-050), the line is decided by its rule as before. Until v2.0.8 this case was part of TXT-020.",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-005"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Notice of a transfer of shares (synthetic)"}, {"doc": "D2", "group": "w_title", "text": "Notice of a transfer of shares (synthetic)"}], "text": 0, "expect": "TXT-005"}
+        ]
+      },
+      {
         "id": "TXT-010",
         "when": "plus_words",
         "outcome": "unexplained",
@@ -1042,10 +1174,9 @@
       {
         "id": "TXT-020",
         "when": "corroborated",
-        "outcome": "fact",
-        "rationale": "Another document of the input states the same text of the same group, token for token, or the text is one of text_recognised (the titles the pack's own builders write). The line is decided by its rule as before.",
+        "outcome": "unexplained",
+        "rationale": "Another document of the input states the same text of the same group, token for token, and it is not a recognised text. Since v2.0.9 (D38) this no longer makes it a fact: the agreement of the documents accounts for none of its words (the premise of corroboration, closed by free_text_identification), so its line is read by no rule (CLS-999), as TXT-999. Until v2.0.8 the outcome was 'fact', and a recognised text was decided here (now TXT-005).",
         "tests": [
-          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-020"},
           {"texts": [{"doc": "D1", "group": "w_label", "text": "Registered address"}, {"doc": "D2", "group": "w_label", "text": "Registered address"}], "text": 0, "expect": "TXT-020"},
           {"texts": [{"doc": "D1", "group": "w_label", "text": "Form of the company"}, {"doc": "D2", "group": "w_label", "text": "Form of the company"}, {"doc": "D3", "group": "w_title", "text": "Form of the company"}], "text": 1, "expect": "TXT-020"}
         ]

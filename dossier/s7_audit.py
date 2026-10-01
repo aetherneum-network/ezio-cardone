@@ -304,18 +304,93 @@ def address_audit(read: list[tuple[dict, dict]]) -> dict:
     return out
 
 
-def name_audit(read: list[tuple[dict, dict]]) -> dict:
+class _Ident:
+    """The audit's own identification of a free-text slot (v2.0.9, D38): a second implementation of rules/extract.json
+    free_text_identification. The gazetteer lists are read as sets of whole entries and the slot is cut by the
+    audit's own reading (an address: a street of the gazetteer, then the house number of the slot grammar, a comma, a
+    town and a province of the gazetteer in parentheses, optionally a mark; a company's name: a trade and a town, or
+    'Holding', a town and 'Partecipazioni', before the legal form; a person's name: a first name and a surname); a
+    title or a label is a recognised text. A numeral (parameter numeral_token) is looked for in the street and the town
+    of an address and in the whole of any other slot."""
+
+    def __init__(self, rules: Rules):
+        p = rules.extract["parameters"]
+        self.towns, self.provinces = set(p["gazetteer_town"]), set(p["gazetteer_province"])
+        self.streets = sorted({f"{t} {n}" for t in p["gazetteer_street_type"] for n in p["gazetteer_street_name"]},
+                              key=len, reverse=True)
+        self.trades, self.firsts, self.lasts = (set(p["gazetteer_trade"]), set(p["gazetteer_first_name"]),
+                                                set(p["gazetteer_surname"]))
+        self.house = re.compile(_expand_all(p["slot_house_number"], p))
+        self.tail = re.compile(r"(\S.*?) \(([^()]*)\)(?: - (?i:interno|scala|piano) [A-Z0-9]{1,3})?")
+        self.numeral_token = rx(_expand_all(p["numeral_token"], p))
+        self.address_part = rx(_expand_all(p["slot_address_part"], p))
+        self.texts = {g: {_adr_tokens(t) for t in v} for g, v in p["text_recognised"].items()}
+        self.classes = p["identification_slot_classes"]
+
+    def address(self, value: str) -> bool:
+        plain = " ".join(value.split())
+        for st in self.streets:
+            if not plain.startswith(st + " "):
+                continue
+            house, comma, rest = plain[len(st) + 1:].partition(", ")
+            m = self.tail.fullmatch(rest)
+            if comma and self.house.fullmatch(house) and m and m.group(1) in self.towns and m.group(2) in self.provinces:
+                return True
+        return False
+
+    def company(self, value: str) -> bool:
+        # an entry of the gazetteer may hold more than one word (a trade 'Cooperativa Agricola', a town 'Borgo
+        # Lontano'): every way of cutting the name into a trade and a town is tried, each part matched whole
+        bare = " ".join(_bare_name(value).split())
+        if any(bare.startswith(t + " ") and bare[len(t) + 1:] in self.towns for t in self.trades):
+            return True
+        return (bare.startswith("Holding ") and bare.endswith(" Partecipazioni")
+                and bare[len("Holding "):-len(" Partecipazioni")] in self.towns)
+
+    def person(self, value: str) -> bool:
+        plain = " ".join(value.split())
+        return any(plain.startswith(f + " ") and plain[len(f) + 1:] in self.lasts for f in self.firsts)
+
+    def numeral(self, value: str, cls: str = "") -> bool:
+        if cls == "address":
+            m = self.address_part.match(" ".join(value.split()))
+            if m:
+                value = m.group("street") + " " + m.group("town")
+        return any(self.numeral_token.search(w) for w in re.findall(r"[^\W_]+(?:['\u2019-][^\W_]+)*", value))
+
+    def ok(self, value: str, cls: str) -> bool:
+        """Identified: every word accounted for, and no numeral."""
+        if self.numeral(value, cls):
+            return False
+        if cls in ("title", "label"):
+            return _adr_tokens(value) in self.texts.get("w_" + cls, set())
+        return {"address": self.address, "company": self.company, "person": self.person}[cls](value)
+
+
+_IDENT_CACHE: dict[int, _Ident] = {}
+
+
+def _ident(rules: Rules) -> _Ident:
+    if id(rules) not in _IDENT_CACHE:
+        _IDENT_CACHE[id(rules)] = _Ident(rules)
+    return _IDENT_CACHE[id(rules)]
+
+
+def name_audit(read: list[tuple[dict, dict]], ident: _Ident | None = None) -> dict:
     """The company's names of the headers of one entity read again by the audit (v2.0.8, D37: a second
     implementation of rules/extract.json name_corroboration). ``read``: (document meta, classified_scope result) for
-    every document of the record. Returns {"docs": {doc_id: 'plus' | 'alone' | 'fact'}, "corroborated": token tuples
-    of the names that a second document states alike, "plus": token tuples of the names that are another name of the
-    entity plus words} (tokens: the name without the legal form at its end)."""
-    heads = [(meta["doc_id"], _adr_tokens(_bare_name(got["own"]))) for meta, got in read]
+    every document of the record. Returns {"docs": {doc_id: 'plus' | 'unidentified' | 'alone' | 'fact'},
+    "corroborated": token tuples of the names that a second document states alike, "plus": token tuples of the names
+    that are another name of the entity plus words} (tokens: the name without the legal form at its end). Since v2.0.9
+    (D38) a name that ``ident`` does not identify is 'unidentified' before any agreement of the documents."""
+    heads = [(meta["doc_id"], _adr_tokens(_bare_name(got["own"])), got["own"]) for meta, got in read]
     out: dict = {"docs": {}, "corroborated": set(), "plus": set()}
-    for d, tok in heads:
-        if any(o != d and _within(t, tok) for o, t in heads):
+    for d, tok, own in heads:
+        if any(o != d and _within(t, tok) for o, t, _ in heads):
             got = "plus"
-        elif any(o != d and t == tok for o, t in heads):
+        elif ident is not None and not ident.ok(own, "company"):
+            got = "unidentified"
+        elif any(o != d and t == tok for o, t, _ in heads):
             got = "fact"
         else:
             got = "alone"
@@ -378,21 +453,25 @@ _ENTITY_HEADER = re.compile(r"^Entity:\s*(.+) \(test registry no\. TEST-REG-(\d{
 _KNOWN_CACHE: dict[tuple, dict[str, set[str]]] = {}
 
 
-def own_names(input_dir: Path | str) -> dict[str, set[str]]:
+def own_names(input_dir: Path | str, ident: _Ident | None = None) -> dict[str, set[str]]:
     """identifier -> its own names, read again by the audit: the identity layer of the input and the header line
-    'Entity:' of every source file that opens with the SYNTHETIC marker."""
+    'Entity:' of every source file that opens with the SYNTHETIC marker. Since v2.0.9 (D38) only a name that ``ident``
+    identifies; the identifier of a person stays known with no name."""
     root = Path(input_dir)
     files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
-    ident = root / "identity" / "persons.json"
-    key = (str(root.resolve()),) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
-                                         for f in files + ([ident] if ident.exists() else []))
+    layer = root / "identity" / "persons.json"
+    key = (str(root.resolve()), id(ident)) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
+                                                    for f in files + ([layer] if layer.exists() else []))
     if key in _KNOWN_CACHE:
         return _KNOWN_CACHE[key]
     out: dict[str, set[str]] = {}
-    if ident.exists():
-        for pid, person in (json.loads(ident.read_text(encoding="utf-8")) or {}).items():
+    if layer.exists():
+        for pid, person in (json.loads(layer.read_text(encoding="utf-8")) or {}).items():
             if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
-                out.setdefault(pid, set()).add(" ".join(person["name"].split()))
+                name = " ".join(person["name"].split())
+                own = out.setdefault(pid, set())
+                if ident is None or ident.ok(name, "person"):
+                    own.add(name)
     for f in files:
         try:
             lines = jsonio.read_bytes(f).decode("utf-8").replace("\r\n", "\n").split("\n")
@@ -411,7 +490,8 @@ def own_names(input_dir: Path | str) -> dict[str, set[str]]:
     for eid in [k for k in out if k.startswith("E-")]:
         # since v2.0.8 (D37): a header name that is another header name of the same company plus words is not its own
         toks = {n: _adr_tokens(_bare_name(n)) for n in out[eid]}
-        out[eid] = {n for n in out[eid] if not any(_within(toks[o], toks[n]) for o in out[eid])}
+        out[eid] = {n for n in out[eid] if not any(_within(toks[o], toks[n]) for o in out[eid])
+                    and (ident is None or ident.ok(n, "company"))}
     _KNOWN_CACHE[key] = out
     return out
 
@@ -421,8 +501,8 @@ _TEXT_CACHE: dict[tuple, dict] = {}
 
 def corpus_texts(input_dir: Path | str, rules: Rules) -> dict[tuple[str, tuple[str, ...]], str]:
     """The titles and labels of the input read again by the audit (v2.0.8, D37: a second implementation of
-    rules/extract.json text_corroboration): (group, tokens) -> 'fact' when another file states the same text or it
-    is a recognised text, 'open' when it is another text plus words (never a recognised one) or alone."""
+    rules/extract.json text_corroboration): (group, tokens) -> 'fact' when it is a recognised text, 'open' otherwise
+    (since v2.0.9, D38: another file that states the same text accounts for none of its words)."""
     p = rules.extract["parameters"]
     root = Path(input_dir)
     files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
@@ -451,7 +531,7 @@ def corpus_texts(input_dir: Path | str, rules: Rules) -> dict[tuple[str, tuple[s
         own = tok in known.get(g, [])
         plus = not own and (any(g2 == g and _within(t2, tok) for g2, t2 in where)
                             or any(_within(t2, tok) for t2 in known.get(g, [])))
-        out[(g, tok)] = "open" if plus or not (own or len(fs) >= 2) else "fact"
+        out[(g, tok)] = "fact" if own and not plus else "open"
     _TEXT_CACHE[key] = out
     return out
 
@@ -533,7 +613,8 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
         out["scope"], out["problems"] = {"*"}, [f"{d['doc_id']}: source file not found"]
         return out
     words = words or _Words(rules)
-    known = own_names(input_dir)
+    ident = _ident(rules)
+    known = own_names(input_dir, ident)
     p = rules.extract["parameters"]
     lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
     start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
@@ -593,15 +674,25 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
         return bool(m) and all(address_word.match(w) for w in re.findall(r"[^\W\d_]+", m["street"] + " " + m["town"]))
 
     def names_of(k: str, v: str, line: str) -> set[str]:
-        """The fields the words of one slot may name (v2.0.7: a slot that holds its own known value is a name
-        whatever its words; an address not of the form of a place name, or with a known name inside it, names
-        every field)."""
+        """The fields the words of one slot may name. Since v2.0.9 (D38) a free-text slot (identification_slot_classes)
+        names nothing when the audit identifies every word of it (and an address holds no known name), every field
+        otherwise; no topic word is applied to it. Any other slot: as in v2.0.7."""
+        cls = ident.classes.get(k)
+        if cls is not None:
+            return set() if ident.ok(v, cls) and not (k in p["slot_address_groups"] and _known_inside(v, known)) \
+                else {"*"}
         if k in p["slot_address_groups"] and (not address_form(v) or _known_inside(v, known)):
             return {"*"}
         own_value = (bool(own) and _bare_name(v) == _bare_name(own)) if k in p["slot_own_name_groups"] \
             else _is_own(v, line, known)
         return words.name(v, names=k in words.name_groups and not own_value)
     any_address = rx(_expand_all("{slot_address}", p))
+    compiled = [(r, rx(_expand_all(r["pattern"], p))) for r in shapes]
+
+    def quantity(line: str) -> bool:
+        """A free-text slot of a shape of its kind holds a numeral: the line may state a quantity (v2.0.9, D38)."""
+        return any(v and k in ident.classes and ident.numeral(v, ident.classes[k])
+                   for _, pat in compiled for m in [pat.search(line)] if m for k, v in m.groupdict().items())
     for no in range(start + 1, len(lines) + 1):
         line = lines[no - 1].strip()
         if not any(ch.isalnum() for ch in line):
@@ -612,7 +703,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
         fields = [rows_of[no]] if no in rows_of else None
         if fields is None and _not_its_own(line, known):    # a name beside an identifier that is not its own (v2.0.6)
             out["open"].append(no)
-            out["holding"] = out["holding"] or words.holding(line)
+            out["holding"] = out["holding"] or words.holding(line) or quantity(line)
             continue
         for r in shapes if fields is None else []:
             m = rx(_expand_all(r["pattern"], p)).search(line)
@@ -647,7 +738,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
             break
         if fields is None:
             out["open"].append(no)
-            out["holding"] = out["holding"] or words.holding(line)
+            out["holding"] = out["holding"] or words.holding(line) or quantity(line)
             continue
         for f in fields:          # a field its kind does not read, not read at all, or read from another line
             if f not in expected or not spans.get(f) or any(not first <= no <= last for first, last in spans[f]):
@@ -660,7 +751,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
 # 4. the DOCX, read back
 
 def read_docx(path: Path) -> dict:
-    doc = Document(str(path))
+    doc = Document(jsonio.ext(path))
     tables: dict[str, list[list[str]]] = {}
     for t in doc.tables:
         rows = [[c.text for c in r.cells] for r in t.rows]
@@ -727,7 +818,8 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
         words = _Words(rules)
         read = [(meta, classified_scope(meta, record, input_dir, rules, words)) for meta in record["documents"]]
         adr = address_audit(read)
-        nam = name_audit(read)
+        ident = _ident(rules)
+        nam = name_audit(read, ident)
         for meta, got in read:
             problems.extend(got["problems"])
             check = next((c for c in record.get("classified_checks", []) if c["doc_id"] == meta["doc_id"]
@@ -752,14 +844,17 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
             if head == "plus" and "*" not in said:
                 problems.append(f"{meta['doc_id']}: the company's name of its header is another name of the entity plus "
                                 "words, and the record does not say the document may change every field")
+            elif head == "unidentified" and "*" not in said:      # v2.0.9 (D38)
+                problems.append(f"{meta['doc_id']}: the company's name of its header is not identified word by word, "
+                                "and the record does not say the document may change every field")
             elif head == "alone" and not any(m == "*" or m.startswith("*~") for m in said):
                 problems.append(f"{meta['doc_id']}: no second document of the entity states the company's name of its "
                                 "header alike, and the record does not say the document may change every other field")
-            if (head == "plus" and words.holding(got["own"])
+            if (head in ("plus", "unidentified") and (words.holding(got["own"]) or ident.numeral(got["own"]))
                     and (check is None or check["holders_check"]["status"] != "not_read")):
                 problems.append(f"{meta['doc_id']}: the company's name of its header, not corroborated, may state a "
                                 "holding, and its holders are not marked unread")
-            own = (got["scope"] | ({"*"} if plus or head == "plus" else set())
+            own = (got["scope"] | ({"*"} if plus or head in ("plus", "unidentified") else set())
                    | ({"*~registered_office"} if alone else set()) | ({"*~name"} if head == "alone" else set()))
             got = dict(got, scope=own)
             if got["open"] and "*" not in said:
@@ -787,6 +882,9 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
                                   and _adr_tokens(shown[0]["value"]) in adr["corroborated"]):
                     problems.append("registered_office: shown as fact although no second document of the entity "
                                     "states the same address")
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:      # v2.0.9 (D38)
+                    if not (isinstance(v, str) and ident.ok(v, "address")):
+                        problems.append("registered_office: an address not identified word by word is shown")
             if fld == "name":                      # v2.0.8 (D37): the header names, corroboration and equality
                 for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:
                     if isinstance(v, str) and _adr_tokens(_bare_name(v)) in nam["plus"]:
@@ -795,6 +893,9 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
                                   and _adr_tokens(_bare_name(shown[0]["value"])) in nam["corroborated"]):
                     problems.append("name: shown as fact although no second document of the entity states the same "
                                     "name in its header")
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:      # v2.0.9 (D38)
+                    if not (isinstance(v, str) and ident.ok(v, "company")):
+                        problems.append("name: a name not identified word by word is shown")
             unread = []
             for u, scope, tables in scopes:
                 if cutoff and _ISO_DATE.fullmatch(u.get("date") or "") and u["date"] < cutoff:

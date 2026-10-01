@@ -17,6 +17,7 @@ no wall clock, and a normalised zip container (``lib/zipnorm.py``).
 from __future__ import annotations
 
 import datetime as _dt
+import os
 from fractions import Fraction
 from pathlib import Path
 
@@ -339,8 +340,8 @@ def render_docx(path: Path, view: dict, model: dict, as_of: str, rules_assumptio
     cp.keywords = "SYNTHETIC"
     cp.created = cp.modified = cp.last_printed = t0
     cp.revision = 1
-    path.parent.mkdir(parents=True, exist_ok=True)
-    doc.save(str(path))
+    os.makedirs(jsonio.ext(path.parent), exist_ok=True)
+    doc.save(jsonio.ext(path))
     zipnorm.normalize(path, t0)
 
 

@@ -58,7 +58,9 @@ def run(input_dir: Path | str | None, work_dir: Path | str, as_of: str | None = 
         rules_dir: Path | str | None = None, entities: list[str] | None = None,
         records_dir: Path | str | None = None, store_dir: Path | str | None = None,
         salt: str | None = None, out=sys.stdout) -> tuple[int, dict]:
-    work = Path(work_dir)
+    # since v2.0.9 (D38): the work folder carries the \\?\ prefix on Windows, so that a build in a deep folder
+    # does not depend on the long-path support of the machine (every path below it is derived from it)
+    work = Path(jsonio.ext(work_dir))
     inp = Path(input_dir) if input_dir else None
     config = {}
     if inp and (inp / "config.json").exists():

@@ -239,16 +239,19 @@ class D37_CorroboratedNamesAndTexts(unittest.TestCase):
         self.assertEqual(status, "OK")
         self.assertEqual(view["fields"]["registered_office"]["status"], "STATED")
 
-    def test_a_label_two_documents_state_alike_closes(self):
-        """A label of the hand's own, stated alike by a second document of the input, closes its line (TXT-020)."""
+    def test_a_label_two_documents_state_alike_no_longer_closes(self):
+        """v2.0.8: a label of the hand's own, stated alike by a second document of the input, closed its line (TXT-020).
+        Since v2.0.9 (D38) the agreement of two documents accounts for none of its words: TXT-020 leaves the line read
+        by no rule, and the documents that carry it may change every field (DISC-006)."""
         docs = [deed(), extract(extra=[f"Registered address: {mk.OFFICE_A}"]),
                 extract(extra=[f"Registered address: {mk.OFFICE_A}"], n=3, date="2026-08-20", ed="EXTRACT/2")]
         work = s.tmp()
         s.run(s.tiny(docs, "2026-09-30"), work)
         rec = jsonio.load(work / "records" / f"{E}.json")
         why = " ".join(c["fields_check"]["why"] for c in rec["classified_checks"])
-        self.assertNotIn("text_corroboration", why)
-        self.assertTrue(all(c["fields_check"]["may_change"] != ["*"] for c in rec["classified_checks"]), why)
+        self.assertIn("TXT-020", why)
+        labelled = [c for c in rec["classified_checks"] if not c["doc_id"].endswith("-01")]
+        self.assertTrue(labelled and all(c["fields_check"]["may_change"] == ["*"] for c in labelled), why)
 
     def test_a_label_stated_once_is_read_by_no_rule(self):
         """The price, declared in CHANGELOG 2.0.8: a label of the hand's own that no second document states (TXT-999)."""
@@ -262,7 +265,8 @@ class D37_CorroboratedNamesAndTexts(unittest.TestCase):
     def test_a_genuine_rename_side_by_side(self):
         """Two whole different names (neither is the other plus words): a DISCREPANCY side by side (DISC-020), and
         every other field [TO CONFIRM] (neither name is stated by a second document, NAM-999)."""
-        status, _, view, prov = _run([deed(), _all(extract(), f"Officine Boreali {LEGAL}")])
+        # since v2.0.9 (D38) the second name is of the gazetteer, so that it is identified (v2.0.8: Officine Boreali)
+        status, _, view, prov = _run([deed(), _all(extract(), f"Officine Valfittizia {LEGAL}")])
         self.assertEqual(status, "OK")
         self.assertEqual(view["fields"]["name"]["status"], "DISCREPANCY")
         self.assertTrue(all(view["fields"][f]["status"] == "TO_CONFIRM" for f in OTHER if f != "name"), view["fields"])
@@ -281,13 +285,17 @@ class D37_CorroboratedNamesAndTexts(unittest.TestCase):
 
 
 class D37_NameEqualityPremise(unittest.TestCase):
-    """The premise of corroboration, as for addresses (tests/test_d37_forms.py D37_EqualityPremise): two documents of
-    the entity whose headers state the same name, words and all, are taken to name the company."""
+    """The premise of corroboration, as for addresses (tests/test_d37_forms.py D37_EqualityPremise): in v2.0.8 two
+    documents of the entity whose headers state the same name, words and all, were taken to name the company (hand-20
+    E-0010, eval/history.json run 20). Closed in v2.0.9 (D38): a header name is a fact only when it is identified word
+    by word (NAM-005 before NAM-020), so the name and every field stay [TO CONFIRM]. The test keeps its name, and now
+    states the opposite of v2.0.8."""
 
     def test_same_words_in_two_headers_are_corroborated(self):
         wn = f"{BARE} Capitale Raddoppiato {LEGAL}"
         status, _, view, prov = _run([_all(deed(), wn), _all(extract(), wn)])
-        self.assertEqual((status, view["fields"]["name"]["status"]), ("OK", "STATED"))
+        self.assertEqual((status, view["fields"]["name"]["status"]), ("OK", "TO_CONFIRM"))
+        self.assertTrue(all(f["status"] != "STATED" for f in view["fields"].values()), view["fields"])
 
 
 if __name__ == "__main__":

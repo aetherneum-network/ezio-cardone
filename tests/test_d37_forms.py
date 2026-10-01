@@ -204,8 +204,11 @@ class D37_AddressSiblings(unittest.TestCase):
                 self.assertEqual(unsafe(status, view, prov, changes, w, genuine=True), "")
                 if status == "OK":
                     # a known person's or company's name inside an address leaves its line open (since v2.0.7, D36):
-                    # that address is not read, there is no second value to show, and the office stays [TO CONFIRM]
-                    want = "TO_CONFIRM" if key[0] == "identity-layer name" else "DISCREPANCY"
+                    # that address is not read, there is no second value to show, and the office stays [TO CONFIRM].
+                    # Since v2.0.9 (D38) the same holds for every second address of these cases: its words are not of
+                    # the gazetteer (IDN-999). Two identified addresses are still side by side:
+                    # tests/test_d38_identification.py D38_PlainStillPublishes.
+                    want = "TO_CONFIRM"
                     self.assertEqual(view["fields"]["registered_office"]["status"], want)
                     self.assertTrue(all(view["fields"][f]["status"] == "TO_CONFIRM" for f in OTHER
                                         if f in view["fields"]), view["fields"])
@@ -215,8 +218,10 @@ class D37_CorroboratedAddresses(unittest.TestCase):
     """The cost side, and what corroboration still publishes."""
 
     def test_two_documents_alike_publish(self):
-        for addr in (mk.OFFICE_A, "Via XX Settembre 4, Borgoprova (ZZ)", "Corso dell'Arsenale 12/B, Montefinto (ZZ)",
-                     "Via Giuseppe Collaudi 3, San Fittizio (ZZ) - interno 4"):
+        # since v2.0.9 (D38) only addresses whose every word is of the gazetteer; the three others of v2.0.8 are in
+        # tests/test_d36_forms.py D36_PlainAddressesStillRead.test_addresses_outside_the_gazetteer
+        for addr in (mk.OFFICE_A, "Corso della Prova 12/B, Montefinto (ZZ)",
+                     "Piazza Inventata 3, Valcollaudo (ZZ) - interno 4"):
             with self.subTest(addr=addr):
                 status, view, prov = _run([deed(addr), extract(addr)])
                 self.assertEqual(status, "OK")
@@ -260,14 +265,17 @@ class D37_CorroboratedAddresses(unittest.TestCase):
 
 
 class D37_EqualityPremise(unittest.TestCase):
-    """The premise of corroboration, stated in CHANGELOG 2.0.8 section 4 and MODEL.md: two documents of the entity
-    that state the same address, words and all, are taken to state an address. The same words in both are not caught:
-    tests/test_d36_forms.py D36_ResidualWordList stays an expected failure for that reason."""
+    """The premise of corroboration, stated in CHANGELOG 2.0.8 section 4: two documents of the entity that state the
+    same address, words and all, were taken to state an address (hand-20 E-0009, eval/history.json run 20). Closed in
+    v2.0.9 (D38): the agreement of the documents no longer accounts for any word; an address is taken as written only
+    when every word is identified (rules/extract.json free_text_identification), so the case below keeps every field
+    [TO CONFIRM]. The test keeps its name, and now states the opposite of v2.0.8."""
 
     def test_same_words_in_two_documents_are_corroborated(self):
         addr = "Via Nuova 1, Montefinto Capitale Raddoppiato (ZZ)"
         status, view, prov = _run([deed(addr), extract(addr)])
-        self.assertEqual((status, view["fields"]["registered_office"]["status"]), ("OK", "STATED"))
+        self.assertEqual((status, view["fields"]["registered_office"]["status"]), ("OK", "TO_CONFIRM"))
+        self.assertTrue(all(f["status"] == "TO_CONFIRM" for f in view["fields"].values()), view["fields"])
 
 
 def _deed_with(holders_block: list[str], capital: str = mk.FULL.format(a="50.000,00")):

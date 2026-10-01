@@ -241,9 +241,9 @@ def _extract_text(doc: Document, rule: dict, rules: Rules, known: dict[str, set[
             if not all(_slot_closes(doc, rule["value_slot"], v, text.strip(), {_topic(fld)}, known, rules)
                        for v in slots):
                 return [_assertion(doc, fld, rule["nature"], rule["id"], line=no, quote=text,
-                                   reason="the address holds words that are not part of an address (rules/extract.json "
-                                          "slot_address_word, slot_not_name_word, or a name known to the corpus): "
-                                          "not read")]
+                                   reason="the address is not identified word by word (rules/extract.json "
+                                          "free_text_identification: a word the gazetteer does not hold, or a "
+                                          "numeral), or holds a name known to the corpus: not read")]
         if value:
             out.append(_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, quote=text))
         else:
@@ -769,16 +769,97 @@ def address_form_ok(value: str, rules: Rules) -> bool:
     return all(word.match(w) for w in re.findall(r"[^\W\d_]+", m.group("street") + " " + m.group("town")))
 
 
+# ----------------------------------------------------------------------------------------------
+# free-text slots: positive identification of every word (since v2.0.9, D38; rules/extract.json
+# free_text_identification and the gazetteer parameters)
+
+def _gazetteer(text: str, rules: Rules) -> str:
+    """A pattern of rules/extract.json with each <x> replaced by the entries of parameter gazetteer_x (a list: each
+    entry whole and case-sensitive) or by its own pattern (a string, itself replaced), and each {x} by its slot
+    parameter."""
+    p = rules.extract["parameters"]
+
+    def one(m: re.Match) -> str:
+        v = p["gazetteer_" + m.group(1)]
+        if isinstance(v, str):
+            return _gazetteer(v, rules)
+        return "(?-i:" + "|".join(re.escape(x) for x in sorted(v, key=len, reverse=True)) + ")"
+    return _expand(re.sub(r"<([a-z_]+)>", one, text), rules)
+
+
+def numerals_in(text: str, rules: Rules) -> list[str]:
+    """The words of ``text`` that are numerals (parameter numeral_token): its runs of letters and digits, an apostrophe
+    or a hyphen inside a run keeping it whole."""
+    tok = _param_rx(rules, "numeral_token")
+    return [w for w in re.findall(r"[^\W_]+(?:['’-][^\W_]+)*", text) if tok.search(w)]
+
+
+def _numeral_words(value: str, cls: str, rules: Rules) -> str:
+    """The words of a slot that the numeral test reads: of an address its street and its town (the house number and the
+    mark of ' - interno' are typed by the slot grammar, the province is two letters); of any other slot all of it."""
+    if cls == "address":
+        m = _param_rx(rules, "slot_address_part").match(" ".join(value.split()))
+        if m:
+            return m.group("street") + " " + m.group("town")
+    return value
+
+
+def identified(value: str, cls: str, rules: Rules) -> bool:
+    """Every word of a slot of class ``cls`` is accounted for (rules/extract.json identify_address, identify_company - the
+    legal form at the end set aside -, identify_person; text_recognised for a title or a label), whole, nothing
+    normalised but spaces."""
+    p = rules.extract["parameters"]
+    plain = " ".join(value.split())
+    if cls in ("address", "company", "person"):
+        target = _bare_company(plain, rules) if cls == "company" else plain
+        return rx(_gazetteer(p["identify_" + cls], rules)).search(target) is not None
+    if cls in ("title", "label"):
+        return address_tokens(plain) in [address_tokens(t) for t in p["text_recognised"].get("w_" + cls, [])]
+    return False
+
+
+def identify(value: str, cls: str, rules: Rules) -> dict:
+    """The rule of rules/extract.json free_text_identification that decides one slot of class ``cls`` (first match
+    wins): its outcome is 'identified', 'quantity' or 'unidentified'."""
+    facts = {"numeral": bool(numerals_in(_numeral_words(value, cls, rules), rules)),
+             "identified": identified(value, cls, rules), "always": True}
+    return first_match(rules.extract["free_text_identification"]["rules"],
+                       lambda r: (not r.get("classes") or cls in r["classes"]) and facts.get(r["when"], False))
+
+
+def slot_quantities(doc: Document, text: str, rules: Rules) -> list[str]:
+    """The slots of a body line that hold a numeral (free_text_identification IDN-010): for every rule of
+    classified_lines of the document's kind whose pattern matches the line, each free-text slot (parameter
+    identification_slot_classes) decided 'quantity', as '<rule> <group>'. Such a line may state a holding."""
+    classes = rules.extract["parameters"]["identification_slot_classes"]
+    line = text.strip()
+    out = []
+    for r in rules.extract["classified_lines"]["rules"]:
+        if not r.get("pattern") or (r.get("kinds") and doc.kind not in r["kinds"]):
+            continue
+        m = rx(_expand(r["pattern"], rules)).search(line)
+        if not m:
+            continue
+        out.extend(f"{r['id']} {k}" for k, v in m.groupdict().items()
+                   if v and k in classes and identify(v, classes[k], rules)["outcome"] == "quantity")
+    return out
+
+
 def _slot_closes(doc: Document, group: str, value: str, line: str, allowed: set[str],
                  known: dict[str, set[str]] | None, rules: Rules) -> bool:
-    """The free words of one slot name only the ``allowed`` fields: the topic test (slot_topics), the word test of a
-    name slot unless it holds its own known value (v2.0.6, v2.0.7); an address (slot_address_groups, v2.0.7) has
-    the form of an Italian place name (address_form_ok) and no name known to the corpus inside it."""
+    """Since v2.0.9 (D38): a free-text slot (parameter identification_slot_classes) closes its line only when
+    free_text_identification decides it 'identified' - every word accounted for by the gazetteer or the recognised
+    texts, whatever the other documents say; an address also needs no name known to the corpus inside it (v2.0.7).
+    The topic words are not applied to such a slot: the entity's own name is decided by equality with its header
+    (classify_line) and by identification, never by a topic list (D38 (b)). A slot of any other group: the topic
+    test (slot_topics) and the word test of a name slot unless it holds its own known value (v2.0.6, v2.0.7)."""
     p = rules.extract["parameters"]
+    cls = p["identification_slot_classes"].get(group)
+    if cls is not None:
+        if identify(value, cls, rules)["outcome"] != "identified":
+            return False
+        return not (group in p["slot_address_groups"] and known_name_inside(value, known, rules))
     names = group in p["slot_name_groups"] and not _own_value(doc, group, value, line, known, rules)
-    if group in p["slot_address_groups"] and (not address_form_ok(value, rules)
-                                              or known_name_inside(value, known, rules)):
-        return False
     return slot_topics(value, rules, names=names) <= allowed
 
 
@@ -915,6 +996,13 @@ def _classified_holders(doc: Document, open_lines: list[int], rules: Rules) -> d
         if hit["outcome"] != "none":
             return {"status": "not_read", "why": f"line {no}, read by no rule of its kind, may state a holding "
                                                  f"(rule {hit['id']})"}
+        quantity = slot_quantities(doc, doc.lines[no - 1], rules)
+        if quantity:
+            # since v2.0.9 (D38): a numeral in a free-text slot may state a quantity, a holding among them
+            return {"status": "not_read", "why": f"line {no}, read by no rule of its kind, holds a numeral in a "
+                                                 f"free-text slot ({', '.join(quantity)}): it may state a quantity, a "
+                                                 "holding among them (rules/extract.json free_text_identification "
+                                                 "IDN-010)"}
     if tables:
         return {"status": "read", "why": "", "edition": doc.edition, "tables": tables}
     return {"status": "no_table", "why": "no holders' table outside the lists of its kind and no line that may "
@@ -1015,9 +1103,16 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
     name_alone = bool(name) and name["outcome"] == "not_corroborated"
     if name_plus and holders["status"] != "not_read":
         hit = holders_evidence(doc.entity_name, rules)
+        idn = identify(doc.entity_name, "company", rules)
+        what = ("another name of the entity plus words" if name["rule"] != "NAM-005"
+                else "not identified word by word")
         if hit["outcome"] != "none":
-            holders = {"status": "not_read", "why": f"the company's name of the header, another name of the entity "
-                                                    f"plus words, may state a holding (rule {hit['id']})"}
+            holders = {"status": "not_read", "why": f"the company's name of the header, {what}, may state a holding "
+                                                    f"(rule {hit['id']})"}
+        elif idn["outcome"] == "quantity":      # since v2.0.9 (D38): a numeral in the name may state a holding
+            holders = {"status": "not_read", "why": f"the company's name of the header, {what}, holds a numeral: it "
+                                                    "may state a quantity, a holding among them (rules/extract.json "
+                                                    f"free_text_identification {idn['id']})"}
     if (not unexplained and not plus and not alone and not again and not foreign and not inside and not form_open
             and not name_plus and not name_alone and holders["status"] == "no_table"):
         return None
@@ -1033,9 +1128,15 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
         what = "title" if t["group"] == "w_title" else "label"
         why.append(f"line {no}: a {what} that " + (
             f"is another {what} plus words ({'; '.join(t['by'])})" if t["rule"] == "TXT-010" else
+            f"other documents state alike ({'; '.join(t['by'])}) but that is not a recognised text: their agreement "
+            "accounts for none of its words" if t["rule"] == "TXT-020" else
             "no other document of the input states alike and that is not a recognised text")
             + f": its words cannot be checked, read by no rule (rules/extract.json text_corroboration {t['rule']})")
-    if name_plus:
+    if name_plus and name["rule"] == "NAM-005":
+        why.append("the company's name of the header is not identified word by word (rules/extract.json "
+                   "free_text_identification: a word the gazetteer does not hold, or a numeral), however many "
+                   "documents state it alike: the document is read by no rule (name_corroboration NAM-005)")
+    elif name_plus:
         why.append(f"the company's name of the header is another name of the entity plus words "
                    f"({'; '.join(name['by'])}): not two names, the document is read by no rule (rules/extract.json "
                    "name_corroboration NAM-010)")
@@ -1200,12 +1301,16 @@ def name_tokens(name: str, rules: Rules) -> tuple[str, ...]:
 
 def name_outcomes(headers: list[dict], rules: Rules) -> list[dict]:
     """The rule of rules/extract.json name_corroboration that decides each header name of one entity, first match
-    wins. ``headers``: {"doc_id", "tokens"} per document. Returns {"rule", "outcome", "by"} in their order."""
+    wins. ``headers``: {"doc_id", "tokens", "identified"} per document ('identified': free_text_identification decides
+    the name 'identified', since v2.0.9). Returns {"rule", "outcome", "by"} in their order."""
     out = []
     for h in headers:
         plus = [x for x in headers if x["doc_id"] != h["doc_id"] and plus_words(x["tokens"], h["tokens"])]
         equal = [x for x in headers if x["doc_id"] != h["doc_id"] and x["tokens"] == h["tokens"]]
-        facts = {"plus_words": bool(plus), "corroborated": bool(equal), "always": True}
+        # since v2.0.9 (D38): a name not identified word by word (free_text_identification) is decided before any
+        # agreement of the documents - their agreement accounts for none of its words
+        facts = {"plus_words": bool(plus), "not_identified": not h["identified"], "corroborated": bool(equal),
+                 "always": True}
         r = first_match(rules.extract["name_corroboration"]["rules"], lambda r: facts.get(r["when"], False))
         by = plus if r["when"] == "plus_words" else equal if r["when"] == "corroborated" else []
         out.append({"rule": r["id"], "outcome": r["outcome"], "by": sorted({x["doc_id"] for x in by})})
@@ -1217,7 +1322,9 @@ def corroborate_names(items: list[tuple[Document, list[dict], dict[int, str]]], 
     The assertions are changed in place: a name whose tokens are not those of its own header, or whose header is
     decided by NAM-010, is refused (no value); every other name carries 'corroboration' (the rule of its header and
     the documents it rests on). Returns doc_id -> {"outcome", "rule", "name", "by"}."""
-    headers = [{"doc_id": doc.doc_id, "tokens": name_tokens(doc.entity_name, rules)} for doc, _, _ in items]
+    headers = [{"doc_id": doc.doc_id, "tokens": name_tokens(doc.entity_name, rules),
+                "identified": identify(doc.entity_name, "company", rules)["outcome"] == "identified"}
+               for doc, _, _ in items]
     decided = name_outcomes(headers, rules)
     out: dict[str, dict] = {}
     for (doc, assertions, _), d in zip(items, decided):
@@ -1226,7 +1333,11 @@ def corroborate_names(items: list[tuple[Document, list[dict], dict[int, str]]], 
             if a["field"] != "name" or "value" not in a:
                 continue
             why = ""
-            if d["outcome"] == "unexplained":
+            if d["outcome"] == "unexplained" and d["rule"] == "NAM-005":
+                why = ("the company's name of the header is not identified word by word (rules/extract.json "
+                       "free_text_identification: a word the gazetteer does not hold, or a numeral): not read "
+                       "(name_corroboration NAM-005)")
+            elif d["outcome"] == "unexplained":
                 why = (f"the company's name of the header is another name of the entity plus words "
                        f"({'; '.join(d['by'])}): not read (rules/extract.json name_corroboration {d['rule']})")
             elif name_tokens(a["value"], rules) != name_tokens(doc.entity_name, rules):
@@ -1283,10 +1394,13 @@ def text_outcomes(texts: list[dict], rules: Rules) -> dict[tuple[str, tuple[str,
         plus = [] if tok in known.get(g, []) else sorted(
             {where for (g2, t2), fs in by_key.items() if g2 == g and plus_words(t2, tok) for where in fs.values()}
             | {"text_recognised" for t2 in known.get(g, []) if plus_words(t2, tok)})
-        equal = len(files) >= 2 or tok in known.get(g, [])
-        facts = {"plus_words": bool(plus), "corroborated": equal, "always": True}
+        # since v2.0.9 (D38): a recognised text is a fact (TXT-005); the agreement of documents on any other text
+        # accounts for none of its words (TXT-020 'unexplained')
+        facts = {"recognised": tok in known.get(g, []), "plus_words": bool(plus), "corroborated": len(files) >= 2,
+                 "always": True}
         r = first_match(rules.extract["text_corroboration"]["rules"], lambda r: facts.get(r["when"], False))
-        by = plus if r["when"] == "plus_words" else sorted(files.values()) if r["when"] == "corroborated" else []
+        by = (plus if r["when"] == "plus_words" else sorted(files.values()) if r["when"] == "corroborated"
+              else ["text_recognised"] if r["when"] == "recognised" else [])
         if len(by) > 3:                      # what it rests on, in short: three places and how many more
             by = by[:3] + [f"{len(by) - 3} more"]
         out[(g, tok)] = {"rule": r["id"], "outcome": r["outcome"], "by": by}
@@ -1381,13 +1495,19 @@ def list_source_files(input_dir: Path) -> list[tuple[str, str, Path]]:
 def known_names(input_dir: Path, docs: list[Document], rules: Rules) -> dict[str, set[str]]:
     """identifier -> the names that are its own (CLS-005, since v2.0.6): a person's name in the identity layer of the
     input (identity/persons.json, when present), a company's name in the header (Entity:) of its own documents that
-    carry the SYNTHETIC marker. Spaces are collapsed; nothing else is normalised."""
+    carry the SYNTHETIC marker. Spaces are collapsed; nothing else is normalised. Since v2.0.9 (D38) a name is known
+    only when free_text_identification decides it 'identified'; its identifier stays known with no name."""
     out: dict[str, set[str]] = {}
     path = Path(input_dir) / "identity" / "persons.json"
     if path.exists():
         for pid, person in (jsonio.load(path) or {}).items():
             if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
-                out.setdefault(pid, set()).add(" ".join(person["name"].split()))
+                # since v2.0.9 (D38): a name is known only when identified word by word (free_text_identification);
+                # the identifier stays known, with no name of its own (so its labels open their lines, CLS-005)
+                name = " ".join(person["name"].split())
+                own = out.setdefault(pid, set())
+                if identify(name, "person", rules)["outcome"] == "identified":
+                    own.add(name)
     companies: dict[str, set[str]] = {}
     for doc in docs:
         if doc.marker_ok and doc.entity_id and doc.entity_name.strip():
@@ -1396,7 +1516,8 @@ def known_names(input_dir: Path, docs: list[Document], rules: Rules) -> dict[str
         # since v2.0.8 (D37, name_corroboration NAM-010): a header name that is another header name of the same
         # entity plus words is not one of its names
         toks = {n: name_tokens(n, rules) for n in names}
-        out.setdefault(eid, set()).update(n for n in names if not any(plus_words(toks[o], toks[n]) for o in names))
+        out.setdefault(eid, set()).update(n for n in names if not any(plus_words(toks[o], toks[n]) for o in names)
+                                          and identify(n, "company", rules)["outcome"] == "identified")
     return out
 
 
@@ -1419,6 +1540,7 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
             continue
         parsed.append((folder, rel, parse_document(text, rel, rules, jsonio.sha256_bytes(data))))
     known = known_names(Path(input_dir), [d for _, _, d in parsed if d is not None], rules)
+    folders = {folder for folder, _, _ in parsed}
     read: dict[str, list[tuple[Document, list[dict], dict[int, str]]]] = {}
     for folder, rel, doc in parsed:
         if doc is None:
@@ -1451,6 +1573,17 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
         b["assertions"].extend(assertions)
         read.setdefault(eid, []).append((doc, assertions, _list_lines(doc, rules, known)))
         b["filename_divergences"].extend(filename_divergences(doc, assertions, rules, folder))
+        if eid != folder and eid not in folders:
+            # since v2.0.9 (D38 (c), hand-20 E-0062): a document filed under one entity whose content names an entity
+            # with no folder of its own in the input. Its content decides the entity it is built for, as ever; which
+            # of the two it belongs to is not ours to choose, so the entity of its folder reads it as a document it
+            # cannot read (DISC-005: every field [TO CONFIRM] from its date; its holders checked as an unread document's)
+            hc = holders_check(doc, rules)
+            bucket(folder)["unclassified_documents"].append({
+                "file": rel, "doc_id": doc.doc_id, "date": doc.date, "holders_check": hc,
+                "fields_check": fields_check(doc, rules, hc),
+                "reason": f"filed under {folder}, its content names {eid} (registry no. {doc.registry_no}), an entity "
+                          "with no folder of its own in the input: which entity it belongs to is not ours to choose"})
     # second pass (since v2.0.8, D37): the titles and labels are decided against every document of the input
     # (rules/extract.json text_corroboration); the addresses and the header names of each entity against every
     # document of the entity (address_corroboration, name_corroboration); then each document is checked line by line
@@ -1546,6 +1679,12 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                     want_may = [] if any("value" in a for a in found) else t["expect_may_change_unless_read"]
                 if may != want_may:
                     bad.append(f"{r['id']}: {t['text']!r} may change {may}, expected {want_may}")
+    for r in rules.extract["free_text_identification"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            got = identify(t["text"], t["class"], rules)["id"]
+            if got != t["expect"] or got != r["id"]:
+                bad.append(f"{r['id']}: {t['class']} {t['text']!r} decided by {got}, expected {t['expect']}")
     for r in rules.extract["address_corroboration"]["rules"]:
         for t in r.get("tests", []):
             n += 1
@@ -1562,7 +1701,9 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
     for r in rules.extract["name_corroboration"]["rules"]:
         for t in r.get("tests", []):
             n += 1
-            headers = [{"doc_id": x["doc"], "tokens": name_tokens(x["name"], rules)} for x in t["headers"]]
+            headers = [{"doc_id": x["doc"], "tokens": name_tokens(x["name"], rules),
+                        "identified": identify(x["name"], "company", rules)["outcome"] == "identified"}
+                       for x in t["headers"]]
             got = name_outcomes(headers, rules)[t["header"]]["rule"]
             if got != t["expect"] or got != r["id"]:
                 bad.append(f"{r['id']}: header {t['header']} of {[x['name'] for x in t['headers']]} decided by {got}, "

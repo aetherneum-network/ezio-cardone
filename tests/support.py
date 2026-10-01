@@ -168,4 +168,5 @@ def nodes_of(tables: dict, whole: Fraction = Fraction(1)) -> dict[str, dict]:
 
 
 def tree_hashes(root: Path) -> dict[str, str]:
+    root = Path(jsonio.ext(root))  # since v2.0.9 (D38): a deep folder is walked without long-path support
     return {p.relative_to(root).as_posix(): jsonio.sha256_file(p) for p in sorted(root.rglob("*")) if p.is_file()}

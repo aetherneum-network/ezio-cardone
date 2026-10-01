@@ -38,11 +38,13 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 100)      # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3;
+        self.assertEqual(len(ids), 108)      # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3;
         #                                      + CLS-010..CLS-999 (20) and DISC-006 in v2.0.5;
         #                                      + CLS-005 and DISC-035 in v2.0.6;
         #                                      + ADR-010, ADR-020, ADR-999, DISC-038, NAM-010, NAM-020, NAM-999,
-        #                                        TXT-010, TXT-020 and TXT-999 in v2.0.8
+        #                                        TXT-010, TXT-020 and TXT-999 in v2.0.8;
+        #                                      + IDN-010, IDN-020, IDN-030, IDN-040, IDN-050, IDN-999, NAM-005 and
+        #                                        TXT-005 in v2.0.9
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
@@ -52,7 +54,7 @@ class RuleFiles(unittest.TestCase):
         self.assertEqual(r.discrepancy["outgoing_scan"]["rules"][-1]["id"], "SCAN-999")
         self.assertEqual(r.ownership["rules"][-1]["when"], "always")
         for group, last in (("address_corroboration", "ADR-999"), ("name_corroboration", "NAM-999"),   # v2.0.8
-                            ("text_corroboration", "TXT-999")):
+                            ("text_corroboration", "TXT-999"), ("free_text_identification", "IDN-999")):  # v2.0.9
             self.assertEqual(r.extract[group]["rules"][-1]["id"], last)
             self.assertEqual(r.extract[group]["rules"][-1]["when"], "always")
 
@@ -60,20 +62,33 @@ class RuleFiles(unittest.TestCase):
         r = s.rules()
         self.assertEqual(r.ownership["rules"][0]["outcome"], "BLOCKED")
         self.assertEqual(r.discrepancy["rules"][0]["id"], "DISC-005")
-        for group in ("address_corroboration", "name_corroboration", "text_corroboration"):   # v2.0.8: plus words first
+        for group in ("address_corroboration", "name_corroboration"):   # v2.0.8: plus words first
             self.assertEqual(r.extract[group]["rules"][0]["when"], "plus_words")
             self.assertEqual(r.extract[group]["rules"][0]["outcome"], "unexplained")
+        # v2.0.9 (D38): a recognised text (a title the pack's own builders write) is a fact before anything else; then
+        # plus words; two documents that agree no longer account for a text (TXT-020: unexplained)
+        txt = r.extract["text_corroboration"]["rules"]
+        self.assertEqual([(t["id"], t["when"], t["outcome"]) for t in txt[:3]],
+                         [("TXT-005", "recognised", "fact"), ("TXT-010", "plus_words", "unexplained"),
+                          ("TXT-020", "corroborated", "unexplained")])
+        # v2.0.9 (D38): a numeral in a free-text slot first (a quantity, whatever the rest), and an identified header
+        # name is the only one that corroboration may decide (NAM-005 before NAM-020)
+        idn = r.extract["free_text_identification"]["rules"]
+        self.assertEqual((idn[0]["id"], idn[0]["when"], idn[0]["outcome"]), ("IDN-010", "numeral", "quantity"))
+        self.assertEqual([n["id"] for n in r.extract["name_corroboration"]["rules"]],
+                         ["NAM-010", "NAM-005", "NAM-020", "NAM-999"])
 
     def test_legal_assumptions_are_parameters_to_confirm(self):
         got = s.rules().legal_assumptions()
-        self.assertEqual(len(got), 11)       # + discrepancy.json unread_document_scope in v2.0.3
+        self.assertEqual(len(got), 12)       # + discrepancy.json unread_document_scope in v2.0.3;
+        #                                      + extract.json identification_source in v2.0.9
         for a in got:
             self.assertEqual(a["status"], "[TO CONFIRM with legal]", a["parameter"])
             self.assertGreater(len(a["note"]), 20)
         listed = (ROOT / "docs" / "ASSUMPTIONS.md").read_text(encoding="utf-8")
         for a in got:
             self.assertIn(f"`{a['parameter']}`", listed)
-        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 11 + 1)
+        self.assertEqual(listed.count("[TO CONFIRM with legal]"), 12 + 1)
 
     def test_rule_files_carry_a_version(self):
         r = s.rules()

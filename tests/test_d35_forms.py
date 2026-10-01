@@ -289,13 +289,18 @@ class D35_HandFourteenExactForm(unittest.TestCase):
         inp, gold = hand_14_variant(work)
         got = score.evaluate("hand-14-exact-form", corpus=inp, gold_path=gold, work=work / "run")
         self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
-        self.assertEqual(got["metrics"]["to_confirm_kept"], "2/2")
+        # v2.0.8: [TO CONFIRM] kept 2/2, E-0012's legal form [TO CONFIRM] by DISC-035 and its name a DISCREPANCY;
+        # since v2.0.9 (D38) every entity of this corpus is blocked: the persons of its holders' rows are not of the
+        # gazetteer (free_text_identification), the rows are read by no rule and may state a holding (OWN-015); the
+        # price of CHANGELOG 2.0.9 section 3. The legal-form
+        # rule DISC-035 is still tested on fixtures of the gazetteer (tests/test_d35_forms.py, tests/test_d37_slots.py)
+        self.assertEqual(got["metrics"]["to_confirm_kept"], "0/0")
         v11 = jsonio.load(work / "run" / "work" / "views" / "E-0011.json")
         self.assertTrue(all(f["status"] != "STATED" for f in v11["fields"].values()), v11["fields"])
         v12 = jsonio.load(work / "run" / "work" / "views" / "E-0012.json")
-        self.assertEqual((v12["fields"]["legal_form"]["status"], v12["fields"]["legal_form"]["rule"]),
-                         ("TO_CONFIRM", "DISC-035"))
-        self.assertEqual(v12["fields"]["name"]["status"], "DISCREPANCY")
+        self.assertTrue(all(f["status"] != "STATED" for f in v12["fields"].values()), v12["fields"])
+        report = jsonio.load(work / "run" / "work" / "run_report.json")["entities"]
+        self.assertEqual((report["E-0011"]["status"], report["E-0012"]["status"]), ("BLOCKED", "BLOCKED"))
 
 
 class D35_PlainNamesStillPublish(unittest.TestCase):
@@ -377,10 +382,12 @@ class D35_HandCorpus14(unittest.TestCase):
         d = s.ROOT / "eval" / "blind" / "hand-14"
         got = score.evaluate("hand-14", corpus=d / "input", gold_path=d / "gold.json", work=s.tmp())
         self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
-        self.assertEqual(got["metrics"]["to_confirm_kept"], "7/7")
-        self.assertGreaterEqual(got["counts"]["fact_exact"], 14)        # v2.0.5: 2/64 (run 14); v2.0.7: 27/64
-        # v2.0.8 (D37): 14/64, the measured cost of corroboration (an address that one document alone states keeps
-        # every field of that document [TO CONFIRM]; CHANGELOG 2.0.8)
+        # v2.0.5: facts exact 2/64 (run 14); v2.0.7: 27/64; v2.0.8 (D37): 14/64, the measured cost of corroboration
+        # (CHANGELOG 2.0.8), [TO CONFIRM] kept 7/7; since v2.0.9 (D38) every entity of this corpus is blocked: the
+        # persons of its holders' rows are not of the gazetteer (free_text_identification), the rows are read by no rule
+        # and may state a holding (OWN-015); the price of CHANGELOG 2.0.9 section 3
+        self.assertEqual(got["metrics"]["to_confirm_kept"], "0/0")
+        self.assertEqual((got["counts"]["published"], got["counts"]["fact_exact"]), (0, 0))
         self.assertIn("exit_code", got)
         self.assertEqual(dossier_run.EXIT[got["pipeline_status"]], got["exit_code"])
 

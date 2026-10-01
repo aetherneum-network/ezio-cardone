@@ -2,7 +2,7 @@
 
 SYNTHETIC - written from the rule files by `tools/assumptions.py`; do not edit by hand.
 
-The pack makes 11 assumptions that only a qualified professional can confirm. The author is a
+The pack makes 12 assumptions that only a qualified professional can confirm. The author is a
 synthetic AI agent: not a lawyer, a notary, an accountant or an auditor. None of these assumptions is
 legal advice and none has been reviewed by a legal professional. Each one is a parameter of a rule file,
 is printed in every dossier, and carries the status `[TO CONFIRM with legal]` until someone qualified
@@ -95,6 +95,14 @@ With cross-holdings the look-through to natural persons depends on a rule. 'abst
 - Status: [TO CONFIRM with legal]
 
 A holders' table of the entity that could not be summed (a table not read, a document expected to state the holders where no table was found, a document not classified or rejected) leaves the sum to the whole unverified. 'block' (default) blocks the build of that entity, as a table that does not sum would: the unread table may be the one that does not sum. 'report' publishes the dossier with the holders [TO CONFIRM], as v2.0.0 did. Added after the blind run of 2026-09-30 (eval/history.json, run 5): 8 dossiers whose unread table did not sum were published. The price is coverage: every entity with an unread holders' table is blocked. Since v2.0.2 (owner decision D26 of 2026-09-30: the value stays 'block') a document not classified is checked for its holders only (rules/extract.json, holders_evidence): when its body has no holders' table and no line that may state a holding, or when every table in it is read whole and summed, it is not an unread table; in every other case it still is. Since v2.0.5 (decision D34) a document of a recognised type is checked the same way: a line of it that no rule of its kind explains (rules/extract.json classified_lines) and that may state a holding (holders_evidence), or a holders' table in a document of a kind that is not read for the holders that is not read whole and summed, leaves the sum unverified.
+
+## 12. `identification_source`
+
+- File: `rules/extract.json`
+- Value in v2.0: `pack_gazetteer`
+- Status: [TO CONFIRM with legal]
+
+A town, a province, a street, a company's name (its legal form set aside) and a person's name are taken as written only when every word is identified by the gazetteer of the pack (rules/extract.json gazetteer_*, the closed list of the synthetic world) and holds no numeral (free_text_identification); anything else keeps every field the document may change [TO CONFIRM], and blocks when it may state a holding. On real documents the list would be an official one - the register of municipalities and provinces, the street register of each municipality, the name registered with the business register for a company, the register of persons for a person: which list identifies which slot, and whether a value no list holds may ever be taken as written, is a legal question. Added in v2.0.9 (D38, eval/history.json run 20).
 
 ## Not modelled at all
 

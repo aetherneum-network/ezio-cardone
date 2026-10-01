@@ -39,6 +39,22 @@ def by_text(never: list[str]) -> dict[str, int]:
     return out
 
 
+def hand_rules():
+    """A copy of the rule files whose gazetteer also holds the words of the hand corpus of run 7 (eval/blind/hand)."""
+    dst = s.tmp("ezio-rules-") / "rules"
+    shutil.copytree(s.ROOT / "rules", dst)
+    path = dst / "extract.json"
+    obj = json.loads(path.read_text(encoding="utf-8"))
+    p = obj["parameters"]
+    p["gazetteer_town"] += ["Borgofinto", "Valinventata", "Campofinto"]
+    p["gazetteer_trade"] += ["Vetreria Sperimentale", "Cooperativa Agricola"]
+    p["gazetteer_street_name"] += ["delle Fornaci Finte"]
+    p["gazetteer_first_name"] += ["Zeno", "Ada", "Bruno", "Clea"]
+    p["gazetteer_surname"] += ["Fintini", "Simulata", "Campionari", "Inventari"]
+    path.write_text(json.dumps(obj, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    return dst
+
+
 class D37_WrongCommittedAgree(unittest.TestCase):
     def check(self, got: dict):
         m = got["metrics"]
@@ -50,16 +66,19 @@ class D37_WrongCommittedAgree(unittest.TestCase):
         self.assertEqual(sum(m[k] for k in score.WRONG_COMMITTED), m["never_events"])
 
     def test_recorded_hand_corpora(self):
-        for hand in ("hand", "hand-9", "hand-11", "hand-14", "hand-16", "hand-18"):
+        for hand in ("hand", "hand-9", "hand-11", "hand-14", "hand-16", "hand-18", "hand-20"):   # hand-20 since v2.0.9
             with self.subTest(hand=hand):
                 work = s.tmp()
                 got = score.evaluate(hand, corpus=BLIND / hand / "input", gold_path=BLIND / hand / "gold.json",
                                      work=work)
                 self.check(got)
-                # v2.0.8: no never-event on any recorded hand corpus (hand-18: 4 in E-0015 on v2.0.6 and v2.0.7)
+                # v2.0.8: no never-event on any recorded hand corpus (hand-18: 4 in E-0015 on v2.0.6 and v2.0.7);
+                # v2.0.9: hand-20 too (8 in E-0009 and E-0010 on v2.0.8, run 20)
                 self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
                 if hand == "hand-18":
                     self.hand18(work / "work")
+                if hand == "hand-20":
+                    self.hand20(work / "work")
 
     def hand18(self, out):
         """Goals (a), (b), (d) on the recorded corpus: E-0015 every field [TO CONFIRM]; E-0020, E-0025, E-0026 block
@@ -69,15 +88,34 @@ class D37_WrongCommittedAgree(unittest.TestCase):
             self.assertEqual(report[e]["status"], "BLOCKED", e)
         for e, fields in (("E-0015", None), ("E-0012", ("share_capital.resolved", "share_capital.subscribed",
                                                         "share_capital.paid_in"))):
-            self.assertEqual(report[e]["status"], "OK", e)
+            self.not_stated(out, report, e, fields)
+
+    def not_stated(self, out, report, e, fields):
+        """v2.0.8: published with the fields [TO CONFIRM]. Since v2.0.9 (D38) an entity whose holders' rows name persons
+        the gazetteer does not hold is blocked (OWN-015): either way none of the fields is published as a fact."""
+        if report[e]["status"] == "OK":
             view = jsonio.load(out / "views" / f"{e}.json")["fields"]
             for f in fields or view:
                 self.assertEqual(view[f]["status"], "TO_CONFIRM", (e, f))
+        else:
+            self.assertEqual(report[e]["status"], "BLOCKED", e)
+
+    def hand20(self, out):
+        """v2.0.9 (D38) on the recorded corpus of run 20: E-0009 (words inside the town of the office, alike in the deed
+        and the extract) and E-0010 (words inside the company's name, alike in every header) publish no field as a
+        fact; E-0026, which holds a registry extract of an entity with no folder of its own (E-0062), abstains."""
+        report = jsonio.load(out / "run_report.json")["entities"]
+        for e in ("E-0009", "E-0010", "E-0026"):
+            self.not_stated(out, report, e, None)
 
     def test_every_kind_counted(self):
+        # since v2.0.9 (D38) the hand corpus of run 7 is built with a copy of the rules whose gazetteer also holds its
+        # words, so that its E-0001 is published and the scorer is checked on a real output (the pack's gazetteer does
+        # not hold them: with it, E-0001 blocks); what is checked here is the scorer, not the pipeline
         work = s.tmp()
-        score.evaluate("hand", corpus=BLIND / "hand" / "input", gold_path=BLIND / "hand" / "gold.json", work=work)
         out = work / "work"
+        s.run(BLIND / "hand" / "input", out, rules_dir=hand_rules())
+        self.assertEqual(jsonio.load(out / "run_report.json")["entities"]["E-0001"]["status"], "OK")
         gold = json.loads((BLIND / "hand" / "gold.json").read_text(encoding="utf-8"))
 
         # every kind but the unsummed table: one changed gold and one changed provenance of E-0001

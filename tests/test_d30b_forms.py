@@ -327,8 +327,11 @@ class G_HandCorpora(unittest.TestCase):
     def test_hand_11(self):
         got = self._score("hand-11")
         self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
-        self.assertEqual(got["metrics"]["to_confirm_kept"], "12/12")
-        self.assertLessEqual(got["counts"]["blocked_wrongly"], 3)
+        # v2.0.8: [TO CONFIRM] kept 12/12, blocked wrongly at most 3; v2.0.9 (D38) every entity of this corpus is
+        # blocked: the persons of its holders' rows are not of the gazetteer (free_text_identification), the rows are
+        # read by no rule and may state a holding (OWN-015); the price of CHANGELOG 2.0.9 section 3
+        self.assertEqual(got["metrics"]["to_confirm_kept"], "0/0")
+        self.assertEqual((got["counts"]["published"], got["counts"]["blocked_wrongly"]), (0, 13))
 
     def test_hand_9_and_hand(self):
         for sub in ("hand-9", "hand"):

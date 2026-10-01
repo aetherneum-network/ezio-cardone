@@ -45,9 +45,10 @@ class Rules:
         return p["value"] if isinstance(p, dict) and "value" in p else p
 
     def legal_assumptions(self) -> list[dict]:
-        """Every parameter marked [TO CONFIRM with legal], in file order."""
+        """Every parameter marked [TO CONFIRM with legal], in file order (extract.json last, since v2.0.9, so that the
+        numbers of the earlier assumptions do not move)."""
         out = []
-        for file in ("figure_nature", "discrepancy", "ownership"):
+        for file in ("figure_nature", "discrepancy", "ownership", "extract"):
             for name, p in getattr(self, file)["parameters"].items():
                 if isinstance(p, dict) and "with legal" in str(p.get("status", "")):
                     out.append({"file": f"rules/{file}.json", "parameter": name, "value": p["value"],
@@ -103,7 +104,7 @@ def _validate(rules: Rules) -> None:
 def rule_groups(rules: Rules) -> list[list[dict]]:
     return [rules.extract["doc_kinds"], rules.extract["field_rules"], rules.extract["holders_evidence"]["rules"],
             rules.extract["unread_fields"]["rules"], rules.extract["classified_lines"]["rules"],
-            rules.extract["address_corroboration"]["rules"], rules.extract["name_corroboration"]["rules"],
+            rules.extract["free_text_identification"]["rules"], rules.extract["address_corroboration"]["rules"], rules.extract["name_corroboration"]["rules"],
             rules.extract["text_corroboration"]["rules"], rules.figure_nature["rules"],
             rules.discrepancy["rules"], rules.discrepancy["outgoing_scan"]["rules"], rules.ownership["rules"]]
 
