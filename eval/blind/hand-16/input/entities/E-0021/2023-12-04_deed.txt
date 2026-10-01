@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0021-01
+Document type: Deed of incorporation
+Document date: 2023-12-04
+Edition: DEED/1
+Entity: Marmeria Grottafittizia S.r.l. (test registry no. TEST-REG-000021)
+
+1. Name and form. The company is named Marmeria Grottafittizia S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Largo Fuliggine 12, Grottafittizia (ZZ).
+3. Share capital. The share capital is EUR 16.000,00, fully subscribed and fully paid in.
+4. Holders.
+a) Gil Mendacini (P-008) ........ 40 pct
+b) Zoe Illusori (P-009) ........ 60 pct
+Total ........ 100 pct
+
+5. Directors.
+a) Zoe Illusori (P-009)

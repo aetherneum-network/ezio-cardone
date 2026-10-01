@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0024-01
+Document type: Deed of incorporation
+Document date: 2023-06-12
+Edition: DEED/1
+Entity: Cereria Pianoinventato S.r.l. (test registry no. TEST-REG-000024)
+
+1. Name and form. The company is named Cereria Pianoinventato S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via Tufo 9, Pianoinventato (ZZ).
+3. Share capital. The share capital is EUR 10.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-012 (Dan Allegorici): EUR 7.000,00 of the capital
+- P-013 (Ida Parvenze): EUR 3.000,00 of the capital
+
+5. Directors.
+- P-012 (Dan Allegorici)

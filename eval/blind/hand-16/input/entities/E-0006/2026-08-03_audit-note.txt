@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-03
+Document type: Auditor's annotation
+Document date: 2026-08-03
+Edition: AUDIT/1
+Entity: Mulino Serrafiaba S.r.l. (test registry no. TEST-REG-000006)
+
+Record of the audit (synthetic).
+Since 1 July 2026 the company's own means stand at twice the figure of the deed, the difference having been paid in cash, in equal parts, by those already in the company.
