@@ -1,0 +1,13 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-03
+Document type: Share transfer notice
+Document date: 2026-05-06
+Edition: TRANSFER/1
+Entity: Ceramiche Valleipotesi S.p.A. (test registry no. TEST-REG-000008)
+
+Notice of a transfer of shares (synthetic).
+Holders after the transfer:
+- P-012 (Delfina Prototti): 50%
+- P-016 (Hilde Simulanti): 50%
+
+All notices to the company are henceforth to be delivered to Via della Nuova Fornace 77, Valleipotesi (ZZ), where it is now established.

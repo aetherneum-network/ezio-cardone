@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-03
+Document type: Financial statements summary
+Document date: 2026-04-30
+Edition: FIN-FY2025/1
+Entity: Conceria Rocca Immaginaria S.p.A. (test registry no. TEST-REG-000003)
+Financial year: 2025
+
+Net equity: EUR 388.120,75
+Total assets: EUR 2.014.330,00
+Revenue: EUR 1.766.905,50

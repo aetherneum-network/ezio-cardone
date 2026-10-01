@@ -1,0 +1,10 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0015-02
+Document type: Holders' ledger
+Document date: 2025-09-22
+Edition: LEDGER/1
+Entity: Lanificio Poggio Figurato S.r.l. (test registry no. TEST-REG-000015)
+
+Holders:
+- P-010 (Brunilde Esemplari): 65%
+- P-011 (Corrado Immaginari): 35%

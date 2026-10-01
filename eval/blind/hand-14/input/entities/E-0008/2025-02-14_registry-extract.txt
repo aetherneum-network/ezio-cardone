@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-02
+Document type: Test registry extract
+Document date: 2025-02-14
+Edition: EXTRACT/1
+Entity: Ceramiche Valleipotesi S.p.A. (test registry no. TEST-REG-000008)
+
+Name: Ceramiche Valleipotesi S.p.A.
+Legal form: S.p.A.
+Registered office: Piazza dei Forni 1, Valleipotesi (ZZ)
+Share capital: resolved EUR 200.000,00; subscribed and paid in EUR 200.000,00
+Holders:
+- P-012 (Delfina Prototti): 70%
+- P-013 (Ettore Fantasmi): 30%
+
+Directors:
+- P-012 (Delfina Prototti)

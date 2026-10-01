@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-02
+Document type: Appointment of directors
+Document date: 2025-05-15
+Edition: APPOINTMENT/1
+Entity: Falegnameria Montesimulato S.r.l. (test registry no. TEST-REG-000006)
+
+Minutes of the holders' meeting (synthetic).
+Directors in office after this appointment:
+- P-009 (Lapo Figurati)
+- P-014 (Fosca Allegorici)

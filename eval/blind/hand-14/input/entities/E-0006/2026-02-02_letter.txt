@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-03
+Document type: Letter
+Document date: 2026-02-02
+Edition: LETTER/1
+Entity: Falegnameria Montesimulato S.r.l. (test registry no. TEST-REG-000006)
+
+Letter (synthetic).
+Dear Sirs,
+from the first day of March the company will be run by Fosca Allegorici (P-014) alone; Lapo Figurati (P-009) lays down his duties on that date and will no longer sign for it.
+Yours faithfully.
