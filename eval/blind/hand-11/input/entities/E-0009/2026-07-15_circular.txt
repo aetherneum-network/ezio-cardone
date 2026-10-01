@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0009-03
+Document type: Circular
+Document date: 2026-07-15
+Edition: CIRCULAR/1
+Entity: Fonderia Selvanera S.p.A. (test registry no. TEST-REG-000009)
+
+Circular (synthetic).
+To whom it may concern: the registered office remains at Piazza Senza Numero, Selvanera (ZZ). On the fifteenth of July the two founders doubled what they had put into the company, all of it handed over on the same day, in equal parts as before.

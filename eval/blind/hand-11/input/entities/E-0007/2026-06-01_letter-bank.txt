@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0007-04
+Document type: Letter to the bank
+Document date: 2026-06-01
+Edition: LETTER/1
+Entity: Distilleria Cimafumosa S.r.l. (test registry no. TEST-REG-000007)
+
+Letter to the bank (synthetic).
+We refer to your request of last month concerning our current account.
+The undersigned confirms that the company carries on its activity without interruption and that nothing has changed in the persons who sign for it.
+Signed for the company at its new premises, Vicolo dei Sospetti 9, Falsopoli (ZZ), where it is domiciled from the first of June.

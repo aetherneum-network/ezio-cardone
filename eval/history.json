@@ -3059,6 +3059,211 @@
           "source_documents": 896
         }
       ]
+    },
+    {
+      "n": 11,
+      "date": "2026-10-01",
+      "run_by": "evaluator (Claude Fable 5.1), not the builder",
+      "code": "tag v2.0.3-freeze, commit 77e7736",
+      "command": "python -m eval.score --seed 20261014 --label blind --json build/blind/blind-20261014.json ; python -m eval.score --seed 20261014 --perturb --label blind-perturbed --json build/blind/blind-20261014-perturbed.json ; python -m eval.score --corpus eval/blind/hand-11/input --gold eval/blind/hand-11/gold.json --label hand --json build/blind/hand.json",
+      "note": "Blind run of v2.0.3-freeze (tag object ae66f49, commit 77e7736; protocol eval/BLIND_PROTOCOL.md @ 05b00f6) by the evaluator (Claude Fable 5.1), not the builder, on a clean local clone detached at the tag (section 2: rev-parse 77e7736, diff against the tag on the frozen paths empty, tools/manifest.py --check 'manifest OK' 171 entries, git status clean before and after). Seed 20261014 chosen by the evaluator after searching the pack's history, messages, tags and tree and the evaluation folders (absent as a run seed), not told to the builder. Commands run once each, in order: 3a exit 0, 2026-09-30T23:59:14Z to 2026-09-30T23:59:59Z; 3b exit 0, 2026-09-30T23:59:59Z to 2026-10-01T00:00:39Z; 4 exit 1, 2026-10-01T00:00:40Z to 2026-10-01T00:00:41Z (the scorer's exit 1 = never-events present). Never-events: 3a 0, 3b 0, 4 2 (E-0015 shareholders: gold says it cannot be read, shown as STATED; E-0015: effective holdings shown where the reference abstains). Blocked wrongly: 3a 2 (E-0032, E-0051: both by decision, illegible share planted by the generator), 3b 2 (the same two), 4 8 (E-0011 header row and E-0014 per mille, declared; E-0001, E-0002, E-0003, E-0005-as-reason, E-0006, E-0012 on holders' headings without a terminal '.' or ':', E-0008 on a date ordinal 'the third of July' read as a share in words by HEV-010, E-0006 dot leaders and a Total line, E-0012 share before the holder - undeclared). Fields left [TO CONFIRM]: 3a 0/1461, 3b 477/1461 (457 facts + 20 conflicts; 3 of 141 published dossiers with the holders [TO CONFIRM]; 11 effective holdings abstained), 4 23/43 (3 of 5 published dossiers with the holders [TO CONFIRM]: E-0007, E-0009, E-0010 every field; E-0013 directors; E-0015 capital x3 and office). Hand documents: 33 for 15 invented entities, written by the evaluator before reading the code, gold outcomes written before the run. Inside the claimed classes: E-0001 ('Article 4. Stockholders' / 'Registered stockholders:', '(a) ... | 55 percent'), E-0002 (name-first '*' lines, fractions in words, a transfer heading in the hand's own words), E-0003 (counts with one total 'split into 900 quotas', tab separator, roman clause), E-0013 ('(4) Current members:', 'a) ... - one half'); the plain E-0004 (9/10) and E-0005 (counts 9/10) must block. Outside, declared: E-0011 (header row), E-0014 (per mille). Outside, undeclared: E-0006 (dot leaders, Total line - the careful-human table), E-0012 (share before the holder). Adversarial DISC-005 (an unrecognised document after the latest recognised one, a field changed in non-obvious words): E-0007 office (kept [TO CONFIRM]), E-0008 directors (entity blocked by HEV-010 on a date word), E-0009 capital (kept [TO CONFIRM] by the title line only: the sentence itself scoped to the office), E-0010 holders (kept by the title line only: the sentence scoped to the directors), E-0015 capital, office and holders (capital and office kept; the holders published 1/1 with the effective holding = the 2 never-events; the pack's FEV-040 assumption against the evaluator's gold). What went wrong: the heading grammar needs a terminal '.' or ':' (7 hand deeds blocked before their tables were exercised); E-0005 blocked for that reason, not for its sum; the directors' heading is not generalised like the holders' one (E-0013). The section-4 command was run with the corpus and gold in the evaluator's folder outside the pack; it is written here with the paths of eval/blind/hand-11/ where the recorder would copy them unchanged. The result files, the work folders, the measurer's report (proofpack_check exit 0, 171/171 manifest, 0 differing files, 243 tests OK, executor 10/10) and the scorecard (status under-review) are in the evaluator's folder.",
+      "results": [
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 7,
+            "blocked_gold": 7,
+            "blocked_wrongly": 2,
+            "conflict_abstained": 0,
+            "conflict_found": 44,
+            "cycles_found": 24,
+            "cycles_gold": 24,
+            "effective_abstained": 0,
+            "effective_exact": 90,
+            "effective_gold": 90,
+            "entities": 150,
+            "fact_abstained": 0,
+            "fact_exact": 1365,
+            "fact_false_conflict": 0,
+            "fact_source_ok": 1365,
+            "failed": 0,
+            "fields_gold_conflict": 44,
+            "fields_gold_fact": 1365,
+            "fields_gold_to_confirm": 52,
+            "figures_total": 3777,
+            "figures_with_source": 3777,
+            "filename_extra": 0,
+            "filename_found": 12,
+            "filename_gold": 12,
+            "published": 141,
+            "superseded_gold": 621,
+            "superseded_linked": 621,
+            "to_confirm_kept": 52
+          },
+          "exit_code": 2,
+          "label": "blind",
+          "metrics": {
+            "blocked_correct": "7/7",
+            "conflicts_precision": "44/44",
+            "conflicts_recall": "44/44",
+            "cycles_found": "24/24",
+            "effective_holdings_exact": "90/90",
+            "fact_source_among_gold_sources": "1365/1365",
+            "fields_abstained": "0/1461",
+            "fields_exact": "1365/1365",
+            "figures_with_source": "3777/3777",
+            "filename_divergences_found": "12/12",
+            "never_events": 0,
+            "superseded_linked": "621/621",
+            "to_confirm_kept": "52/52"
+          },
+          "never_event_list": [],
+          "perturbed": false,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 9,
+              "FAILED": 0,
+              "OK": 141
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": 20261014,
+          "source_documents": 893
+        },
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 7,
+            "blocked_gold": 7,
+            "blocked_wrongly": 2,
+            "conflict_abstained": 20,
+            "conflict_found": 24,
+            "cycles_found": 20,
+            "cycles_gold": 24,
+            "effective_abstained": 11,
+            "effective_exact": 79,
+            "effective_gold": 90,
+            "entities": 150,
+            "fact_abstained": 457,
+            "fact_exact": 908,
+            "fact_false_conflict": 0,
+            "fact_source_ok": 906,
+            "failed": 0,
+            "fields_gold_conflict": 44,
+            "fields_gold_fact": 1365,
+            "fields_gold_to_confirm": 52,
+            "figures_total": 3117,
+            "figures_with_source": 3117,
+            "filename_extra": 0,
+            "filename_found": 10,
+            "filename_gold": 12,
+            "published": 141,
+            "superseded_gold": 621,
+            "superseded_linked": 276,
+            "to_confirm_kept": 52
+          },
+          "exit_code": 2,
+          "label": "blind-perturbed",
+          "metrics": {
+            "blocked_correct": "7/7",
+            "conflicts_precision": "24/24",
+            "conflicts_recall": "24/44",
+            "cycles_found": "20/24",
+            "effective_holdings_exact": "79/90",
+            "fact_source_among_gold_sources": "906/908",
+            "fields_abstained": "477/1461",
+            "fields_exact": "908/1365",
+            "figures_with_source": "3117/3117",
+            "filename_divergences_found": "10/12",
+            "never_events": 0,
+            "superseded_linked": "276/621",
+            "to_confirm_kept": "52/52"
+          },
+          "never_event_list": [],
+          "perturbed": true,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 9,
+              "FAILED": 0,
+              "OK": 141
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": 20261014,
+          "source_documents": 893
+        },
+        {
+          "as_of": "2026-09-30",
+          "counts": {
+            "blocked_correct": 2,
+            "blocked_gold": 2,
+            "blocked_wrongly": 8,
+            "conflict_abstained": 0,
+            "conflict_found": 0,
+            "cycles_found": 0,
+            "cycles_gold": 0,
+            "effective_abstained": 2,
+            "effective_exact": 1,
+            "effective_gold": 3,
+            "entities": 15,
+            "fact_abstained": 23,
+            "fact_exact": 10,
+            "fact_false_conflict": 0,
+            "fact_source_ok": 10,
+            "failed": 0,
+            "fields_gold_conflict": 0,
+            "fields_gold_fact": 33,
+            "fields_gold_to_confirm": 10,
+            "figures_total": 71,
+            "figures_with_source": 71,
+            "filename_extra": 0,
+            "filename_found": 0,
+            "filename_gold": 0,
+            "published": 5,
+            "superseded_gold": 0,
+            "superseded_linked": 0,
+            "to_confirm_kept": 9
+          },
+          "exit_code": 2,
+          "label": "hand",
+          "metrics": {
+            "blocked_correct": "2/2",
+            "conflicts_precision": "0/0",
+            "conflicts_recall": "0/0",
+            "cycles_found": "0/0",
+            "effective_holdings_exact": "1/3",
+            "fact_source_among_gold_sources": "10/10",
+            "fields_abstained": "23/43",
+            "fields_exact": "10/33",
+            "figures_with_source": "71/71",
+            "filename_divergences_found": "0/0",
+            "never_events": 2,
+            "superseded_linked": "0/0",
+            "to_confirm_kept": "9/10"
+          },
+          "never_event_list": [
+            "E-0015 shareholders: gold says it cannot be read, shown as STATED",
+            "E-0015: effective holdings shown where the reference abstains"
+          ],
+          "perturbed": false,
+          "run": {
+            "as_of": "2026-09-30",
+            "counts": {
+              "BLOCKED": 10,
+              "FAILED": 0,
+              "OK": 5
+            },
+            "status": "BLOCKED"
+          },
+          "scope": "internal consistency on synthetic data",
+          "seed": null,
+          "source_documents": 33
+        }
+      ]
     }
   ],
   "schema": "eval-history/2.0.0"

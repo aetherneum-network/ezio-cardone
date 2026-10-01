@@ -1,0 +1,122 @@
+{
+  "P-001": {
+    "name": "Ada Posticci",
+    "born": "1962-04-11",
+    "email": "ada.posticci@persons.example",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "name": "Bruno Simulanti",
+    "born": "1970-09-02",
+    "email": "bruno.simulanti@persons.example",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "name": "Clara Immaginari",
+    "born": "1975-01-23",
+    "email": "clara.immaginari@persons.example",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "name": "Dario Congetturi",
+    "born": "1958-12-05",
+    "email": "dario.congetturi@persons.example",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "name": "Elsa Apocrifi",
+    "born": "1983-06-30",
+    "email": "elsa.apocrifi@persons.example",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "name": "Fabio Presunti",
+    "born": "1966-03-14",
+    "email": "fabio.presunti@persons.example",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "name": "Gilda Fantomatici",
+    "born": "1979-11-08",
+    "email": "gilda.fantomatici@persons.example",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "name": "Hugo Chimerici",
+    "born": "1971-07-27",
+    "email": "hugo.chimerici@persons.example",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "name": "Ilaria Speculanti",
+    "born": "1988-02-16",
+    "email": "ilaria.speculanti@persons.example",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "name": "Lidia Spuri",
+    "born": "1964-10-19",
+    "email": "lidia.spuri@persons.example",
+    "tax_code": "SYN-CF-P010"
+  },
+  "P-011": {
+    "name": "Marco Finzioni",
+    "born": "1973-05-06",
+    "email": "marco.finzioni@persons.example",
+    "tax_code": "SYN-CF-P011"
+  },
+  "P-012": {
+    "name": "Nora Illusori",
+    "born": "1990-08-21",
+    "email": "nora.illusori@persons.example",
+    "tax_code": "SYN-CF-P012"
+  },
+  "P-013": {
+    "name": "Oscar Parvenza",
+    "born": "1955-01-09",
+    "email": "oscar.parvenza@persons.example",
+    "tax_code": "SYN-CF-P013"
+  },
+  "P-014": {
+    "name": "Pia Mendaci",
+    "born": "1981-12-12",
+    "email": "pia.mendaci@persons.example",
+    "tax_code": "SYN-CF-P014"
+  },
+  "P-015": {
+    "name": "Quinto Fasulli",
+    "born": "1969-04-04",
+    "email": "quinto.fasulli@persons.example",
+    "tax_code": "SYN-CF-P015"
+  },
+  "P-016": {
+    "name": "Rosa Contraffatti",
+    "born": "1977-06-18",
+    "email": "rosa.contraffatti@persons.example",
+    "tax_code": "SYN-CF-P016"
+  },
+  "P-017": {
+    "name": "Silvio Impostori",
+    "born": "1960-09-29",
+    "email": "silvio.impostori@persons.example",
+    "tax_code": "SYN-CF-P017"
+  },
+  "P-018": {
+    "name": "Tea Verosimili",
+    "born": "1985-03-03",
+    "email": "tea.verosimili@persons.example",
+    "tax_code": "SYN-CF-P018"
+  },
+  "P-019": {
+    "name": "Ubaldo Sembianza",
+    "born": "1957-07-15",
+    "email": "ubaldo.sembianza@persons.example",
+    "tax_code": "SYN-CF-P019"
+  },
+  "P-020": {
+    "name": "Vera Trucchi",
+    "born": "1992-11-30",
+    "email": "vera.trucchi@persons.example",
+    "tax_code": "SYN-CF-P020"
+  }
+}
