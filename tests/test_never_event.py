@@ -373,7 +373,8 @@ class UnreadSourcesNeverBecomeFacts(unittest.TestCase):
                               and f["field"].startswith("share_capital.")], [])
             self.assertTrue(all(t["marker"] == "[TO CONFIRM]" and "value" not in t for t in prov["to_confirm"]))
         # with the narrow scope of v2.0.3 (fields_it_may_state, OFF since v2.0.4) only the capital is [TO CONFIRM]
-        code, fields, _ = self._fields([deed, unknown], rules_dir=s.rules_narrow_scope())
+        # (since v2.0.8 with a witness of the deed's office: a deed alone keeps every field, support.office_witness)
+        code, fields, _ = self._fields(s.office_witness([deed, unknown]), rules_dir=s.rules_narrow_scope())
         self.assertEqual(code, 0)
         capital = {k for k in fields if k.startswith("share_capital.")}
         self.assertEqual({fields[k]["status"] for k in capital}, {"TO_CONFIRM"})

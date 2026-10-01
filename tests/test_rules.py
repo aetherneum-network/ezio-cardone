@@ -38,9 +38,11 @@ class RuleFiles(unittest.TestCase):
                 self.assertGreater(len(r["rationale"]), 20, r["id"])
                 self.assertTrue(r["tests"], r["id"])
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertEqual(len(ids), 90)       # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3;
+        self.assertEqual(len(ids), 100)      # 47 until v2.0.1; + HEV-010..080, HEV-999 in v2.0.2; + FEV-010..060, FEV-900..930, FEV-999 in v2.0.3;
         #                                      + CLS-010..CLS-999 (20) and DISC-006 in v2.0.5;
-        #                                      + CLS-005 and DISC-035 in v2.0.6
+        #                                      + CLS-005 and DISC-035 in v2.0.6;
+        #                                      + ADR-010, ADR-020, ADR-999, DISC-038, NAM-010, NAM-020, NAM-999,
+        #                                        TXT-010, TXT-020 and TXT-999 in v2.0.8
 
     def test_every_group_ends_with_a_default(self):
         r = s.rules()
@@ -49,11 +51,18 @@ class RuleFiles(unittest.TestCase):
         self.assertEqual(r.figure_nature["rules"][-1]["id"], "NAT-999")
         self.assertEqual(r.discrepancy["outgoing_scan"]["rules"][-1]["id"], "SCAN-999")
         self.assertEqual(r.ownership["rules"][-1]["when"], "always")
+        for group, last in (("address_corroboration", "ADR-999"), ("name_corroboration", "NAM-999"),   # v2.0.8
+                            ("text_corroboration", "TXT-999")):
+            self.assertEqual(r.extract[group]["rules"][-1]["id"], last)
+            self.assertEqual(r.extract[group]["rules"][-1]["when"], "always")
 
     def test_exceptions_are_on_top(self):
         r = s.rules()
         self.assertEqual(r.ownership["rules"][0]["outcome"], "BLOCKED")
         self.assertEqual(r.discrepancy["rules"][0]["id"], "DISC-005")
+        for group in ("address_corroboration", "name_corroboration", "text_corroboration"):   # v2.0.8: plus words first
+            self.assertEqual(r.extract[group]["rules"][0]["when"], "plus_words")
+            self.assertEqual(r.extract[group]["rules"][0]["outcome"], "unexplained")
 
     def test_legal_assumptions_are_parameters_to_confirm(self):
         got = s.rules().legal_assumptions()

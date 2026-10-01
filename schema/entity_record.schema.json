@@ -86,7 +86,14 @@
         "line": {"type": ["integer", "null"], "minimum": 1},
         "line_end": {"type": ["integer", "null"], "minimum": 1},
         "quote": {"type": "string"},
-        "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"}
+        "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"},
+        "corroboration": {
+          "description": "Since v2.0.8 (D37): on an assertion of the registered office that holds a value, the rule of rules/extract.json address_corroboration that decided its address (ADR-020 corroborated, ADR-999 not) and the mentions it rests on; on an assertion of the company's name that holds a value, the rule of name_corroboration that decided the name of its document's header (NAM-020 corroborated, NAM-999 not) and the documents it rests on. DISC-038 keeps the office or the name [TO CONFIRM] when no current source of it is corroborated.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule", "by"],
+          "properties": {"rule": {"$ref": "#/$defs/text"}, "by": {"type": "array", "items": {"$ref": "#/$defs/text"}}}
+        }
       },
       "allOf": [
         {
@@ -161,6 +168,7 @@
       "required": ["may_change", "why"],
       "properties": {
         "may_change": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "except": {"description": "Since v2.0.8 (D37): the fields that '*' of may_change leaves out (an address that no second document states alike: every field but the registered office; a header name that no second document states alike: every field but the name; both in one document: none is left out).", "type": "array", "items": {"type": "string", "minLength": 1}},
         "why": {"type": "string"}
       }
     },

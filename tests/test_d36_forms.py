@@ -385,8 +385,16 @@ class D36_PlainAddressesStillRead(unittest.TestCase):
         self.assertTrue(all(f["status"] == "TO_CONFIRM" for f in view["fields"].values()), view["fields"])
 
     def test_plain_transfer(self):
+        """Changed in v2.0.8 (D37, recorded in CHANGELOG 2.0.8): the new address of a transfer is a fact only when a
+        later source repeats it (rules/extract.json ADR-020); the transfer as the last document keeps the office
+        [TO CONFIRM] (DISC-038, tests/test_d37_forms.py). Until v2.0.7 this case had no later extract."""
+        repeat = mk._file(E, "2026-09-01_registry-extract.txt",
+                          mk._head(E, 4, "Test registry extract", "2026-09-01", "EXTRACT/2") + [
+                              f"Name: {NAME}", f"Legal form: {FORM}", f"Registered office: {mk.OFFICE_B}",
+                              "Share capital: resolved EUR 50.000,00; subscribed EUR 50.000,00; paid in EUR 50.000,00",
+                              "Holders:", *mk._holders(H), "", "Directors:", *mk._directors(["P-001"])])
         status, view, prov = _run([deed(), extract(), later("OFFICE", [
-            f"The registered office is transferred from {mk.OFFICE_A} to {mk.OFFICE_B}."])])
+            f"The registered office is transferred from {mk.OFFICE_A} to {mk.OFFICE_B}."]), repeat])
         self.assertEqual(status, "OK")
         self.assertEqual((view["fields"]["registered_office"]["status"], view["fields"]["registered_office"]["value"]),
                          ("STATED", mk.OFFICE_B))
@@ -444,10 +452,15 @@ class D36_ListEnd(unittest.TestCase):
     end. v2.0.6 took every line to the next blank line as a row: the four cases marked v2.0.6 BLOCKED were blocked
     there (a holders' list) or kept the directors [TO CONFIRM] (a directors' list)."""
 
+    # Since v2.0.8 (D37, rules/extract.json text_corroboration): a short sentence of the form of CLS-250 ('The holders
+    # sign this deed in person.', 'Bice Provetti also joins the board.') is a label that no second document states
+    # (TXT-999); the list still ends at it and its rows are read, but its own line is read by no rule: in the deed its
+    # holder noun may state a holding and the entity blocks (OWN-015, the reason names that line, not the list); in the
+    # appointment, the latest document, every field stays [TO CONFIRM] (DISC-006). v2.0.7: OK, the fields below STATED.
     CASES = (  # (place, docs, expected status, fields expected STATED, v2.0.6 status)
         ("deed, holders + a sentence", lambda: [_deed_raw(["4. Holders.", *ROWS, "The holders sign this deed in person.",
                                                            "", "5. Directors.", *DIRS]), extract()],
-         "OK", ("directors", "registered_office"), "BLOCKED"),
+         "BLOCKED", (), "BLOCKED"),
         ("deed, holders + a heading, no blank line", lambda: [_deed_raw(["4. Holders.", *ROWS, "5. Directors.", *DIRS]),
                                                               extract()],
          "OK", ("shareholders", "directors"), "BLOCKED"),
@@ -461,7 +474,7 @@ class D36_ListEnd(unittest.TestCase):
             "TRANSFER", ["Holders after the transfer:", *ROWS, "The price was paid in full."])], "OK", (), "BLOCKED"),
         ("appointment, directors + a sentence that adds a director", lambda: [deed(), extract(), later(
             "APPOINTMENT", ["Directors in office after this appointment:", "- P-001 (Aldo Finti)",
-                            "Bice Provetti also joins the board."])], "OK", ("shareholders", "registered_office"), "OK"),
+                            "Bice Provetti also joins the board."])], "OK", (), "OK"),
     )
     STILL_BLOCKED = (  # a broken item, and sentences that state a share or a count, stay rows and block
         ("deed, a wrapped row", lambda: [_deed_raw(["4. Holders.", "- P-001 (Aldo", "Finti): 60%", ROWS[1], "",
@@ -480,6 +493,10 @@ class D36_ListEnd(unittest.TestCase):
             with self.subTest(place=place):
                 status, view, prov = _run(docs())
                 self.assertEqual(status, want)
+                if place == "deed, holders + a sentence":      # v2.0.8: the sentence blocks, the list is read
+                    work = s.tmp()
+                    _, _, report = s.run(s.tiny(docs(), "2026-09-30"), work)
+                    self.assertIn("line 14, read by no rule of its kind", report["entities"][E]["reason"])
                 for f in stated:
                     self.assertEqual(view["fields"][f]["status"], "STATED", f)
                 if "directors" in stated:

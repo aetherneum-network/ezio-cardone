@@ -85,7 +85,7 @@ def _titles(own: str):
 
 def _run(docs, rules_dir=None):
     work = s.tmp()
-    code, _, report = s.run(s.tiny(docs, "2026-09-30"), work, rules_dir=rules_dir)
+    code, _, report = s.run(s.tiny(s.office_witness(docs), "2026-09-30"), work, rules_dir=rules_dir)
     status = report["entities"]["E-0001"]["status"]
     view = jsonio.load(work / "views" / "E-0001.json")
     prov_path = work / "dossiers" / "E-0001" / "provenance.json"

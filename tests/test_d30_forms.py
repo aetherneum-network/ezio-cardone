@@ -58,7 +58,7 @@ def _doc(n, date, label, edition, body):
 
 def _run(docs):
     work = s.tmp()
-    code, _, report = s.run(s.tiny(docs, "2026-06-30"), work)
+    code, _, report = s.run(s.tiny(s.office_witness(docs), "2026-06-30"), work)
     view = jsonio.load(work / "views" / "E-0001.json")
     return report["entities"]["E-0001"]["status"], view, work
 

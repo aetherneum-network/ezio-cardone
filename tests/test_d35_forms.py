@@ -378,7 +378,9 @@ class D35_HandCorpus14(unittest.TestCase):
         got = score.evaluate("hand-14", corpus=d / "input", gold_path=d / "gold.json", work=s.tmp())
         self.assertEqual(got["metrics"]["never_events"], 0, got["never_event_list"])
         self.assertEqual(got["metrics"]["to_confirm_kept"], "7/7")
-        self.assertGreaterEqual(got["counts"]["fact_exact"], 27)        # v2.0.5: 2/64 (run 14)
+        self.assertGreaterEqual(got["counts"]["fact_exact"], 14)        # v2.0.5: 2/64 (run 14); v2.0.7: 27/64
+        # v2.0.8 (D37): 14/64, the measured cost of corroboration (an address that one document alone states keeps
+        # every field of that document [TO CONFIRM]; CHANGELOG 2.0.8)
         self.assertIn("exit_code", got)
         self.assertEqual(dossier_run.EXIT[got["pipeline_status"]], got["exit_code"])
 

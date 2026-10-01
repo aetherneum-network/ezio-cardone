@@ -3,9 +3,9 @@
     "exit_code": 0,
     "registered_office": {
       "source": [
-        "DOC-E0001-02",
-        "2026-02-09",
-        "OFFICE/1"
+        "DOC-E0001-03",
+        "2026-03-02",
+        "EXTRACT/1"
       ],
       "status": "STATED",
       "value": "Piazza del Campione 3, Montefinto (ZZ)"
@@ -21,7 +21,7 @@
   "diff": [
     {
       "after": {
-        "source_doc": "DOC-E0001-02",
+        "source_doc": "DOC-E0001-03",
         "status": "STATED",
         "value": "Piazza del Campione 3, Montefinto (ZZ)"
       },

@@ -91,6 +91,13 @@ def extract(eid, n, date, ed, office, capital, holders, directors):
         "Directors:", *_directors(directors)])
 
 
+def repeat(eid, n, date, ed, office, amount, holders, directors):
+    """A registry extract that repeats a deed: since v2.0.8 (D37, rules/extract.json address_corroboration) an address
+    is a fact only when a second document states it alike, and a deed alone keeps every field [TO CONFIRM]."""
+    return extract(eid, n, date, ed, office, f"Share capital: resolved EUR {amount}; subscribed and paid in EUR {amount}",
+                   holders, directors)
+
+
 def resolution(eid, n, date, sentence):
     return _file(eid, f"{date}_capital-resolution.txt",
                  _head(eid, n, "Resolution on share capital", date, "RESOLUTION/1") + [
@@ -181,7 +188,8 @@ def s02():
     def one(prefix, share):
         h = [("P-001", share), ("P-002", share), ("P-003", share)]
         return root("S02", "2026-03-31", ["P-001", "P-002", "P-003"], [
-            deed("E-0003", 1, "2024-06-03", OFFICE_C, FULL.format(a="300.000,00"), h, ["P-001"])], prefix)
+            deed("E-0003", 1, "2024-06-03", OFFICE_C, FULL.format(a="300.000,00"), h, ["P-001"]),
+            repeat("E-0003", 2, "2024-07-01", 1, OFFICE_C, "300.000,00", h, ["P-001"])], prefix)
     files = {**one("percent/", "33,33%"), **one("exact/", "1/3")}
     exp = {"entity": "E-0003",
            "percent": {"exit_code": 2, "status": "BLOCKED", "sum": "9999/10000", "published": False,
@@ -289,6 +297,7 @@ def s04():
         extract("E-0001", 3, "2026-02-02", 1, OFFICE_A,
                 "Share capital: resolved EUR 80.000,00; subscribed and paid in EUR 80.000,00", h1, ["P-001"]),
         deed("E-0002", 1, "2025-05-05", OFFICE_C, FULL.format(a="50.000,00"), h2, ["P-002"]),
+        repeat("E-0002", 2, "2025-06-02", 1, OFFICE_C, "50.000,00", h2, ["P-002"]),
     ])
     files.update({k: v[0] for k, v in OUTGOING_STALE.items()})
     files.update({k: v[0] for k, v in OUTGOING_DECOYS.items()})
@@ -311,9 +320,10 @@ def s05():
     after = [("P-001", "40%"), ("P-002", "40%"), ("P-003", "20%")]
     files = root("S05", None, ["P-001", "P-002", "P-003"], [
         deed("E-0002", 1, "2025-05-05", OFFICE_C, FULL.format(a="100.000,00"), before, ["P-001"]),
-        transfer("E-0002", 2, "2026-02-20", after),
-        appointment("E-0002", 3, "2026-05-11", ["P-002", "P-003"], "P-002"),
-        extract("E-0002", 4, "2026-06-15", 1, OFFICE_C,
+        repeat("E-0002", 2, "2025-06-02", 1, OFFICE_C, "100.000,00", before, ["P-001"]),
+        transfer("E-0002", 3, "2026-02-20", after),
+        appointment("E-0002", 4, "2026-05-11", ["P-002", "P-003"], "P-002"),
+        extract("E-0002", 5, "2026-06-15", 2, OFFICE_C,
                 "Share capital: resolved EUR 100.000,00; subscribed and paid in EUR 100.000,00",
                 after, ["P-002", "P-003"]),
     ])
@@ -351,10 +361,13 @@ def s07():
     files = root("S07", "2026-03-31", ["P-001", "P-002", "P-003"], [
         deed("E-0001", 1, "2025-03-10", OFFICE_A, FULL.format(a="50.000,00"),
              [("P-001", "30%"), ("E-0002", "70%")], ["P-001"]),
+        repeat("E-0001", 2, "2025-04-07", 1, OFFICE_A, "50.000,00", [("P-001", "30%"), ("E-0002", "70%")], ["P-001"]),
         deed("E-0002", 1, "2025-05-05", OFFICE_C, FULL.format(a="100.000,00"),
              [("P-002", "90%"), ("E-0003", "10%")], ["P-002"]),
+        repeat("E-0002", 2, "2025-06-02", 1, OFFICE_C, "100.000,00", [("P-002", "90%"), ("E-0003", "10%")], ["P-002"]),
         deed("E-0003", 1, "2024-06-03", OFFICE_E, FULL.format(a="300.000,00"),
              [("P-003", "80%"), ("E-0002", "20%")], ["P-003"]),
+        repeat("E-0003", 2, "2024-07-01", 1, OFFICE_E, "300.000,00", [("P-003", "80%"), ("E-0002", "20%")], ["P-003"]),
     ])
     files["policy_override.json"] = _json({"file": "ownership.json", "parameter": "cycle_policy",
                                            "value": "closure"})
@@ -372,8 +385,10 @@ def s08():
     files = root("S08", "2026-03-31", ["P-001", "P-002", "P-004"], [
         deed("E-0004", 1, "2023-09-18", OFFICE_D, FULL.format(a="75.000,00"),
              [("P-004", "55%"), ("E-0002", "45%")], ["P-004"]),
+        repeat("E-0004", 2, "2023-10-16", 1, OFFICE_D, "75.000,00", [("P-004", "55%"), ("E-0002", "45%")], ["P-004"]),
         deed("E-0002", 1, "2025-05-05", OFFICE_C, FULL.format(a="100.000,00"),
              [("P-001", "60%"), ("P-002", "40%")], ["P-001"]),
+        repeat("E-0002", 2, "2025-06-02", 1, OFFICE_C, "100.000,00", [("P-001", "60%"), ("P-002", "40%")], ["P-001"]),
     ])
     exp = {"entity": "E-0004", "exit_code": 0, "salt": "scenario-salt-S08",
            "edges": [{"holder": "P-001", "held": "E-0002", "share": "3/5"},
@@ -391,6 +406,10 @@ def s09():
         deed("E-0001", 1, "2025-03-10", OFFICE_A, FULL.format(a="50.000,00"),
              [("P-001", "60%"), ("P-002", "40%")], ["P-001"]),
         office_transfer("E-0001", 2, "2026-02-09", moved),
+        # v2.0.8 (D37): a later extract repeats the new address, so that the address the transfer states is
+        # corroborated (rules/extract.json ADR-020); without it the new office stays [TO CONFIRM] (DISC-038)
+        extract("E-0001", 3, "2026-03-02", 1, OFFICE_B, "Share capital: resolved EUR 50.000,00; subscribed EUR "
+                "50.000,00; paid in EUR 50.000,00", [("P-001", "60%"), ("P-002", "40%")], ["P-001"]),
         deed("E-0004", 1, "2023-09-18", OFFICE_D, FULL.format(a="75.000,00"),
              [("P-004", "100%")], ["P-004"]),
     ])
@@ -404,11 +423,11 @@ def s09():
     exp = {"entity": "E-0001", "control_entity": "E-0004",
            "before": {"exit_code": 0, "registered_office": {"status": "TO_CONFIRM"}},
            "after": {"exit_code": 0, "registered_office": {
-               "status": "STATED", "value": OFFICE_B,
-               "source": src("E-0001", 2, "2026-02-09", "OFFICE/1")}},
+               "status": "STATED", "value": OFFICE_B,       # v2.0.8: the latest current source, which repeats it
+               "source": src("E-0001", 3, "2026-03-02", "EXTRACT/1")}},
            "diff": [{"entity": "E-0001", "field": "registered_office",
                      "before": {"status": "TO_CONFIRM"},
-                     "after": {"status": "STATED", "value": OFFICE_B, "source_doc": "DOC-E0001-02"}}]}
+                     "after": {"status": "STATED", "value": OFFICE_B, "source_doc": "DOC-E0001-03"}}]}
     return files, exp
 
 

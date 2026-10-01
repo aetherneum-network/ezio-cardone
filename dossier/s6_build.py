@@ -303,6 +303,8 @@ def render_docx(path: Path, view: dict, model: dict, as_of: str, rules_assumptio
     for d in w.get("classified_checks", []):
         fc, hc = d["fields_check"], d["holders_check"]
         scope = "every field" if "*" in fc["may_change"] else ", ".join(fc["may_change"]) or "no field"
+        if "*" in fc["may_change"] and fc.get("except"):     # since v2.0.8 (D37): an address no second source states
+            scope += " but " + ", ".join(fc["except"])
         line = (f"{d['doc_id']} ({d['kind']}) was not read whole ({fc['why']}): it may change {scope} "
                 "(DISC-006).")
         if hc["status"] == "not_read":

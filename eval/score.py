@@ -24,6 +24,12 @@ Since v2.0.4 (D30b, finding of the blind run of v2.0.3, eval/history.json run 11
 in entities that were not published, which until then was never scored: the gold [TO CONFIRM] values and the
 file-name divergences of every blocked (or failed) entity, split by whether the gold blocks the entity too. These
 are counts beside the others; they are not never-events and do not change any other count.
+
+Since v2.0.8 (D37) the metrics also give one count per kind of never-event above, in the same order, named
+``<kind>_wrong_committed`` (WRONG_COMMITTED), and their sum ``never_events_by_kind_total``. They are counted by the
+same call that writes a never-event into the list, so each equals by construction the number of never-events of its
+kind and their sum equals ``never_events``. The sum is named outside the pattern ``*wrong*committed*`` so that a tool
+summing every such field does not count it twice. No existing field is changed.
 """
 from __future__ import annotations
 
@@ -70,6 +76,20 @@ def published_fields(prov: dict) -> dict[str, dict]:
     return out
 
 
+# v2.0.8 (D37): one count per kind of never-event, in the order of the list of the docstring (section 1.5 of
+# eval/BLIND_PROTOCOL.md)
+WRONG_COMMITTED = (
+    "fact_value_wrong_committed",          # a field shown as one fact whose value differs from the gold
+    "planted_conflict_wrong_committed",    # a planted conflict shown as one value, or with values not the gold's
+    "gold_to_confirm_wrong_committed",     # a field the gold says cannot be read, shown with a value
+    "not_in_gold_wrong_committed",         # a field shown with a value that is not in the gold
+    "unsummed_table_wrong_committed",      # a cap table that does not sum, not blocked or its dossier published
+    "published_table_sum_wrong_committed",  # a published cap table that does not sum to the whole
+    "effective_holding_wrong_committed",   # an effective holding where the gold abstains, or different from it
+    "figure_source_wrong_committed",       # a figure without source document, source date or edition
+)
+
+
 def score(work: Path, gold: dict) -> dict:
     report = jsonio.load(work / "run_report.json")
     c = {k: 0 for k in (
@@ -84,9 +104,11 @@ def score(work: Path, gold: dict) -> dict:
         "unpublished_to_confirm_gold", "unpublished_to_confirm_gold_blocked_wrongly",
         "unpublished_filename_gold", "unpublished_filename_gold_blocked_wrongly")}
     never: list[str] = []
+    wrong = {k: 0 for k in WRONG_COMMITTED}
 
-    def ne(text: str) -> None:
+    def ne(text: str, kind: str) -> None:
         never.append(text)
+        wrong[kind] += 1                  # v2.0.8: the same call, so each kind equals what the list holds
 
     def unpublished(g: dict, wrongly: bool) -> None:
         """What the gold says of an entity that was not published (D30b): counted, never scored as an event."""
@@ -107,7 +129,8 @@ def score(work: Path, gold: dict) -> dict:
             if st == "BLOCKED" and not prov_path.exists():
                 c["blocked_correct"] += 1
             else:
-                ne(f"{eid}: cap table does not sum to the whole, run status {st}, dossier published: {prov_path.exists()}")
+                ne(f"{eid}: cap table does not sum to the whole, run status {st}, dossier published: {prov_path.exists()}",
+                   "unsummed_table_wrong_committed")
             if not prov_path.exists():
                 unpublished(g, wrongly=False)
             continue
@@ -122,11 +145,12 @@ def score(work: Path, gold: dict) -> dict:
             if all(f.get(k) not in (None, "", []) for k in ("value", "source_doc", "source_date", "edition")):
                 c["figures_with_source"] += 1
             else:
-                ne(f"{eid} {f.get('id')}: figure without source, date or edition")
+                ne(f"{eid} {f.get('id')}: figure without source, date or edition", "figure_source_wrong_committed")
         shown = published_fields(prov)
         cap = [Fraction(f["value"]) for f in prov["figures"] if f["section"] == "cap_table"]
         if cap and sum(cap, Fraction(0)) != 1:
-            ne(f"{eid}: the published cap table sums to {sum(cap, Fraction(0))}, not to the whole")
+            ne(f"{eid}: the published cap table sums to {sum(cap, Fraction(0))}, not to the whole",
+               "published_table_sum_wrong_committed")
         for fld, gf in sorted(g["fields"].items()):
             p = shown.get(fld, {"status": "ABSENT"})
             if gf["status"] == "FACT":
@@ -136,7 +160,7 @@ def score(work: Path, gold: dict) -> dict:
                         c["fact_exact"] += 1
                         c["fact_source_ok"] += int(p.get("source_doc") in gf["sources"])
                     else:
-                        ne(f"{eid} {fld}: shown {p.get('value')!r}, gold {gf['value']!r}")
+                        ne(f"{eid} {fld}: shown {p.get('value')!r}, gold {gf['value']!r}", "fact_value_wrong_committed")
                 elif p["status"] == "DISCREPANCY":
                     c["fact_false_conflict"] += 1
                 else:
@@ -147,9 +171,11 @@ def score(work: Path, gold: dict) -> dict:
                     if sorted(_key(v) for v in p.get("values", [])) == sorted(_key(v) for v in gf["values"]):
                         c["conflict_found"] += 1
                     else:
-                        ne(f"{eid} {fld}: conflict shown with values that are not the gold's")
+                        ne(f"{eid} {fld}: conflict shown with values that are not the gold's",
+                           "planted_conflict_wrong_committed")
                 elif p["status"] == "STATED":
-                    ne(f"{eid} {fld}: planted conflict shown as one value {p.get('value')!r}")
+                    ne(f"{eid} {fld}: planted conflict shown as one value {p.get('value')!r}",
+                       "planted_conflict_wrong_committed")
                 else:
                     c["conflict_abstained"] += 1
             else:
@@ -157,14 +183,15 @@ def score(work: Path, gold: dict) -> dict:
                 if p["status"] in ("TO_CONFIRM", "ABSENT"):
                     c["to_confirm_kept"] += 1
                 else:
-                    ne(f"{eid} {fld}: gold says it cannot be read, shown as {p['status']}")
+                    ne(f"{eid} {fld}: gold says it cannot be read, shown as {p['status']}",
+                       "gold_to_confirm_wrong_committed")
             links = {(s["old_source_doc"], _key(s["old_value"])) for s in prov["superseded"] if s["field"] == fld}
             for s in gf.get("superseded", []):
                 c["superseded_gold"] += 1
                 c["superseded_linked"] += int((s["old_source_doc"], _key(s["old_value"])) in links)
         for fld, p in sorted(shown.items()):
             if fld not in g["fields"] and p["status"] in ("STATED", "DISCREPANCY"):
-                ne(f"{eid} {fld}: shown but not in the gold")
+                ne(f"{eid} {fld}: shown but not in the gold", "not_in_gold_wrong_committed")
         go, po = g["ownership"], prov["ownership"]
         derived = {d["person"]: d["value"] for d in prov["derived"]}
         if go["cycles"]:
@@ -176,11 +203,11 @@ def score(work: Path, gold: dict) -> dict:
                 if derived == go["effective"]:
                     c["effective_exact"] += 1
                 else:
-                    ne(f"{eid}: effective holdings differ from the reference")
+                    ne(f"{eid}: effective holdings differ from the reference", "effective_holding_wrong_committed")
             else:
                 c["effective_abstained"] += 1
         elif derived:
-            ne(f"{eid}: effective holdings shown where the reference abstains")
+            ne(f"{eid}: effective holdings shown where the reference abstains", "effective_holding_wrong_committed")
         gd = {(d["doc_id"], d["aspect"]) for d in g["filename_divergences"]}
         pd = {(d["doc_id"], d["aspect"]) for d in prov["warnings"]["filename_divergences"]}
         c["filename_gold"] += len(gd)
@@ -212,6 +239,8 @@ def score(work: Path, gold: dict) -> dict:
         "blocked_entities_filename_divergences_gold": c["unpublished_filename_gold"],
         "blocked_wrongly_entities_filename_divergences_gold": c["unpublished_filename_gold_blocked_wrongly"],
     }
+    metrics.update(wrong)                 # v2.0.8 (D37): additive, one per kind of never-event
+    metrics["never_events_by_kind_total"] = sum(wrong.values())
     return {"metrics": metrics, "counts": c, "never_event_list": never,   # every one, never capped (D30)
             "run": {"status": report["status"], "counts": report["counts"], "as_of": report["as_of"]}}
 

@@ -125,16 +125,26 @@ def classified_that_matter(classified: list[dict], baseline: dict | None, fld: s
     """Documents of a recognised type that may change the field beyond their kind (``classified_checks`` of the record,
     since v2.0.5) and are not older than the latest event document of the field - the criterion of DISC-005. Their
     scope is structural (a line no rule of the kind explains: every field; a holders' table of another kind: the
-    shareholders) and does not depend on unread_document_scope."""
+    shareholders) and does not depend on unread_document_scope. Since v2.0.8 (D37): 'except' names the fields that
+    '*' leaves out (an address that no second document states alike may change every field but the registered
+    office, which DISC-038 decides); a field named on its own is never left out."""
     out = []
     for c in classified:
         if baseline is not None and c["date"] < baseline["source_date"]:
             continue
+        left_out = c["fields_check"].get("except") or []
         for m in c["fields_check"]["may_change"]:
-            if m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])):
+            if (m == "*" and fld not in left_out) or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])):
                 out.append(c)
                 break
     return out
+
+
+def _corroborating(rules: Rules) -> set[str]:
+    """The rules of rules/extract.json that corroborate a value (an address, since v2.0.8; a company's name, since
+    v2.0.8 too: address_corroboration, name_corroboration)."""
+    return {r["id"] for g in ("address_corroboration", "name_corroboration")
+            for r in rules.extract[g]["rules"] if r["outcome"] == "fact"}
 
 
 def _stated_current(assertions: list[dict], rules: Rules) -> list[dict]:
@@ -199,6 +209,11 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
              "two_or_more_current_values": len(groups) >= 2,
              "current_source_unreadable": len(stated) < len(current) and bool(strict or not groups),
              "legal_form_in_name_differs": bool(clash),
+             # since v2.0.8 (D37, DISC-038): one current value that no current source corroborates (an assertion
+             # carries 'corroboration' when rules/extract.json address_corroboration decided its address, or
+             # name_corroboration the name of its header)
+             "current_value_not_corroborated": len(groups) == 1 and not any(
+                 (a.get("corroboration") or {}).get("rule") in _corroborating(rules) for a in stated),
              "one_current_value": len(groups) == 1}
     rule = first_match(rules.discrepancy["rules"], lambda r: facts.get(r["when"], False)
                        and (not r.get("fields") or fld in r["fields"]))
@@ -294,6 +309,9 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                 x["status"], x["reason"] = "TO_CONFIRM", "unreadable"
             else:
                 x["status"], x["value"] = "STATED", a["value"]
+            if "corroborated" in a:          # an address or a name decided by rules/extract.json (v2.0.8)
+                yes, no = ("NAM-020", "NAM-999") if fld == "name" else ("ADR-020", "ADR-999")
+                x["corroboration"] = {"rule": yes if a["corroborated"] else no, "by": []}
             out.append(x)
         return out
 

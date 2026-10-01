@@ -1,6 +1,6 @@
 {
   "file": "discrepancy.json",
-  "version": "2.0.6",
+  "version": "2.0.8",
   "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
   "parameters": {
     "event_supersedes_earlier_state": {
@@ -486,6 +486,26 @@
       ]
     },
     {
+      "id": "DISC-038",
+      "when": "current_value_not_corroborated",
+      "fields": ["registered_office", "name"],
+      "status": "TO_CONFIRM",
+      "reason": "no second document of the entity states this value alike (rules/extract.json address_corroboration ADR-999, name_corroboration NAM-999)",
+      "rationale": "Since v2.0.8 (D37, the blind run of v2.0.7, eval/history.json run 18, hand-18 E-0015). An address is a fact only when it is corroborated: stated alike, token for token after the existing normalisation (spaces collapsed), by two different documents of the entity, or stated by an office transfer and repeated alike by a source dated after it (rules/extract.json address_corroboration ADR-020, carried on each assertion of the office as 'corroboration'). One current value that no current source corroborates is [TO CONFIRM]; what was read is listed as a statement, never as a fact. Below DISC-020: two whole different addresses (neither equal to the other plus words) stay a DISCREPANCY side by side (claim A2); an address equal to another plus words is never read (ADR-010), so it is never a value of a DISCREPANCY. Since v2.0.8 too, the company's name: the name of the header line 'Entity:' is decided by rules/extract.json name_corroboration (NAM-020 corroborated: another document of the entity states it alike, token for token, the legal form at its end set aside), carried on each assertion of the name; one current name that no current source corroborates is [TO CONFIRM], and two whole different names stay a DISCREPANCY side by side (DISC-020).",
+      "tests": [
+        {"field": "registered_office",
+         "assertions": [{"date": "2026-02-09", "doc": "D2", "role": "event", "series": "OFFICE", "value": "Piazza del Campione 3, Montefinto (ZZ)", "corroborated": false}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Piazza del Campione 3, Montefinto (ZZ)"]}},
+        {"field": "registered_office",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Via del Collaudo 7, Borgoprova (ZZ)", "corroborated": false},
+                        {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Via del Collaudo 7, Borgoprova (ZZ)"}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Via del Collaudo 7, Borgoprova (ZZ)"]}},
+        {"field": "name",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Fornace Aurelia S.r.l.", "corroborated": false}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Fornace Aurelia S.r.l."]}}
+      ]
+    },
+    {
       "id": "DISC-040",
       "when": "one_current_value",
       "status": "STATED",
@@ -496,7 +516,7 @@
          "other_fields": {"name": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare srl"}]},
          "expect": {"status": "STATED", "value": "S.r.l."}},
         {"field": "name",
-         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare"}],
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare", "corroborated": true}],
          "other_fields": {"legal_form": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.p.A."}]},
          "expect": {"status": "STATED", "value": "Fonderia Torre Esemplare"}},
         {"field": "legal_form",

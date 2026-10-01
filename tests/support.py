@@ -1,9 +1,11 @@
 """Shared fixtures of the test suite: small corpora built once per process, child processes offline."""
 from __future__ import annotations
 
+import datetime
 import io
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -101,6 +103,36 @@ def scenario_run(sid: str, sub: str = "") -> tuple[Path, Path, int, str]:
 def tiny(docs: list[tuple[str, str]], as_of: str = "2026-06-30", persons=("P-001", "P-002", "P-003")) -> Path:
     """An input root with the given source documents (built with the helpers of scenarios/make_inputs.py)."""
     return write_tree(tmp("ezio-input-"), mk.root("T00", as_of, list(persons), docs))
+
+
+_DEED_DATE = re.compile(r"^Document date: (\d{4}-\d{2}-\d{2})$", re.M)
+_DEED_OFFICE = re.compile(r"^\d+\. Registered office\. The registered office is at (.+)\.$", re.M)
+
+
+def office_witness(docs: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """The documents, plus one registry extract per deed of incorporation, dated the day before that deed, that states
+    the deed's registered office alike (and the builder's plain values for the other fields).
+
+    Since v2.0.8 (D37, rules/extract.json address_corroboration) an address that one document alone states is not
+    corroborated: words added to it cannot be told from the address, so every field of that document stays
+    [TO CONFIRM] (ADR-999, DISC-006) and its office too (DISC-038). The tests of how a deed's forms are read are
+    about those forms, so they add this witness: it corroborates the deed's office (the same tokens, another
+    document; no date condition binds a mention that is not the new address of an office transfer) and, older than
+    the deed, it is a current source of no field (its values are a past edition, superseded by the deed). A deed
+    whose office clause is not the builder's own gets no witness."""
+    out = list(docs)
+    for rel, text in docs:
+        if "Document type: Deed of incorporation" not in text:
+            continue
+        date, office = _DEED_DATE.search(text), _DEED_OFFICE.search(text)
+        if not (date and office):
+            continue
+        eid = "E-" + re.search(r"TEST-REG-(\d+)", text).group(1)[-4:]      # the content's entity, never the folder
+        day = (datetime.date.fromisoformat(date.group(1)) - datetime.timedelta(days=1)).isoformat()
+        out.append(mk.extract(eid, 0, day, 1, office.group(1),
+                              "Share capital: resolved EUR 50.000,00; subscribed and paid in EUR 50.000,00",
+                              [("P-001", "60%"), ("P-002", "40%")], ["P-001"]))
+    return out
 
 
 def offline_env() -> dict[str, str]:

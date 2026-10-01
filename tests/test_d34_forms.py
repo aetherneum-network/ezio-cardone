@@ -172,10 +172,23 @@ class D34_PlainDocumentsStillPublish(unittest.TestCase):
                 mk.transfer("E-0001", 4, "2026-08-21", [("P-001", "50%"), ("P-002", "50%")]),
                 mk.appointment("E-0001", 5, "2026-08-22", ["P-001", "P-002"], "P-002"),
                 mk.office_transfer("E-0001", 6, "2026-08-23", MOVE)]
+        # since v2.0.8 (D37) the new address of an office transfer is a fact only when a later source repeats it
+        # (rules/extract.json address_corroboration ADR-020); until then its words cannot be checked: the office
+        # stays [TO CONFIRM] (DISC-038) and so does every other field (ADR-999, DISC-006) - the measured cost
+        status, view, prov = _run(docs)
+        self.assertEqual(status, "OK", view["ownership"])
+        self.assertEqual(view["fields"]["registered_office"]["rule"], "DISC-038")
+        for f in ("name", "legal_form", "directors", "shareholders", *CAPITAL_FIELDS):
+            self.assertEqual(view["fields"][f]["rule"], "DISC-006", (f, view["fields"][f]))
+        # a later registry extract repeats the new address and the values after the events: every field is a fact
+        docs.append(mk.extract("E-0001", 7, "2026-08-24", 2, mk.OFFICE_B,
+                               "Share capital: resolved EUR 80.000,00; subscribed EUR 80.000,00; paid in EUR 80.000,00",
+                               [("P-001", "50%"), ("P-002", "50%")], ["P-001", "P-002"]))
         status, view, prov = _run(docs)
         self.assertEqual(status, "OK", view["ownership"])
         for f in ("name", "legal_form", "registered_office", "directors", "shareholders", *CAPITAL_FIELDS):
             self.assertEqual(view["fields"][f]["status"], "STATED", (f, view["fields"][f]))
+        self.assertEqual(view["fields"]["registered_office"]["value"], mk.OFFICE_B)
         self.assertEqual(view["warnings"]["classified_checks"], [])
 
     def test_a_resolution_table_that_agrees_is_summed_and_keeps_the_holders(self):

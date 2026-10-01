@@ -1,6 +1,6 @@
 {
   "file": "extract.json",
-  "version": "2.0.6",
+  "version": "2.0.8",
   "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
   "parameters": {
     "synthetic_marker_required": true,
@@ -79,6 +79,9 @@
     "slot_own_name_groups": ["w_name"],
     "slot_own_name_note": "Since v2.0.6 (D35): a slot that holds the entity's own name (the deed's 'is named', the extract's 'Name:', a label line with a company name) closes its line only when it is the name of the document's own header 'Entity:', spaces collapsed and the legal form at its end set aside (rules/discrepancy.json legal_form_in_name: a legal form that differs is DISC-035's, not a word of the name). Any other word makes it differ: the line falls to the next rule, and to CLS-999. A document whose header names no entity has no own name to compare: its slots are judged by slot_not_name_word only.",
     "slot_note_2_0_6": "Since v2.0.6 (D35, probes E-0011 and E-0012 of the blind run of v2.0.5, eval/history.json run 14): a slot that holds a name - a person, a company, a street or a town (the groups of slot_name_groups, and the name beside an identifier in a list line) - holds only words that can be part of a name. Every word of it (a run of letters) is tested, case ignored, against slot_not_name_word, by class: role and office nouns, nouns and adjectives of holding and ownership (sole, owner, proprietress, holder, member, majority...), adverbs of time and manner (henceforth, now, until, since...), English function words (articles, pronouns, auxiliaries, prepositions, conjunctions), the Italian words of role, holding and time, and the endings of English words that no Italian name has (-ly, -forth, -after, -ward(s), -ship, -hood, -ness, -ess, -trix, -tion, -sion, -ment, -ity, -ous, -ed). One such word and the slot names every field: no rule closes the line, which falls to CLS-999 (the document may change every field, DISC-006; the line is checked for holdings, OWN-015). The person slot of 2.0.5 admitted 'Hilde Simulanti Sole Proprietress Henceforth' (five capitalised words) with no check; a capitalised word that is none of these classes still passes this test, so the name beside an identifier is also compared with its own value where one is known (CLS-005).",
+    "slot_text_groups": ["w_title", "w_label"],
+    "text_recognised": {"w_title": ["Minutes of the holders' meeting (synthetic)", "Notice of a transfer of shares (synthetic)"], "w_label": []},
+    "slot_note_2_0_8": "Since v2.0.8 (D37): the free-text slots that decide a field or close a line are decided by corroboration and equality, never by the form or the list of their words: an address (address_corroboration), the company's name of the header 'Entity:' (name_corroboration), the title of CLS-900 and the label of CLS-250 (text_corroboration, groups slot_text_groups). text_recognised: the titles and labels that the pack's own builders write (corpus/templates.py, scenarios/make_inputs.py), which count as corroborated as a document type label does (doc_kinds): by equality, whole text, nothing normalised but spaces. The builders write no label that CLS-250 closes (their headings are closed as lists, CLS-020).",
     "filename_pattern":"^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
     "filename_slugs": {
       "deed": "DEED",
@@ -921,6 +924,142 @@
           {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Owner S.r.l.; its legal form is S.r.l.", "expect": ["*"]},
           {"kind": "EXTRACT", "text": "Seat: Via dei Tralci 14, Costa Apocrifa Now (ZZ)", "expect": ["*"]},
           {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Montefinto Henceforth (ZZ).", "expect": ["*"]}
+        ]
+      }
+    ]
+  },
+  "address_corroboration": {
+    "reading": "Since v2.0.8 (D37, the blind run of v2.0.7, eval/history.json run 18: in hand-18 E-0015 a registry extract gave as registered office the deed's address with three words added inside the town; every word had the form of a place name, the line closed, the office was shown as a DISCREPANCY and the capital those words spoke of was published). An address is decided by corroboration and equality, never by the form of its words. Applied per entity, after every document of the entity is read. A MENTION is an address in a slot of the registered office (parameter slot_address_groups: w_office, w_previous) of a line that a rule of classified_lines closes (CLS-120, CLS-160, CLS-190, CLS-250). A PARTNER is any address of the slot grammar (slot_address) in any body line of a document of the entity that was read (a mention is a partner too): it is compared, it never corroborates. The tokens of an address are its text with spaces collapsed (the existing normalisation), cut at spaces and before each comma; nothing else is normalised (case, accents, punctuation count). The rules are ordered, first match wins, the exception on top. Each assertion of the registered office carries the outcome of its mention ('corroboration': the rule and the mentions or partners it rests on); DISC-038 (rules/discrepancy.json) keeps the office [TO CONFIRM] when no current source of it is corroborated, and the fields check of the document (classified_checks) carries what the line may change.",
+    "rules": [
+      {
+        "id": "ADR-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: the tokens of another address of the entity (a mention or a partner, in another document or in another slot of the same document) all stand in this one, in the same order, with tokens added - in the street, in the town, after them, before them or between them. One address equal to another plus words is not two addresses: its line is one that no rule explains (as CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event document of the field, and the line is checked for holdings, OWN-015 blocks when it may state one), and no address of the line is read (the office and the previous office are refused, so the words never reach a value, a DISCREPANCY or the published files). It is not a DISCREPANCY.",
+        "tests": [
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova Quote Cedute Ieri (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Amministra Ora del Collaudo 7, Borgoprova (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_previous", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova Capitale Dimezzato (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza Grande 2, Montefinto (ZZ) - interno 4"}],
+           "partners": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "address": "Piazza Grande 2, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-010"}
+        ]
+      },
+      {
+        "id": "ADR-020",
+        "when": "corroborated",
+        "outcome": "fact",
+        "rationale": "A second document of the entity states the same address, token for token: the address may be shown as fact (DISC-040). The new address of an office transfer (the slot w_office of a document of kind OFFICE) is corroborated only by a mention in a document dated after the transfer, a source that repeats it later; a mention is never corroborated by the new address of a transfer dated on or after it. The same words in two documents are taken for the same address (the premise of equality): an address that two documents state alike, added words and all, is read (CHANGELOG 2.0.8, section 4).",
+        "tests": [
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"}],
+           "mention": 0, "expect": "ADR-020"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D4", "date": "2026-03-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-020"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D4", "date": "2026-03-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 1, "expect": "ADR-020"}
+        ]
+      },
+      {
+        "id": "ADR-999",
+        "when": "always",
+        "outcome": "not_corroborated",
+        "rationale": "Default: an address that no second document states alike. Its words cannot be checked against anything, and words of the form of a place name can state another field (tests/test_d37_forms.py): the document may change every field but the registered office (fields_check 'except'; DISC-006 keeps them [TO CONFIRM] under the date criterion of DISC-005), its line is checked for holdings (OWN-015), and the office it states is not a fact (DISC-038 keeps it [TO CONFIRM] when no current source of it is corroborated; two whole different addresses stay a DISCREPANCY side by side, DISC-020, claim A2).",
+        "tests": [
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-999"},
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto Ugo Nessuno Presiede (ZZ)"}],
+           "mention": 1, "expect": "ADR-999"},
+          {"mentions": [{"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-999"}
+        ]
+      }
+    ]
+  },
+  "name_corroboration": {
+    "reading": "Since v2.0.8 (D37: the principle of address_corroboration applied to the company's name, the other free-text slot that decides a field). The name of the header line 'Entity:' of a document is free text: no form and no word list tells a name from a name with words added. It is decided per entity, after every document of the entity is read, by corroboration and equality. The tokens of a name are its text without the legal form at its end (rules/discrepancy.json legal_form_in_name: a legal form that differs is DISC-035's), spaces collapsed, cut at spaces and before each comma; nothing else is normalised (case, accents, punctuation count). The rules are ordered, first match wins, the exception on top. A slot of the entity's own name (EXT-NAME-010, EXT-NAME-020) gives a value only when its tokens are those of its own header (otherwise it is not read: its words never reach a value); each value carries the outcome of its header ('corroboration'), and DISC-038 (rules/discrepancy.json) keeps the name [TO CONFIRM] when no current source of it is corroborated. The fields check of the document (classified_checks) carries what the header may change. The names known to the corpus (CLS-005) leave out a header name that is another header name of the same entity plus words.",
+    "rules": [
+      {
+        "id": "NAM-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: every token of the header name of another document of the entity stands in this one, in the same order, with tokens added (before, after or between its words, or after the legal form). One name equal to another plus words is not two names: the document is one that no rule explains (as CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event document of the field; its header name is checked for holdings, OWN-015 blocks when it may state one), and no name of the document is read (its words never reach a value, a DISCREPANCY or the published files). It is not a DISCREPANCY.",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia Capitale Raddoppiato S.r.l."}], "header": 1, "expect": "NAM-010"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Soci Cambiati Fornace Aurelia S.r.l."}, {"doc": "D3", "name": "Soci Cambiati Fornace Aurelia S.r.l."}], "header": 2, "expect": "NAM-010"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l. Quote Cedute"}], "header": 1, "expect": "NAM-010"}
+        ]
+      },
+      {
+        "id": "NAM-020",
+        "when": "corroborated",
+        "outcome": "fact",
+        "rationale": "Another document of the entity states the header name alike, token for token (the legal form at its end set aside). The name is a fact as far as its words go; every line of the document is decided as before (classified_lines).",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-020"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.p.A."}], "header": 1, "expect": "NAM-020"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l."}, {"doc": "D3", "name": "Fornace Aurelia Ugo Presiede S.r.l."}], "header": 0, "expect": "NAM-020"}
+        ]
+      },
+      {
+        "id": "NAM-999",
+        "when": "always",
+        "outcome": "not_corroborated",
+        "rationale": "Default: no other document of the entity states the header name alike (one document only, or two names neither of which is the other plus words: a genuine difference). Its words cannot be checked: the document may change every field but the name (fields_check 'except'; DISC-006 keeps them [TO CONFIRM] under the date criterion of DISC-005), and the name it states is not a fact (DISC-038 keeps it [TO CONFIRM] when no current source of it is corroborated; two whole different names stay a DISCREPANCY side by side, DISC-020).",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-999"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Boreale S.r.l."}], "header": 0, "expect": "NAM-999"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D1", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-999"}
+        ]
+      }
+    ]
+  },
+  "text_corroboration": {
+    "reading": "Since v2.0.8 (D37: the principle of address_corroboration applied to the free text that closes a line without deciding a field: the title of CLS-900 and the label of CLS-250, the groups of slot_text_groups). Until v2.0.7 their words were checked by topic words (slot_topics), a word list: words of another language or of no list passed, and a title or a label could carry a change of a field that no rule saw. A title or a label closes its line only when it is corroborated. Decided over the whole input, after every document is parsed: a TEXT is the group of slot_text_groups in any body line, of any document that carries the SYNTHETIC marker, that the pattern of CLS-900 or CLS-250 matches (whether the line closes or not); its tokens are its text with spaces collapsed, cut at spaces and before each comma; nothing else is normalised. A title or a label is the form of the corpus, not a statement about one entity: it is corroborated by another document of the input that states it alike, or by being a text the pack's own builders write (parameter text_recognised). The rules are ordered, first match wins, the exception on top. A line that a rule of classified_lines closes with a title or a label that is not corroborated is a line that no rule explains (as CLS-999: DISC-006 every field, OWN-015 when it may state a holding).",
+    "rules": [
+      {
+        "id": "TXT-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: every token of another text of the same group (in another line of the input, or in text_recognised) stands in this one, in the same order, with tokens added. A title or a label equal to another plus words is not the form of the corpus: its line is read by no rule (CLS-999), even when a second document states it alike.",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Notice of a transfer of shares Capitale Raddoppiato (synthetic)"}], "text": 0, "expect": "TXT-010"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Office"}, {"doc": "D2", "group": "w_label", "text": "Office Quote Cedute"}, {"doc": "D3", "group": "w_label", "text": "Office Quote Cedute"}], "text": 1, "expect": "TXT-010"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the Soci Cambiati holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-010"}
+        ]
+      },
+      {
+        "id": "TXT-020",
+        "when": "corroborated",
+        "outcome": "fact",
+        "rationale": "Another document of the input states the same text of the same group, token for token, or the text is one of text_recognised (the titles the pack's own builders write). The line is decided by its rule as before.",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-020"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Registered address"}, {"doc": "D2", "group": "w_label", "text": "Registered address"}], "text": 0, "expect": "TXT-020"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Form of the company"}, {"doc": "D2", "group": "w_label", "text": "Form of the company"}, {"doc": "D3", "group": "w_title", "text": "Form of the company"}], "text": 1, "expect": "TXT-020"}
+        ]
+      },
+      {
+        "id": "TXT-999",
+        "when": "always",
+        "outcome": "unexplained",
+        "rationale": "Default: no other document of the input states the title or the label alike, and it is not a recognised text. Its words cannot be checked, and a title or a label names no field on its own: its line is read by no rule (CLS-999).",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Holders of quotas"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes - change of the board (synthetic)"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Registered address"}, {"doc": "D1", "group": "w_label", "text": "Registered address"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Seat"}, {"doc": "D2", "group": "w_title", "text": "Seat"}], "text": 0, "expect": "TXT-999"}
         ]
       }
     ]

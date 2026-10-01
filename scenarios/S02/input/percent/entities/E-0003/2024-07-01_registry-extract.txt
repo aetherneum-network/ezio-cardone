@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-02
+Document type: Test registry extract
+Document date: 2024-07-01
+Edition: EXTRACT/1
+Entity: Finanziaria Collelungo S.p.A. (test registry no. TEST-REG-000003)
+
+Name: Finanziaria Collelungo S.p.A.
+Legal form: S.p.A.
+Registered office: Via dei Prototipi 12, Collesintesi (ZZ)
+Share capital: resolved EUR 300.000,00; subscribed and paid in EUR 300.000,00
+Holders:
+- P-001 (Aldo Finti): 33,33%
+- P-002 (Bice Provetti): 33,33%
+- P-003 (Carlo Inventati): 33,33%
+
+Directors:
+- P-001 (Aldo Finti)

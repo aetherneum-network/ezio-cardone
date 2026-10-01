@@ -14,8 +14,9 @@ def _deed(capital=None, office=mk.OFFICE_A, holders=H):
     return mk.deed("E-0001", 1, "2025-03-10", office, capital or mk.FULL.format(a="50.000,00"), holders, ["P-001"])
 
 
-def _run(docs, as_of="2026-06-30", crlf=False, **kw):
-    inp = s.tiny(docs, as_of)
+def _run(docs, as_of="2026-06-30", crlf=False, witness=False, **kw):
+    # witness: since v2.0.8 (D37) a deed alone keeps every field [TO CONFIRM]; see support.office_witness
+    inp = s.tiny(s.office_witness(docs) if witness else docs, as_of)
     if crlf:
         for p in (inp / "entities").rglob("*.txt"):
             p.write_bytes(p.read_bytes().replace(b"\n", b"\r\n"))
@@ -32,7 +33,7 @@ def _status(view):
 
 class ContentDecides(unittest.TestCase):
     def test_plain_deed(self):
-        code, _, record, view, _ = _run([_deed()])
+        code, _, record, view, _ = _run([_deed()], witness=True)
         got = _status(view)
         self.assertEqual(code, 0)
         self.assertEqual(got["name"], ("STATED", "Fornace Aurelia S.r.l."))
@@ -53,10 +54,10 @@ class ContentDecides(unittest.TestCase):
         cases = {"kind": (rel.replace("_deed", "_registry-extract"), "EXTRACT", "DEED"),
                  "date": (rel.replace("2025-03-10", "2026-01-01"), "2026-01-01", "2025-03-10"),
                  "folder": (rel.replace("E-0001", "E-0004"), "E-0004", "E-0001")}
-        _, _, _, plain, _ = _run([(rel, text)])
+        _, _, _, plain, _ = _run([(rel, text)], witness=True)
         for aspect, (name, says, content) in cases.items():
             with self.subTest(aspect=aspect):
-                code, report, record, view, _ = _run([(name, text)])
+                code, report, record, view, _ = _run([(name, text)], witness=True)
                 self.assertEqual(list(report["entities"]), ["E-0001"])
                 self.assertEqual(_status(view), _status(plain))
                 div = record["filename_divergences"]
@@ -69,7 +70,7 @@ class ContentDecides(unittest.TestCase):
         res = mk.resolution("E-0001", 2, "2026-08-15",
                             "The meeting resolved to increase the share capital from EUR 50.000,00 to "
                             "EUR 80.000,00. The increase has been fully subscribed and fully paid in.")
-        _, _, record, view, _ = _run([_deed(), res], as_of="2026-06-30")
+        _, _, record, view, _ = _run([_deed(), res], as_of="2026-06-30", witness=True)
         self.assertEqual(_status(view)["share_capital.resolved"], ("STATED", "50000.00"))
         self.assertEqual(record["ignored_after_as_of"], ["DOC-E0001-02"])
         _, _, _, later, _ = _run([_deed(), res], as_of="2026-08-15")
@@ -79,7 +80,8 @@ class ContentDecides(unittest.TestCase):
 
 class NotGuessed(unittest.TestCase):
     def test_ambiguous_separator(self):
-        _, _, _, view, _ = _run([_deed("The share capital is EUR 50.000, fully subscribed and fully paid in.")])
+        _, _, _, view, _ = _run([_deed("The share capital is EUR 50.000, fully subscribed and fully paid in.")],
+                                witness=True)
         got = _status(view)
         for nature in ("resolved", "subscribed", "paid_in"):
             self.assertEqual(got[f"share_capital.{nature}"], ("TO_CONFIRM", None))

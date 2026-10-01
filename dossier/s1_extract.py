@@ -944,14 +944,27 @@ def _lines_text(numbers: list[int]) -> str:
 
 
 def classified_check(doc: Document, assertions: list[dict], rules: Rules,
-                     known: dict[str, set[str]] | None = None) -> dict | None:
+                     known: dict[str, set[str]] | None = None, addresses: dict[int, dict] | None = None,
+                     lists: dict[int, str] | None = None, name: dict | None = None,
+                     texts: dict[tuple[str, tuple[str, ...]], dict] | None = None) -> dict | None:
     """What a document of a recognised type may change beyond the fields its rules read (since v2.0.5, D34).
 
     Every non-empty body line is decided by rules/extract.json classified_lines. A line that no rule explains makes the
     document one that may change every field (DISC-006). A closed line states nothing but the fields of its rule: when
     one of them is a field of the kind that no rule read from this line (a second clause, a second list), or a field
     that its kind does not read (a holders' table in a document of another kind), the document may change that
-    field. ``None`` when the document says nothing beyond what its rules read."""
+    field. ``None`` when the document says nothing beyond what its rules read.
+
+    ``addresses`` (since v2.0.8, D37): line -> the outcome of rules/extract.json address_corroboration for the
+    addresses of the line (address_lines). A line whose address is another address of the entity plus words (ADR-010)
+    is one that no rule explains; a line whose address no second document states alike (ADR-999) may change every
+    field but the registered office ('except') and is checked for holdings.
+
+    ``name`` (since v2.0.8, D37): the outcome of rules/extract.json name_corroboration for the document's header name.
+    A header name that is another name of the entity plus words (NAM-010) makes the document one that may change
+    every field (its name is checked for holdings); one that no second document states alike (NAM-999), one that may
+    change every field but the name. ``texts``: the outcome of text_corroboration for the titles and labels of the
+    input; a line closed with a title or a label that is not corroborated is one that no rule explains."""
     if doc.kind == "UNKNOWN":
         return None
     expected = {_field_name(t, doc) for t in rules.extract["expected_fields"][doc.kind]}
@@ -959,19 +972,33 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
     for a in assertions:
         if a["line"] is not None and not a["field"].endswith(".previous"):
             spans.setdefault(a["field"], []).append((a["line"], a["line_end"]))
-    lists = _list_lines(doc, rules, known)
+    lists = _list_lines(doc, rules, known) if lists is None else lists
     region = _list_region(doc, rules)
     unexplained: list[int] = []
+    plus: list[int] = []
+    alone: list[int] = []
+    form_open: dict[int, dict] = {}
     again: dict[str, list[int]] = {}
     foreign: dict[str, list[int]] = {}
     inside: dict[tuple[str, int, str, str], list[int]] = {}
     for no, text in _body(doc):
         if not text.strip():
             continue
+        adr = (addresses or {}).get(no)
+        if adr and adr["outcome"] == "unexplained":
+            plus.append(no)
+            continue
         rule, fields = classify_line(doc, no, text, lists, rules, known)
         if "*" in fields:
             unexplained.append(no)
             continue
+        key = line_text(doc, rule, text, rules) if texts is not None else None
+        if key is not None and texts.get(key, {"outcome": "unexplained"})["outcome"] == "unexplained":
+            # a title or a label that is not corroborated (v2.0.8, text_corroboration): read by no rule
+            form_open[no] = dict(texts.get(key) or {"rule": "TXT-999", "by": []}, group=key[0])
+            continue
+        if adr and adr["outcome"] == "not_corroborated":
+            alone.append(no)
         for f in fields:
             if no in region and region[no][0] != f:
                 # a line inside the list of another field that reads as a line of this one (v2.0.7, D36 (e): a holder
@@ -981,12 +1008,45 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
                 foreign.setdefault(f, []).append(no)
             elif not spans.get(f) or any(not (first <= no <= last) for first, last in spans[f]):
                 again.setdefault(f, []).append(no)      # no rule of the kind read the field from this line
-    holders = _classified_holders(doc, unexplained, rules)
-    if not unexplained and not again and not foreign and not inside and holders["status"] == "no_table":
+    # an address that no second document states alike (ADR-999) keeps every field [TO CONFIRM], the holders
+    # included (DISC-006): its house number and its mark are typed, not a holding, and no table is read from it
+    holders = _classified_holders(doc, sorted(unexplained + plus + list(form_open)), rules)
+    name_plus = bool(name) and name["outcome"] == "unexplained"
+    name_alone = bool(name) and name["outcome"] == "not_corroborated"
+    if name_plus and holders["status"] != "not_read":
+        hit = holders_evidence(doc.entity_name, rules)
+        if hit["outcome"] != "none":
+            holders = {"status": "not_read", "why": f"the company's name of the header, another name of the entity "
+                                                    f"plus words, may state a holding (rule {hit['id']})"}
+    if (not unexplained and not plus and not alone and not again and not foreign and not inside and not form_open
+            and not name_plus and not name_alone and holders["status"] == "no_table"):
         return None
     why = []
     if unexplained:
         why.append(f"{_lines_text(unexplained)} read by no rule of its kind (rules/extract.json classified_lines)")
+    for no in plus:
+        a = addresses[no]
+        why.append(f"line {no}: the address {a['address']!r} is another address of the entity plus words "
+                   f"({'; '.join(a['by'])}): not two addresses, read by no rule (rules/extract.json "
+                   "address_corroboration ADR-010)")
+    for no, t in sorted(form_open.items()):
+        what = "title" if t["group"] == "w_title" else "label"
+        why.append(f"line {no}: a {what} that " + (
+            f"is another {what} plus words ({'; '.join(t['by'])})" if t["rule"] == "TXT-010" else
+            "no other document of the input states alike and that is not a recognised text")
+            + f": its words cannot be checked, read by no rule (rules/extract.json text_corroboration {t['rule']})")
+    if name_plus:
+        why.append(f"the company's name of the header is another name of the entity plus words "
+                   f"({'; '.join(name['by'])}): not two names, the document is read by no rule (rules/extract.json "
+                   "name_corroboration NAM-010)")
+    if name_alone:
+        why.append("the company's name of the header is stated alike by no second document of the entity "
+                   "(rules/extract.json name_corroboration NAM-999): its words cannot be checked, the document may "
+                   "change every field but the name")
+    if alone:
+        why.append(f"{_lines_text(alone)}: an address that no second document of the entity states alike "
+                   "(rules/extract.json address_corroboration ADR-999): its words cannot be checked, the document may "
+                   "change every field but the registered office")
     for f in sorted(again):
         why.append(f"{_lines_text(again[f])} state the {f} and no rule of its kind read them")
     for (lf, head, f, rid), nos in sorted(inside.items()):
@@ -994,10 +1054,253 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
                    f"(each reads as a line of the {f}, {rid}); no rule of its kind read them")
     for f in sorted(foreign):
         why.append(f"{_lines_text(foreign[f])}: a list of the {f} in a document of kind {doc.kind}")
-    may = [EVERY_FIELD] if unexplained else sorted(set(again) | set(foreign)
-                                                   | {x for lf, _, f, _ in inside for x in (lf, f)})
+    named = set(again) | set(foreign) | {x for lf, _, f, _ in inside for x in (lf, f)}
+    every = unexplained or plus or form_open or name_plus
+    fc: dict = {"may_change": [EVERY_FIELD] if every else sorted(named), "why": "; ".join(why)}
+    if (alone or name_alone) and not every:
+        # every field but the registered office (an address alone) and but the name (a header name alone): what each
+        # leaves out, and what both leave out when both stand; never a field a line names on its own (v2.0.8)
+        fc["may_change"] = sorted(named | {EVERY_FIELD})
+        left = ({"registered_office"} if alone else {"registered_office", "name"}) & \
+               ({"name"} if name_alone else {"registered_office", "name"})
+        left -= named
+        if left:
+            fc["except"] = sorted(left)
     return {"doc_id": doc.doc_id, "file": doc.file, "date": doc.date, "kind": doc.kind,
-            "fields_check": {"may_change": may, "why": "; ".join(why)}, "holders_check": holders}
+            "fields_check": fc, "holders_check": holders}
+
+
+# ----------------------------------------------------------------------------------------------
+# addresses: corroboration and equality (since v2.0.8, D37; rules/extract.json address_corroboration)
+
+def address_tokens(value: str) -> tuple[str, ...]:
+    """The tokens of an address: spaces collapsed (the existing normalisation), cut at spaces and before each comma.
+    Nothing else is normalised."""
+    return tuple(re.findall(r"[^\s,]+|,", " ".join(value.split())))
+
+
+def plus_words(short: tuple[str, ...], long: tuple[str, ...]) -> bool:
+    """``long`` holds every token of ``short`` in the same order, and more tokens (after, before, between)."""
+    if len(short) >= len(long):
+        return False
+    rest = iter(long)
+    return all(any(t == u for u in rest) for t in short)
+
+
+def address_mentions(doc: Document, rules: Rules, known: dict[str, set[str]] | None,
+                     lists: dict[int, str]) -> tuple[list[dict], list[dict]]:
+    """(mentions, partners) of one document read by its kind. A mention: an address in a slot of the registered
+    office (slot_address_groups) of a line closed by a rule of classified_lines. A partner: any address of the slot
+    grammar in any body line (each mention is also found as a partner)."""
+    p = rules.extract["parameters"]
+    province = _param_rx(rules, "slot_province")
+    address = rx(_expand("{slot_address}", rules))
+    mentions: list[dict] = []
+    partners: list[dict] = []
+    for no, text in _body(doc):
+        line = text.strip()
+        if not line or not province.search(line):
+            continue
+        base = {"doc_id": doc.doc_id, "date": doc.date, "kind": doc.kind, "line": no}
+        for m in address.finditer(line):
+            partners.append(dict(base, span=(m.start(), m.end()), tokens=address_tokens(m.group(0))))
+        rule, fields = classify_line(doc, no, text, lists, rules, known)
+        if "*" in fields or not rule.get("pattern"):
+            continue
+        m = rx(_expand(rule["pattern"], rules)).search(line)
+        for k in p["slot_address_groups"]:
+            if m and k in m.re.groupindex and m.group(k):
+                mentions.append(dict(base, group=k, address=" ".join(m.group(k).split()),
+                                     span=(m.start(k), m.end(k)), tokens=address_tokens(m.group(k))))
+    return mentions, partners
+
+
+def _new_office(m: dict) -> bool:
+    return m["kind"] == "OFFICE" and m["group"] == "w_office"
+
+
+def _overlap(a: dict, b: dict) -> bool:
+    return (a["doc_id"] == b["doc_id"] and a["line"] == b["line"]
+            and a["span"][0] < b["span"][1] and b["span"][0] < a["span"][1])
+
+
+def address_outcomes(mentions: list[dict], partners: list[dict], rules: Rules) -> list[dict]:
+    """The rule of rules/extract.json address_corroboration that decides each mention, first match wins:
+    {"rule", "outcome", "by"} in the order of ``mentions``."""
+    out = []
+    for m in mentions:
+        plus = [x for x in mentions + partners if not _overlap(x, m) and plus_words(x["tokens"], m["tokens"])]
+        equal = [n for n in mentions if n["doc_id"] != m["doc_id"] and n["tokens"] == m["tokens"]
+                 and (not _new_office(m) or n["date"] > m["date"])
+                 and (not _new_office(n) or m["date"] > n["date"])]
+        facts = {"plus_words": bool(plus), "corroborated": bool(equal), "always": True}
+        r = first_match(rules.extract["address_corroboration"]["rules"], lambda r: facts.get(r["when"], False))
+        by = plus if r["when"] == "plus_words" else equal if r["when"] == "corroborated" else []
+        out.append({"rule": r["id"], "outcome": r["outcome"],
+                    "by": sorted({f"{x['doc_id']} line {x['line']}" for x in by})})
+    return out
+
+
+_OUTCOME_ORDER = {"unexplained": 0, "not_corroborated": 1, "fact": 2}
+
+
+def corroborate_entity(items: list[tuple[Document, list[dict], dict[int, str]]], rules: Rules,
+                       known: dict[str, set[str]] | None) -> dict[str, dict[int, dict]]:
+    """Every address of one entity decided by rules/extract.json address_corroboration (v2.0.8). ``items``: (document,
+    its assertions, its list lines) for every document of the entity read by its kind. The assertions are changed in
+    place: the addresses of a line decided by ADR-010 are refused (no value); every other assertion of the registered
+    office carries 'corroboration' (the rule and what it rests on; ADR-999 when no mention of it was found). Returns
+    doc_id -> line -> {"outcome", "rule", "address", "by"}: the most cautious outcome of the line."""
+    mentions: list[dict] = []
+    partners: list[dict] = []
+    for doc, _, lists in items:
+        m, p = address_mentions(doc, rules, known, lists)
+        mentions.extend(m)
+        partners.extend(p)
+    decided = address_outcomes(mentions, partners, rules)
+    default = rules.extract["address_corroboration"]["rules"][-1]["id"]
+    lines: dict[str, dict[int, dict]] = {}
+    groups: dict[tuple[str, int, str], dict] = {}
+    for m, d in zip(mentions, decided):
+        here = lines.setdefault(m["doc_id"], {})
+        old = here.get(m["line"])
+        if old is None or _OUTCOME_ORDER[d["outcome"]] < _OUTCOME_ORDER[old["outcome"]]:
+            here[m["line"]] = dict(d, address=m["address"])
+        groups[(m["doc_id"], m["line"], m["group"])] = d
+    for doc, assertions, _ in items:
+        here = lines.get(doc.doc_id, {})
+        for a in assertions:
+            if not a["field"].startswith("registered_office"):
+                continue
+            adr = here.get(a["line"])
+            if adr and adr["outcome"] == "unexplained":
+                if "value" in a:
+                    del a["value"]
+                    a["status"] = "TO_CONFIRM"
+                    a["reason"] = (f"the address of the line is another address of the entity plus words "
+                                   f"({'; '.join(adr['by'])}): not read (rules/extract.json address_corroboration "
+                                   "ADR-010)")
+                continue
+            if a["field"] != "registered_office" or "value" not in a:
+                continue
+            own = groups.get((doc.doc_id, a["line"], "w_office"))
+            a["corroboration"] = {"rule": own["rule"], "by": own["by"]} if own else {"rule": default, "by": []}
+    return lines
+
+
+# ----------------------------------------------------------------------------------------------
+# the company's name of the header: corroboration and equality (since v2.0.8, D37; rules/extract.json
+# name_corroboration)
+
+def name_tokens(name: str, rules: Rules) -> tuple[str, ...]:
+    """The tokens of a company's name: the legal form at its end set aside (legal_form_in_name), spaces collapsed, cut
+    at spaces and before each comma. Nothing else is normalised."""
+    return address_tokens(_bare_company(name, rules))
+
+
+def name_outcomes(headers: list[dict], rules: Rules) -> list[dict]:
+    """The rule of rules/extract.json name_corroboration that decides each header name of one entity, first match
+    wins. ``headers``: {"doc_id", "tokens"} per document. Returns {"rule", "outcome", "by"} in their order."""
+    out = []
+    for h in headers:
+        plus = [x for x in headers if x["doc_id"] != h["doc_id"] and plus_words(x["tokens"], h["tokens"])]
+        equal = [x for x in headers if x["doc_id"] != h["doc_id"] and x["tokens"] == h["tokens"]]
+        facts = {"plus_words": bool(plus), "corroborated": bool(equal), "always": True}
+        r = first_match(rules.extract["name_corroboration"]["rules"], lambda r: facts.get(r["when"], False))
+        by = plus if r["when"] == "plus_words" else equal if r["when"] == "corroborated" else []
+        out.append({"rule": r["id"], "outcome": r["outcome"], "by": sorted({x["doc_id"] for x in by})})
+    return out
+
+
+def corroborate_names(items: list[tuple[Document, list[dict], dict[int, str]]], rules: Rules) -> dict[str, dict]:
+    """The header name of every document of one entity decided by rules/extract.json name_corroboration (v2.0.8).
+    The assertions are changed in place: a name whose tokens are not those of its own header, or whose header is
+    decided by NAM-010, is refused (no value); every other name carries 'corroboration' (the rule of its header and
+    the documents it rests on). Returns doc_id -> {"outcome", "rule", "name", "by"}."""
+    headers = [{"doc_id": doc.doc_id, "tokens": name_tokens(doc.entity_name, rules)} for doc, _, _ in items]
+    decided = name_outcomes(headers, rules)
+    out: dict[str, dict] = {}
+    for (doc, assertions, _), d in zip(items, decided):
+        out[doc.doc_id] = dict(d, name=" ".join(doc.entity_name.split()))
+        for a in assertions:
+            if a["field"] != "name" or "value" not in a:
+                continue
+            why = ""
+            if d["outcome"] == "unexplained":
+                why = (f"the company's name of the header is another name of the entity plus words "
+                       f"({'; '.join(d['by'])}): not read (rules/extract.json name_corroboration {d['rule']})")
+            elif name_tokens(a["value"], rules) != name_tokens(doc.entity_name, rules):
+                why = ("the name is not the name of the document's own header 'Entity:': not read (rules/extract.json "
+                       "name_corroboration)")
+            if why:
+                del a["value"]
+                a["status"], a["reason"] = "TO_CONFIRM", why
+            else:
+                a["corroboration"] = {"rule": d["rule"], "by": d["by"]}
+    return out
+
+
+# ----------------------------------------------------------------------------------------------
+# titles and labels: corroboration and equality (since v2.0.8, D37; rules/extract.json text_corroboration)
+
+def _text_rules(rules: Rules) -> list[tuple[dict, str]]:
+    """(rule of classified_lines, its group of slot_text_groups) for every rule whose pattern holds one."""
+    groups = rules.extract["parameters"]["slot_text_groups"]
+    out = []
+    for r in rules.extract["classified_lines"]["rules"]:
+        for g in groups:
+            if r.get("pattern") and f"(?P<{g}>" in r["pattern"]:
+                out.append((r, g))
+    return out
+
+
+def text_mentions(doc: Document, rules: Rules) -> list[dict]:
+    """Every TEXT of one document (text_corroboration): the group of slot_text_groups of each body line that the
+    pattern of a rule holding one matches, whether the line closes or not."""
+    out = []
+    pats = [(rx(_expand(r["pattern"], rules)), g) for r, g in _text_rules(rules)]
+    for no, text in _body(doc):
+        line = text.strip()
+        for pat, g in pats:
+            m = pat.search(line)
+            if m and m.group(g):
+                out.append({"doc_id": doc.doc_id, "file": doc.file, "line": no, "group": g,
+                            "text": " ".join(m.group(g).split()), "tokens": address_tokens(m.group(g))})
+    return out
+
+
+def text_outcomes(texts: list[dict], rules: Rules) -> dict[tuple[str, tuple[str, ...]], dict]:
+    """(group, tokens) -> {"rule", "outcome", "by"}: the rule of rules/extract.json text_corroboration that decides
+    each text of the input, first match wins. A document is told apart by its file (two files never share one)."""
+    known = {g: [address_tokens(t) for t in v]
+             for g, v in rules.extract["parameters"]["text_recognised"].items()}
+    by_key: dict[tuple[str, tuple[str, ...]], dict[str, str]] = {}
+    for t in texts:
+        by_key.setdefault((t["group"], t["tokens"]), {}).setdefault(t["file"], f"{t['doc_id']} line {t['line']}")
+    out = {}
+    for (g, tok), files in by_key.items():
+        # a recognised text is the pack's own: never another text plus words, whatever text the input holds
+        plus = [] if tok in known.get(g, []) else sorted(
+            {where for (g2, t2), fs in by_key.items() if g2 == g and plus_words(t2, tok) for where in fs.values()}
+            | {"text_recognised" for t2 in known.get(g, []) if plus_words(t2, tok)})
+        equal = len(files) >= 2 or tok in known.get(g, [])
+        facts = {"plus_words": bool(plus), "corroborated": equal, "always": True}
+        r = first_match(rules.extract["text_corroboration"]["rules"], lambda r: facts.get(r["when"], False))
+        by = plus if r["when"] == "plus_words" else sorted(files.values()) if r["when"] == "corroborated" else []
+        if len(by) > 3:                      # what it rests on, in short: three places and how many more
+            by = by[:3] + [f"{len(by) - 3} more"]
+        out[(g, tok)] = {"rule": r["id"], "outcome": r["outcome"], "by": by}
+    return out
+
+
+def line_text(doc: Document, rule: dict, text: str, rules: Rules) -> tuple[str, tuple[str, ...]] | None:
+    """(group, tokens) of the title or the label of a line that ``rule`` closed, or None."""
+    for r, g in _text_rules(rules):
+        if r["id"] == rule.get("id"):
+            m = rx(_expand(r["pattern"], rules)).search(text.strip())
+            if m and m.group(g):
+                return g, address_tokens(m.group(g))
+    return None
 
 
 def extract_document(doc: Document, rules: Rules, known: dict[str, set[str]] | None = None) -> list[dict]:
@@ -1085,9 +1388,15 @@ def known_names(input_dir: Path, docs: list[Document], rules: Rules) -> dict[str
         for pid, person in (jsonio.load(path) or {}).items():
             if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
                 out.setdefault(pid, set()).add(" ".join(person["name"].split()))
+    companies: dict[str, set[str]] = {}
     for doc in docs:
         if doc.marker_ok and doc.entity_id and doc.entity_name.strip():
-            out.setdefault(doc.entity_id, set()).add(" ".join(doc.entity_name.split()))
+            companies.setdefault(doc.entity_id, set()).add(" ".join(doc.entity_name.split()))
+    for eid, names in companies.items():
+        # since v2.0.8 (D37, name_corroboration NAM-010): a header name that is another header name of the same
+        # entity plus words is not one of its names
+        toks = {n: name_tokens(n, rules) for n in names}
+        out.setdefault(eid, set()).update(n for n in names if not any(plus_words(toks[o], toks[n]) for o in names))
     return out
 
 
@@ -1110,6 +1419,7 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
             continue
         parsed.append((folder, rel, parse_document(text, rel, rules, jsonio.sha256_bytes(data))))
     known = known_names(Path(input_dir), [d for _, _, d in parsed if d is not None], rules)
+    read: dict[str, list[tuple[Document, list[dict], dict[int, str]]]] = {}
     for folder, rel, doc in parsed:
         if doc is None:
             bucket(folder)["rejected_documents"].append({"file": rel, "reason": "not UTF-8 text"})
@@ -1139,10 +1449,22 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
         assertions = extract_document(doc, rules, known)
         b["documents"].append(doc.summary())
         b["assertions"].extend(assertions)
-        check = classified_check(doc, assertions, rules, known)
-        if check is not None:
-            b["classified_checks"].append(check)
+        read.setdefault(eid, []).append((doc, assertions, _list_lines(doc, rules, known)))
         b["filename_divergences"].extend(filename_divergences(doc, assertions, rules, folder))
+    # second pass (since v2.0.8, D37): the titles and labels are decided against every document of the input
+    # (rules/extract.json text_corroboration); the addresses and the header names of each entity against every
+    # document of the entity (address_corroboration, name_corroboration); then each document is checked line by line
+    # (classified_lines)
+    texts = text_outcomes([t for _, _, doc in parsed if doc is not None and doc.marker_ok
+                           for t in text_mentions(doc, rules)], rules)
+    for eid, items in read.items():
+        decided = corroborate_entity(items, rules, known)
+        named = corroborate_names(items, rules)
+        for doc, assertions, lists in items:
+            check = classified_check(doc, assertions, rules, known, decided.get(doc.doc_id), lists,
+                                     named.get(doc.doc_id), texts)
+            if check is not None:
+                raw[eid]["classified_checks"].append(check)
     return raw
 
 
@@ -1224,6 +1546,37 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
                     want_may = [] if any("value" in a for a in found) else t["expect_may_change_unless_read"]
                 if may != want_may:
                     bad.append(f"{r['id']}: {t['text']!r} may change {may}, expected {want_may}")
+    for r in rules.extract["address_corroboration"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            mentions = [{"doc_id": x["doc"], "date": x["date"], "kind": x["kind"], "group": x.get("group", ""),
+                         "line": i + 1, "span": (0, len(x["address"])), "tokens": address_tokens(x["address"])}
+                        for i, x in enumerate(t["mentions"])]
+            partners = [{"doc_id": x["doc"], "date": x["date"], "kind": x["kind"], "group": "", "line": 1000 + i,
+                         "span": (0, len(x["address"])), "tokens": address_tokens(x["address"])}
+                        for i, x in enumerate(t.get("partners", []))]
+            got = address_outcomes(mentions, partners, rules)[t["mention"]]["rule"]
+            if got != t["expect"] or got != r["id"]:
+                bad.append(f"{r['id']}: mention {t['mention']} of {[x['address'] for x in t['mentions']]} decided "
+                           f"by {got}, expected {t['expect']}")
+    for r in rules.extract["name_corroboration"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            headers = [{"doc_id": x["doc"], "tokens": name_tokens(x["name"], rules)} for x in t["headers"]]
+            got = name_outcomes(headers, rules)[t["header"]]["rule"]
+            if got != t["expect"] or got != r["id"]:
+                bad.append(f"{r['id']}: header {t['header']} of {[x['name'] for x in t['headers']]} decided by {got}, "
+                           f"expected {t['expect']}")
+    for r in rules.extract["text_corroboration"]["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            texts = [{"doc_id": x["doc"], "file": x["doc"], "line": i + 1, "group": x["group"], "text": x["text"],
+                      "tokens": address_tokens(x["text"])} for i, x in enumerate(t["texts"])]
+            x = texts[t["text"]]
+            got = text_outcomes(texts, rules)[(x["group"], x["tokens"])]["rule"]
+            if got != t["expect"] or got != r["id"]:
+                bad.append(f"{r['id']}: text {t['text']} of {[x['text'] for x in t['texts']]} decided by {got}, "
+                           f"expected {t['expect']}")
     for r in rules.figure_nature["rules"]:
         for t in r.get("tests", []):
             n += 1

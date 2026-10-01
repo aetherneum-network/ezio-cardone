@@ -1,5 +1,5 @@
 SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
-Document id: DOC-E0002-03
+Document id: DOC-E0002-04
 Document type: Appointment of directors
 Document date: 2026-05-11
 Edition: APPOINTMENT/1

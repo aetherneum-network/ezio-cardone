@@ -1,19 +1,17 @@
 SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
-Document id: DOC-E0002-05
+Document id: DOC-E0002-02
 Document type: Test registry extract
-Document date: 2026-06-15
-Edition: EXTRACT/2
+Document date: 2025-06-02
+Edition: EXTRACT/1
 Entity: Holding Aurelia Partecipazioni S.r.l. (test registry no. TEST-REG-000002)
 
 Name: Holding Aurelia Partecipazioni S.r.l.
 Legal form: S.r.l.
 Registered office: Via dei Prototipi 12, Collesintesi (ZZ)
-Share capital: resolved EUR 100.000,00; subscribed and paid in EUR 100.000,00
+Share capital: resolved EUR 50.000,00; subscribed and paid in EUR 50.000,00
 Holders:
-- P-001 (Aldo Finti): 40%
-- P-002 (Bice Provetti): 40%
-- P-003 (Carlo Inventati): 20%
+- P-001 (Aldo Finti): 50%
+- P-002 (Bice Provetti): 50%
 
 Directors:
 - P-002 (Bice Provetti)
-- P-003 (Carlo Inventati)
