@@ -18,7 +18,7 @@ The full map, sentence by sentence, is `CLAIMS.md`.
 |---|---|---|
 | A1 - every figure carries its source document and date | S03, S04, S10 | document, date and edition on every figure; a superseded figure in outgoing text is traced; the nature of an amount (historical, resolved, subscribed, paid-in) is classified before it is shown; since v2.0.1 an amount is read whole or abstained, and the audit compares its digits with the quote (`tests/test_amount_grouping.py`) |
 | A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled |
-| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`); since v2.0.3 more headings and holder lines, shares in words and counts of quotas with one total stated in the same document are read, and the forms that are not read still block (`tests/test_d30_forms.py`) |
+| A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`); since v2.0.3 more headings and holder lines, shares in words and counts of quotas with one total stated in the same document are read, and the forms that are not read still block (`tests/test_d30_forms.py`); since v2.0.4 a stated Total line must equal the exact sum of the rows (`tests/test_d30b_forms.py`) |
 | A4 - the dossier is a build artefact | S09 | same inputs, same bytes, DOCX included; a rule change moves only the expected field |
 | A5 - no snapshot is ever overwritten | S05 | the state at an earlier date is answered from the snapshots |
 | A6 - identity data is separated from the graph | S08 | the shareable layer holds no string of the identity layer (separation only: no access control) |
@@ -40,7 +40,7 @@ output, unread documents, ties between sources - and requires a refusal each tim
 scorer counts every kind of the list. A field that cannot be decided is written `[TO CONFIRM]`; when two
 current sources disagree both values are shown with their sources. The blind run of `v2.0.0-freeze` found
 never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v2.0.3-freeze` found
-two (run 11, below); their fix goes into a new version.
+two (run 11, below); v2.0.4 is the fix, not yet run blind.
 
 ## Re-run it
 
@@ -51,20 +51,20 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 243 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
+Expected last lines: `OK` after 270 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 10, code at commit `5a13f3f` (pipeline, rules, tests and scorer of the tag
-`v2.0.3-freeze`; the tag adds the manifest), measured on 2026-09-30 (UTC) by the builder's hand, not blind:
-every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
+Source: `eval/history.json`, run 12, code at commit `4c90d53` (pipeline, rules, tests and scorer of the tag
+`v2.0.4-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's
+hand, not blind: every seed had been seen. Reference date of every corpus as of 2026-09-30. 150 entities per suite.
 Command: `python -m eval.score --suite dev --suite holdout --suite stress`.
 
 | Suite | Never-events | Dossiers published | Conflicts found | Conflicts reported that are real | Facts exact | Fields left `[TO CONFIRM]` | Blocks correct | Figures with source |
 |---|---|---|---|---|---|---|---|---|
 | development, seed 20260930 (inspected while the rules were written) | 0 | 139/150 | 50/50 | 50/50 | 1386/1386 | 0/1472 | 9/9 | 3694/3694 |
 | holdout, seed 20261001 (scored, never inspected) | 0 | 137/150 | 45/45 | 45/45 | 1285/1285 | 0/1378 | 11/11 | 3521/3521 |
-| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 20/47 | 20/20 | 879/1285 | 433/1372 | 12/12 | 2958/2958 |
+| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 16/47 | 16/16 | 711/1285 | 605/1372 | 12/12 | 2838/2838 |
 
 How to read them:
 
@@ -79,11 +79,13 @@ How to read them:
   `OWN-015` blocks by decision. On development and holdout the same rule blocks 2 more entities each, for the
   same reason. For comparison, v2.0.0 (run 4) published 138, with 677/1293 facts exact, 647/1380 fields left
   `[TO CONFIRM]`, 16/47 conflicts found. v2.0.3 blocks the same entities; on the stress suite v2.0.2 (run 8)
-  had 711/1285 facts exact, 605/1372 fields left `[TO CONFIRM]` and 16/47 conflicts found.
+  had 711/1285 facts exact, 605/1372 fields left `[TO CONFIRM]` and 16/47 conflicts found, and v2.0.3
+  (run 10) 879/1285, 433/1372 and 20/47. v2.0.4 blocks the same entities again and is back at the figures of
+  v2.0.2 on this suite: a document of unrecognised type keeps every field `[TO CONFIRM]` again (`DISC-005`).
 - The first stress run (run 2, commit `9a50ea3`) had **32 never-events**. It was fixed in the rule files, not in
   the outputs; the price was abstention: the rules read one wording and abstain on the others. Every run,
   the bad ones included, is in `eval/history.json`.
-- The holdout was scored six times (runs 2, 3, 4, 6, 8, 10) and is no longer a clean holdout.
+- The holdout was scored seven times (runs 2, 3, 4, 6, 8, 10, 12) and is no longer a clean holdout.
 - The blind run of `v2.0.0-freeze` (run 5, by the evaluator, not the author) found **13 never-events**: 0 in the
   plain corpus, 1 in the perturbed one, 12 in the out-of-pool one. Five were capital figures read a thousand
   times too small (`EUR 150'000.00` read as `150.00`, finding T16); eight were dossiers published for
@@ -128,20 +130,36 @@ How to read them:
   are limits `CHANGELOG.md` 2.0.3 declares (a table with a header row, per mille); six are not: a holders'
   heading without a final `.` or `:`, a date in words read as a share in words, dot leaders with a Total
   line, the share written before the holder. Fields left `[TO CONFIRM]`: 0 of 1461, 477 of 1461, 23 of 43.
+- v2.0.4 (finding D30b) is the answer to run 11. `DISC-005` keeps every field `[TO CONFIRM]` again after a
+  document of unrecognised type (`unread_document_scope` = `every_field`; the narrow scope is off: it is not
+  safe on adversarial siblings of E-0009, E-0010 and E-0015). It reads by class the forms of run 11 that can
+  be read without guessing - a heading without a final `.` or `:` when the next line is an item, the
+  directors' heading with a clause number, dot leaders, a Total line that must equal the exact sum (else
+  `OWN-010` blocks), the share before the holder - treats a date such as "the third of July" as a date, not a
+  share, and keeps blocked what cannot be read safely: a "current" qualifier in free words, holders in a
+  sentence, a header row, per mille. The scorer also counts the gold `[TO CONFIRM]` values and file-name
+  divergences of entities not published. On the corpora already seen (run 12) it has 0 never-events; hand-11
+  publishes 10 of 15 (5 before) with 3 blocked wrongly (8 before), all three declared limits; the price is
+  coverage on reworded corpora, e.g. on the perturbed corpus of seed 20261014 726 of 1461 fields are
+  abstained (477 before) and 54 of the 141 published dossiers carry the holders `[TO CONFIRM]` (3 before).
+  One gap is declared and not fixed: a document of a recognised type is read for the fields of its kind only
+  (`CHANGELOG.md` 2.0.4, last known limit). That is not a blind result.
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-09-30 (UTC) on the code of commit `5a13f3f`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `4c90d53`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `bd157385e1c7b88c68c750a6d365b2f2b52c587cfd4c12982e27bf0c9a3ff3e0` |
-| S03, `dossier_shareable.docx` of E-0004 | `9edc4fafd1a7a43e446f5c715a35f22832cf9b6845abbca3a26a420b912ce27b` |
-| S03, whole build (11 files) | `8f3d6c6cd91528659681960bb0892b1316ab874f20619b8d4d43e8bcd4264a9e` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `58971075b7b44dd850e27328ba07c3cd59052b49adc08d5912887a6de58a8a8c` |
+| S03, `dossier.docx` of E-0004 | `2ccb3097b278695d36c058fc1ac40a4ce052c0c56ca2dfc9612286956be9c98c` |
+| S03, `dossier_shareable.docx` of E-0004 | `a31ac0b80e023e9dc0043e3ee101965f57725a797c9ff320467a510572c5eebd` |
+| S03, whole build (11 files) | `f068ba4fc5dfbf4ce0f50be717e97f8d631902295450084c3d7fe5428ab8fe18` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `ee10dc03c69eab80ad3f3b64fa98b5a8d50be214beb06be35d99c9dcdea5edcc` |
 
-The hashes differ from those of v2.0.2 because the dossier names its generator (`dossier 2.0.3`) and lists the
+The hashes differ from those of v2.0.3 because the dossier names its generator (`dossier 2.0.4`) and the legal
+assumption `unread_document_scope` has the value `every_field`; the same entities are blocked. The v2.0.3
+hashes differed from those of v2.0.2 because the dossier named its generator (`dossier 2.0.3`) and listed the
 new legal assumption (`unread_document_scope`); the same entities are blocked. The v2.0.2 hashes differed
 from those of v2.0.1 only because the dossier named `dossier 2.0.2`: no document of these two builds has an
 unrecognised type. The v2.0.1 hashes

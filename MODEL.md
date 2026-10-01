@@ -25,6 +25,13 @@
   documents of the blind run of v2.0.2 (run 9, seed 20261013, `eval/blind/hand-9/`) and regenerating its
   corpora. The same limit applies: the code has seen those corpora and those wordings, and its numbers
   (run 10) are not blind.
+- **The change of v2.0.4** (finding D30b: `DISC-005` back to every field, the undeclared holders'-table forms
+  of the blind run of v2.0.3 read by class or declared, the scorer counting what falls in entities not
+  published) was written with the same model, in a separate session on 2026-10-01, as the builder's hand,
+  after reading the results and the hand-written documents of the blind run of v2.0.3 (run 11, seed 20261014,
+  `eval/blind/hand-11/`) and reproducing them on that seed and on the corpora already recorded. The same limit
+  applies: the code has seen those corpora and those wordings (hand-11 is now seen), and its numbers (run 12)
+  are not blind.
 
 ## What runs at runtime
 

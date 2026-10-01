@@ -136,7 +136,8 @@ class S_UnreadScopeAdversarialSiblings(unittest.TestCase):
 
     def test_the_narrow_scope_is_not_safe_and_stays_off(self):
         # Evidence of the risk that keeps fields_it_may_state OFF (rules/discrepancy.json unread_document_scope):
-        # with it on, the E-0015 sibling under a FEV-920 title publishes the holders it changes, as run 11 did.
+        # with it on, the E-0010 sibling (a transfer worded without the word holder) under a FEV-920 title publishes
+        # the holders it changes, as E-0015 did in run 11.
         status, view, prov = _run([DEED, EXTRACT, _sibling("Notice", SIBLINGS[2][2], "Notice to creditors")],
                                   rules_dir=s.rules_narrow_scope())
         self.assertEqual(status, "OK")

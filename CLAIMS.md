@@ -125,3 +125,17 @@ repeated under the name "blind".
 
 The related sentences "Cross-source discrepancy detection" and "Ownership-graph construction" are downgraded
 with A2 at `v2.0.3-freeze`, for the same entity. Rows A1, A3, A4, A5 and A6 are not touched by the run.
+
+### What v2.0.4 does for A2 (not run blind)
+
+v2.0.4 (tag `v2.0.4-freeze`, finding D30b) puts back the caution of `DISC-005`: a document of unrecognised
+type that is not older than the latest event of a field keeps every field `[TO CONFIRM]` again
+(`unread_document_scope` = `every_field`); the scope to the fields such a document may state is off, because
+46 of 160 adversarial siblings of E-0009, E-0010 and E-0015 publish a field under it on the v2.0.3 code
+(`tests/test_d30b_forms.py`). On the hand corpus of run 11, now seen, E-0015 has 0 never-events and the
+title siblings of E-0009 and E-0010 keep their fields `[TO CONFIRM]`. The price is coverage on reworded
+corpora (`CHANGELOG.md` 2.0.4). One gap of the same kind is still open and is declared there: a document of a
+**recognised** type is read for the fields of its kind only, so a recognised document that also changes
+another field without the rules of its kind reading it would publish the older value of that field as a fact.
+The row A2 above stays downgraded for `v2.0.3-freeze`; v2.0.4 has been measured by the author on data
+already seen (run 12: 0 never-events) and has not been run blind, so nothing is upgraded here.

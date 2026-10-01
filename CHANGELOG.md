@@ -2,6 +2,168 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.4] - 2026-10-01 (freeze tag `v2.0.4-freeze`; not yet run blind)
+
+### D30b - blind run of v2.0.3, run 11: two never-events (DISC-005 scope, FEV-040), undeclared blocks, scorer gap
+
+Source: the evaluator's blind run of `v2.0.3-freeze`, `eval/history.json` run 11, seed 20261014 and the hand
+corpus `eval/blind/hand-11/` (15 entities, 33 documents): 0 never-events on the plain and perturbed corpora,
+**2 on the hand corpus**, both on entity E-0015. A notice to creditors (a document of unrecognised type)
+says that the equity was raised by a contribution in kind and that the seat moves. The rules of
+`unread_fields` scoped that sentence to the capital, the financial figures and the office; by `FEV-040` a
+capital increase changes the capital, never the holders. So the holders of the older registry extract were
+published as a fact, with the effective holding derived from them, where the gold says they cannot be decided.
+
+**`CHANGELOG.md:63` at `v2.0.3-freeze` (entry 2.0.3) was false for `FEV-040`.** The heading said that each known limit "still
+blocks the entity, or keeps the field `[TO CONFIRM]`"; the `FEV-040` limit (`:81-82` at that tag) and the
+residual risk of the scope (`:83-86`) could publish a field as a fact, and on E-0015 one did. The same heading
+was false also for the limit at `:79-80` (classified documents of other kinds are not searched for holders'
+tables): it may publish too (see the last limit below, not fixed). The 2.0.3 entry is left as it was written.
+
+Also from run 11: 8 of the 15 hand entities were blocked wrongly, 6 of them on forms that 2.0.3 does not
+declare; and `eval/score.py` scored nothing in an entity that was not published, so the gold `[TO CONFIRM]`
+values and file-name divergences of blocked entities were never counted.
+
+#### 1. DISC-005: every field again
+
+- `rules/discrepancy.json:32` `unread_document_scope`: `fields_it_may_state` (v2.0.3) -> `every_field`, the
+  v2.0.0-v2.0.2 behaviour. An unread document that is not older than the latest event of a field keeps every
+  field `[TO CONFIRM]`, whatever its title or its lines say. `fields_it_may_state` stays allowed and OFF; its
+  risk is written in the note of the parameter and in `docs/ASSUMPTIONS.md`. Turning it on is a risk decision
+  of the owner, not a reading.
+- Proof that the narrow scope is not safe, `tests/test_d30b_forms.py` class `S_UnreadScopeAdversarialSiblings`:
+  10 sibling documents of hand-11 E-0009, E-0010 and E-0015 (E-0009 as written: an office sentence beside a
+  capital doubled without the word capital; the doubled capital alone; E-0010's transfer without the word
+  holder; E-0015's contribution in kind and new seat; a contribution in kind with the holders not named; a
+  merger with and without the word merger; a transfer worded as a gift; a capital cut and a capital raised in
+  figures without the word capital), each with every title noun of `FEV-920` (14), with a title of its own
+  and with no title line: 160 cases. With the default every field stays `[TO CONFIRM]` and no effective
+  holding is derived in all 160. On the v2.0.3 code, where the narrow scope was the default, 46 of the 160
+  publish a field the document changes (E-0009 as written 15, E-0010 15, E-0015 16); on the v2.0.4 code with
+  the option switched on, the E-0010 sibling under a `Notice` title still publishes the holders
+  (`test_the_narrow_scope_is_not_safe_and_stays_off`). The E-0009 and E-0010 title siblings keep their fields
+  `[TO CONFIRM]`; E-0015 has 0 never-events.
+- `dossier/rules_engine.py` `with_params()`: an inline test may run with another allowed parameter value
+  (`"params"`); the DISC-005 tests pin `every_field`, the DISC-040 tests of the option pin
+  `fields_it_may_state` (`dossier/s3_discrepancy.py` `run_inline_tests`).
+- Coverage cost, before -> after, on every corpus already seen (fields `[TO CONFIRM]` in published dossiers;
+  published dossiers with the holders `[TO CONFIRM]`): stress 433 -> 605 of 1372, 0 -> 0; seed 20261011
+  perturbed 512 -> 744 of 1413, 8 -> 45; 20261012 perturbed 462 -> 655 of 1396, 4 -> 43; 20261013 perturbed
+  543 -> 761 of 1482, 3 -> 54; 20261014 perturbed 477 -> 726 of 1461, 3 -> 54; out-of-pool corpus of run 5
+  475 -> 611 of 986, 7 -> 34; hand-9 5 -> 16 of 51, 0 -> 2. Dev, holdout, the four plain corpora and the hand
+  corpus of run 7 do not move. The number of published dossiers does not move on any of these corpora.
+
+#### 2. The undeclared forms of run 11, read by class
+
+| Class | Found in run 11 | v2.0.3 | v2.0.4 |
+|---|---|---|---|
+| D1. a heading without a final `.` or `:` | 7 hand deeds: E-0001, E-0002, E-0003, E-0005, E-0006, E-0011, E-0012 (`4. Shareholders`, `Article 4. Stockholders`, `§ 4 Holders`) | not read, blocked | read only when it is the whole line and the next line is an item of the list |
+| D2. a day ordinal with a month (`the third of July`, `July the fifth`, `the twenty-fifth day of March`) and `third parties` | E-0008 memorandum | read as a share in words (`HEV-010`), blocked | neutral; a share in words beside a date still blocks |
+| D3. the directors' heading with a clause number (`(5) Directors:`, `§ 5 Directors`, `Article 5. Directors`) | E-0013 | not read | read as the holders' heading is |
+| D4. dot leaders as separator and a last line `Total` | E-0006 | not read, blocked | read; the Total must equal the exact sum of the rows, else `OWN-010` blocks |
+| D5. the share before the holder (`- 60% P-001 (...)`, `1. 3/5 - Name (P-001)`) | E-0012 | not read, blocked | read for per cent and n/d |
+
+Root causes and what changed (file:line of v2.0.3 -> v2.0.4):
+
+- D1, D3: `rules/extract.json:23` (`holders_heading` ends in `[.:]$`) and `:257` (directors: one literal form,
+  `^(?:\d+\. )?Directors...[.:]$`); `dossier/s1_extract.py:398-402` (`_extract_list` took the first heading
+  only) -> `rules/extract.json:23-29` (`holders_heading_body`, `holders_heading`, `holders_heading_bare`,
+  `directors_heading_body` with `clause_number`, `directors_heading`, `directors_heading_bare`), `:243` and
+  `:285` (`line_matches_bare`), `dossier/s1_extract.py:444-462` (`_list_headings`: the bare form only before an
+  item line; two headings of one list in one document abstain - holders block, directors stay `[TO CONFIRM]`).
+- D2: `rules/extract.json:312` (`neutral_phrases`) -> `:346`, with the parameters `month_names` and
+  `day_ordinals` (`:40-41`).
+- D4: `rules/extract.json:27` (`item_separator`) -> `:33` (dot leaders) and `:34` (`item_total`);
+  `dossier/s1_extract.py:347` (`_read_items`) -> `:370-436` (a Total read only as the last line of the table,
+  in the unit of the rows, carried as `stated_total`); `dossier/s4_ownership.py:54` (`sum_checks`) -> `:54-63`
+  (`table_check`: whole only when the rows sum to the whole AND the Total equals that sum) and `:115`
+  (`violation_reason`); `schema/entity_record.schema.json` (`stated_total`); `rules/ownership.json` `OWN-010`
+  (rationale and two tests).
+- D5: `rules/extract.json:35` (`share_token_first`) and `:245` (`item_matches_share_first`);
+  `dossier/s1_extract.py:163` (`_Items`: the item grammar, then the share-first grammar).
+- The audit reads the same forms with its own code: `dossier/s7_audit.py:48` (v2.0.3, `_SHARE_IN_LINE` only)
+  -> `:47-54` (`_SEP` with dot leaders, `_SHARE_FIRST_LINE`, `_TOTAL_LINE`), `:94-132` (`_holder_lines`: a Total
+  that is not the exact sum is refused) and `:135` (`_is_holder_row`).
+
+#### 3. The scorer counts what is not published
+
+`eval/score.py:88-96` (v2.0.3: an entity not published was skipped with `continue`) -> `:91-99` and
+`:111-117`: for every entity not published the scorer counts, separately, the gold `[TO CONFIRM]` values and
+the gold file-name divergences, and the same two counts for the entities blocked wrongly
+(`blocked_entities_gold_to_confirm`, `blocked_wrongly_entities_gold_to_confirm`,
+`blocked_entities_filename_divergences_gold`, `blocked_wrongly_entities_filename_divergences_gold`). They are
+printed next to the never-events and are not never-events; no other count changes.
+
+### Known limits of v2.0.4
+
+Each limit is marked with what it does to the entity: **blocks**, **keeps `[TO CONFIRM]`** or **may publish**.
+One limit may publish; it is the last one, and it is not fixed in v2.0.4.
+
+- holders stated in a sentence rather than in a list under a heading (hand-9 E-0003 and E-0007): not read, by
+  the owner's risk decision - **blocks**;
+- a qualifier meaning "current" in free words in the heading (`Shareholders once the transfer has taken
+  effect:`, hand-11 E-0002) - **blocks**;
+- a table with a header row (`| Identifier | Holder | Share |`, hand-11 E-0011, hand-9 E-0003) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words (`On the third of July ... received a third`) -
+  **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions: `half` alone, decimals in words, a number that
+  does not agree (`two third`, `one thirds`), more than a hundred per cent - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them: the document may change every
+  field and its holders cannot be summed, `OWN-015` (41 of the 44 entities blocked wrongly in the out-of-pool
+  corpus of run 5) - **blocks**;
+- shares planted as illegible block by design (D26): 2, 2, 1, 3, 3, 3, 3, 0, 0, 2, 2 entities of dev,
+  holdout, stress and the seeds 20261011 to 20261014, plain and perturbed - **blocks**;
+- a document of unrecognised type not older than the latest event of a field: every field (DISC-005,
+  `every_field`); the rules of `unread_fields` (`FEV-040` and the others) decide nothing under the default -
+  **keeps `[TO CONFIRM]`**. The option `fields_it_may_state` is off; on, it is not safe (section 1);
+- **a document of a recognised type is read for the fields of its kind only** (`rules/extract.json`
+  `doc_kinds`, `expected_fields`: a resolution on share capital changes the capital, a share transfer notice the
+  holders, an appointment the directors, an office transfer the office). A recognised document whose text also
+  changes another field - a capital resolution whose new quotas go to a new holder, a transfer notice that
+  also moves the seat, a resolution that holds a holders' table - is not searched for it, and the older value
+  of that field is published as a fact - **may publish**. Not fixed in v2.0.4; it is the same sentence-level
+  gap as run 11, for documents whose type is recognised. Measured by the builder on corpora already seen: on
+  the plain corpora every body line of a classified document that no rule reads is a title of `FEV-920`
+  (dev 897 documents, seed 20261014 893: none may state a field), so a rule that keeps every field
+  `[TO CONFIRM]` after such a line would cost nothing there; it is not written, not tested and not measured on
+  the reworded corpora.
+
+### Tests and numbers
+
+- `tests/test_d30b_forms.py`, 26 tests in 8 classes. Run on the v2.0.3 code (with the hand-11 corpus copied
+  in), 14 fail or error: `test_default_scope_is_every_field`, `test_every_sibling_with_every_title_keeps_every_field`
+  (46 of 160 cases), `test_a_sibling_with_a_holders_table_of_the_same_holders_keeps_the_holders`, the bare
+  holders' and directors' headings (7 and 7 cases), `test_two_directors_headings_abstain`,
+  `test_dates_in_words`, `test_dot_leaders_with_a_total_equal_to_the_sum`, `test_a_total_that_differs_blocks_by_own_010`,
+  `test_counts_with_a_total`, `test_share_first`, `test_share_first_that_does_not_sum_blocks_by_own_010`,
+  `test_hand_11` (2 never-events) and `test_unpublished_entities_are_counted_not_scored` (error: no such count).
+  12 pass on both: the limits that still block (class `F5_StillNotRead`, two tests of F1 and one each of F2
+  to F4), the title nouns, the narrow option kept off, and `test_hand_9_and_hand`.
+- Changed to the every-field default: `tests/test_d30_forms.py` (C1 shareholding structure, class C6),
+  `tests/test_holders_forms.py` (`test_register_of_members_with_a_reworded_heading`), `tests/test_never_event.py`
+  (the document of unknown type after the deed: every field by default, only the capital with the option).
+- Inline rule tests: `rules/extract.json` `EXT-HOLD-010` 27 (13 new), `EXT-DIR-010` 10 (6 new), `HEV-999` and
+  `HEV-010` 3 new each; `rules/ownership.json` `OWN-010` 2 new; `rules/discrepancy.json` `DISC-005` 2 new.
+  No rule added: `tests/test_rules.py` still counts 67 rules. 270 tests in all.
+- Measured by the builder on corpora already seen (`eval/history.json` run 12, commit `4c90d53`; NOT blind),
+  v2.0.3 -> v2.0.4: hand-11 never-events 2 -> 0, published 5 -> 10 of 15, blocked wrongly 8 -> 3 (E-0002,
+  E-0011, E-0014: limits above), `[TO CONFIRM]` kept 9/10 -> 12/12; never-events 0 on every other corpus, as
+  before; the coverage cost of section 1. Every never_event_list is empty.
+
 ## [2.0.3] - 2026-10-01 (freeze tag `v2.0.3-freeze`; not yet run blind)
 
 ### D30 - forms found by the blind run of v2.0.2, run 9; DISC-005 over-reach; never_event_list cap
