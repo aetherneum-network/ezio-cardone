@@ -74,7 +74,9 @@ or keep a field open, and one is in the scorer: in a very deep folder it reports
 v2.0.10 is the answer to run 22 (`CHANGELOG.md` 2.0.10): the scorer reads a build where the pipeline writes it and
 exits 3 (MEASUREMENT FAILED) when it could not measure; the count form of the capital clause is read when it is
 stated without qualification; the limits run 22 found are declared, each as a block. On 78 constructed siblings of
-the count form 0 publish wrongly on the code of v2.0.9 and 0 on v2.0.10 (run 23, below).
+the count form 0 publish wrongly on the code of v2.0.9 and 0 on v2.0.10 (run 23, below). The blind run of
+`v2.0.10-freeze` (run 24, below) found no never-event, with every probe unmasked; in a very deep folder the
+scorer now gives the numbers of a short one.
 
 ## Re-run it
 
@@ -95,8 +97,9 @@ never-event, and since v2.0.10 3 when it could not measure (the reason on stderr
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 23, code at commit `564dc73` (pipeline, rules, tests and scorer of the tag
-`v2.0.10-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
+Source: `eval/history.json`, run 23, code at commit `564dc73` (pipeline, rules and scorer of the tag
+`v2.0.10-freeze`, and its tests but `tests/test_scenarios.py`, whose in-process scenario checks make their work
+folders with `support.tmp()` since commit `e68704d`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
 not blind: every seed had been seen, seed 20261019 and the hand-written corpus of run 22 included. Every number of
 the table below is the same as in v2.0.9 (run 21, code at commit `99894a9`): the generator does not write the count
 form of the capital clause that v2.0.10 reads, and the scorer's new checks of the measurement change no count; the
@@ -380,6 +383,26 @@ How to read them:
   rules instead of the id of an object that Python may reuse. On the corpora already seen (run 23) every count is
   that of v2.0.9 but hand-22, 2 facts more (78/223 to 80/223); 0 never-events everywhere. That is not a blind
   result, and nothing is upgraded (`CLAIMS.md` section 12).
+- The blind run of `v2.0.10-freeze` (run 24, by the evaluator, not the author, seed 20261020, hand-written
+  corpus `eval/blind/hand-24/`, 45 entities, 114 documents, written with the gazetteer of `SYNTHETIC.md`)
+  found **0 never-events** by section 1.5 of the protocol and by `eval/score.py`: 0 in the plain corpus, 0 in
+  the perturbed one, 0 in the hand-written one, built and scored once in a work folder of 294 characters and
+  once in a short one, with the same numbers; the sum of the eight `*_wrong_committed` fields is 0 in each of
+  the four results. Facts exact 1070/1316, 479/1296 and 96/235; fields left `[TO CONFIRM]` 246 of 1401, 849
+  of 1379 and 139 of 257. Entities blocked wrongly: 1 of 150 in the plain corpus and 3 in the perturbed one
+  (the illegible share planted by the generator, and two unrecognised perturbed extracts whose line may state
+  a holding), 12 of 45 hand-written, each a declared block on a line no rule reads (`OWN-015`). Every probe
+  was unmasked, and none published a value as fact: four adversarial documents of unrecognised type and five
+  of recognised type, eight typed slots and six premise probes. Of the five probes of the count form, the
+  two stated without qualification (one with the holders' counts and a total) were published with every
+  field exact; the one whose later extract states another paid-in capital was published with that field a
+  discrepancy, as the gold has it; a partial payment and a second sentence on the same line blocked. The
+  entities with one word outside the gazetteer - a town, a trade, a street - and the own name holding a
+  street kept every field `[TO CONFIRM]`; the one with a holder and a director outside it blocked, as
+  declared, and so did a table of holders read only through two notes. The evaluator's first two attempts
+  at the deep folder gave the pipeline a malformed path; the scorer refused both with exit 3
+  (`MEASUREMENT FAILED`), as v2.0.10 declares, and the third attempt is the measurement (the note of run 24).
+  No claim is downgraded (section 1.7 does not apply); this is evidence, not a certification.
 
 ## Two rebuilds, same bytes
 
