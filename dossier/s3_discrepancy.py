@@ -12,7 +12,9 @@ Then the ordered rules of ``rules/discrepancy.json`` decide: an unread document 
 field -> ``TO_CONFIRM``; a document of a recognised type with text that no rule of its kind reads (since v2.0.5,
 ``classified_checks`` of the record) that may change the field -> ``TO_CONFIRM``; no current source -> ``TO_CONFIRM``; two or more different current values
 -> ``DISCREPANCY`` (all shown, none chosen); a current source that could not be read ->
-``TO_CONFIRM``; every current source readable and agreeing -> ``STATED``.
+``TO_CONFIRM``; a name whose legal form differs from the legal form stated (since v2.0.6, DISC-035) -> ``TO_CONFIRM``
+for the name and the legal form, both readings listed with their sources; every current source readable and agreeing
+-> ``STATED``.
 
 An unreadable event document is still the baseline: an older value is never promoted back. What
 could be read of a field that is ``TO_CONFIRM`` is kept as ``readable`` statements, never as a fact.
@@ -21,9 +23,10 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import re
 
 from . import rules_engine
-from .rules_engine import Rules, first_match
+from .rules_engine import Rules, first_match, rx
 
 SOURCE_KEYS = ("source_doc", "source_file", "source_date", "edition", "line", "line_end", "quote", "nature", "rule")
 
@@ -134,8 +137,53 @@ def classified_that_matter(classified: list[dict], baseline: dict | None, fld: s
     return out
 
 
+def _stated_current(assertions: list[dict], rules: Rules) -> list[dict]:
+    if not assertions:
+        return []
+    baseline, witnesses, _ = split_current(assertions, rules)
+    return [a for a in ([baseline] if baseline else []) + witnesses if a["status"] == "STATED"]
+
+
+def _form_code(text, rules: Rules, whole: bool) -> str | None:
+    """The letters, lower case, of the legal form a text ends with (parameter legal_form_in_name); with ``whole``,
+    only when the text is nothing but that legal form."""
+    if not isinstance(text, str):
+        return None
+    m = rx(rules.param("discrepancy", "legal_form_in_name")).search(text)
+    if not m or (whole and text[:m.start("form")].strip()):
+        return None
+    return re.sub(r"[^a-z]", "", m.group("form").lower())
+
+
+def legal_form_clash(by_field: dict[str, list[dict]], rules: Rules) -> list[dict]:
+    """Every pair (a current name, a current legal form) both read as stated, where the name ends with a legal form
+    that is not the legal form stated (DISC-035, since v2.0.6). Nothing is reconciled: each pair is listed with the
+    source of each reading."""
+    if not rules.param("discrepancy", "legal_form_in_name"):
+        return []
+    out, seen = [], set()
+    for n in sorted(_stated_current(by_field.get("name", []), rules), key=_order):
+        code_n = _form_code(n["value"], rules, whole=False)
+        if code_n is None:
+            continue
+        for f in sorted(_stated_current(by_field.get("legal_form", []), rules), key=_order):
+            code_f = _form_code(f["value"], rules, whole=True)
+            key = (n["source_doc"], n["line"], f["source_doc"], f["line"])
+            if code_f is not None and code_f != code_n and key not in seen:
+                seen.add(key)
+                out.append({"name": n["value"], "name_source": _src(n),
+                            "legal_form": f["value"], "legal_form_source": _src(f)})
+    return out
+
+
+def _clash_text(c: dict) -> str:
+    n, f = c["name_source"], c["legal_form_source"]
+    return (f"name {c['name']!r} ({n['source_doc']}, {n['edition']}, {n['source_date']}, line {n['line']}) against "
+            f"legal form {c['legal_form']!r} ({f['source_doc']}, {f['edition']}, {f['source_date']}, line {f['line']})")
+
+
 def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[dict] | None = None,
-                  classified: list[dict] | None = None) -> dict:
+                  classified: list[dict] | None = None, clash: list[dict] | None = None) -> dict:
     baseline, witnesses, history = split_current(assertions, rules)
     current = ([baseline] if baseline else []) + witnesses
     stated = [a for a in current if a["status"] == "STATED"]
@@ -150,8 +198,10 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
              "no_current_assertion": not current,
              "two_or_more_current_values": len(groups) >= 2,
              "current_source_unreadable": len(stated) < len(current) and bool(strict or not groups),
+             "legal_form_in_name_differs": bool(clash),
              "one_current_value": len(groups) == 1}
-    rule = first_match(rules.discrepancy["rules"], lambda r: facts.get(r["when"], False))
+    rule = first_match(rules.discrepancy["rules"], lambda r: facts.get(r["when"], False)
+                       and (not r.get("fields") or fld in r["fields"]))
     if rule is None:
         raise RuntimeError(f"discrepancy.json has no rule for field {fld}: {facts}")
     res: dict = {"field": fld, "status": rule["status"], "rule": rule["id"],
@@ -176,6 +226,9 @@ def resolve_field(fld: str, assertions: list[dict], rules: Rules, unread: list[d
                                  f"{u.get('date') or 'without a valid date'}" for u in blocking)
             elif rule["when"] == "classified_document_may_change_field":
                 reasons = sorted(f"{c['doc_id']} dated {c['date']}" for c in open_docs)
+            elif rule["when"] == "legal_form_in_name_differs":
+                reasons = sorted(_clash_text(c) for c in clash or [])
+                res["legal_form_clash"] = clash
             else:
                 reasons = sorted({a["reason"] for a in current if a["status"] != "STATED"})
             res["reason"] = rule["reason"] + (": " + "; ".join(reasons) if reasons else "")
@@ -202,7 +255,8 @@ def resolve_record(record: dict, rules: Rules) -> dict:
             by_field.setdefault(a["field"], []).append(a)
     unread = record.get("unclassified_documents", [])
     classified = record.get("classified_checks", [])
-    fields = {f: resolve_field(f, by_field[f], rules, unread, classified) for f in sorted(by_field)}
+    clash = legal_form_clash(by_field, rules)
+    fields = {f: resolve_field(f, by_field[f], rules, unread, classified, clash) for f in sorted(by_field)}
     return {"fields": fields, "previous_statements": sorted(previous, key=lambda p: (p["field"], p["source_date"],
                                                                                    p["source_doc"]))}
 
@@ -227,24 +281,33 @@ def superseded_register(resolution: dict) -> list[dict]:
 
 def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
     n, bad = 0, []
+
+    def build(items: list[dict], fld: str) -> list[dict]:
+        out = []
+        for i, a in enumerate(items):
+            no = a.get("edition_no", i + 1)
+            x = {"field": fld, "role": a["role"], "series": a["series"], "edition_no": no,
+                 "source_doc": a["doc"], "source_file": a["doc"], "source_date": a["date"],
+                 "edition": f"{a['series']}/{no}", "line": a.get("line", 1), "line_end": a.get("line", 1),
+                 "quote": "q", "nature": "resolved", "rule": "T"}
+            if a["value"] is None:
+                x["status"], x["reason"] = "TO_CONFIRM", "unreadable"
+            else:
+                x["status"], x["value"] = "STATED", a["value"]
+            out.append(x)
+        return out
+
     for r in rules.discrepancy["rules"]:
         for t in r.get("tests", []):
             n += 1
-            assertions = []
-            for i, a in enumerate(t["assertions"]):
-                no = a.get("edition_no", i + 1)
-                x = {"field": "f", "role": a["role"], "series": a["series"], "edition_no": no,
-                     "source_doc": a["doc"], "source_file": a["doc"], "source_date": a["date"],
-                     "edition": f"{a['series']}/{no}", "line": 1, "line_end": 1, "quote": "q",
-                     "nature": "resolved", "rule": "T"}
-                if a["value"] is None:
-                    x["status"], x["reason"] = "TO_CONFIRM", "unreadable"
-                else:
-                    x["status"], x["value"] = "STATED", a["value"]
-                assertions.append(x)
+            fld = t.get("field", "f")
+            assertions = build(t["assertions"], fld)
+            # a test of the name and the legal form together names the assertions of the other field (DISC-035)
+            by_field = {fld: assertions, **{k: build(v, k) for k, v in t.get("other_fields", {}).items()}}
             # a test of an option that is off by default names the parameter value it holds for
             local = rules_engine.with_params(rules, "discrepancy", t["params"]) if t.get("params") else rules
-            got = resolve_field(t.get("field", "f"), assertions, local, t.get("unread"), t.get("classified"))
+            got = resolve_field(fld, assertions, local, t.get("unread"), t.get("classified"),
+                                legal_form_clash(by_field, local))
             exp = t["expect"]
             ok = got["status"] == exp["status"] and got["rule"] == r["id"]
             if "value" in exp:

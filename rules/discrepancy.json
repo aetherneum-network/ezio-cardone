@@ -1,6 +1,6 @@
 {
   "file": "discrepancy.json",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
   "parameters": {
     "event_supersedes_earlier_state": {
@@ -33,6 +33,10 @@
       "allowed": ["fields_it_may_state", "every_field"],
       "status": "[TO CONFIRM with legal]",
       "note": "every_field (v2.0.0-v2.0.2, and again the default since v2.0.4, D30b): an unread document that is not older than the latest event document of a field may change every field, whatever its title or its lines say. fields_it_may_state (the default of v2.0.3 only; still allowed, OFF): a document whose only problem is its type may change only the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table does not make the shareholders [TO CONFIRM]. Its risk, shown by the blind run of v2.0.3 (eval/history.json run 11, hand entity E-0015): a sentence that changes a field without naming it (a capital raised by a contribution in kind that also changes the holders; a merger; a transfer worded without the word holder) keeps only the fields its topic words name, so the other field is published as fact; and a title word of FEV-920 (Notice, Memorandum, Letter...) can narrow the scope of a whole document. No test shows that this scope never publishes a field an unread document may change, so it stays off; switching it on is a risk decision, not a reading."
+    },
+    "legal_form_in_name": {
+      "value": "(?:^|\\s)(?P<form>S\\.?\\s?r\\.?\\s?l\\.?(?:\\s?s\\.?)?|S\\.?\\s?a\\.?\\s?p\\.?\\s?a\\.?|S\\.?\\s?p\\.?\\s?a\\.?|S\\.?\\s?a\\.?\\s?s\\.?|S\\.?\\s?n\\.?\\s?c\\.?)[.\\s]*$",
+      "note": "Since v2.0.6 (D35, hand-14 E-0012): the legal form a company's name ends with (S.r.l., S.r.l.s., S.p.A., S.a.p.a., S.a.s., S.n.c., with or without dots, any case). Its letters, lower case, are compared with those of the legal form stated (a value that is nothing but a legal form). A name without a legal form at its end makes no claim and is not compared. Used by DISC-035 only."
     },
     "unreadable_current_source_blocks_fact": {
       "note": "When one current source of a field could not be read, the value of the other current sources is not shown as fact: the unread source may disagree. Added after the first stress run (eval/history.json, run 2).",
@@ -298,6 +302,11 @@
       "status": "DISCREPANCY",
       "rationale": "Exception above every single-value rule: current sources disagree. Every value is kept with its sources; none is chosen. This includes two event documents of the same day and two documents that carry the same edition of the same series: neither is taken as the later one.",
       "tests": [
+        {"field": "name",
+         "assertions": [{"date": "2026-06-30", "doc": "D1", "role": "event", "series": "DEED", "value": "Fonderia Torre Esemplare S.r.l."},
+                        {"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare S.p.A."}],
+         "other_fields": {"legal_form": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l."}]},
+         "expect": {"status": "DISCREPANCY", "values": ["Fonderia Torre Esemplare S.p.A.", "Fonderia Torre Esemplare S.r.l."]}},
         {
           "assertions": [
             {
@@ -453,11 +462,48 @@
       ]
     },
     {
+      "id": "DISC-035",
+      "when": "legal_form_in_name_differs",
+      "fields": ["name", "legal_form"],
+      "status": "TO_CONFIRM",
+      "reason": "the legal form in the company's name differs from the legal form stated",
+      "rationale": "Since v2.0.6 (D35, the blind run of v2.0.5, hand-14 E-0012: an extract named the company '... S.p.A.' and stated 'Legal form: S.r.l.'). A name that ends with one legal form and a legal form field that states another cannot both be read as fact, and the pack never decides which one is right: both readings are listed with their sources (the reason names each one, document, edition, date and line; the readable values of the field stay listed), nothing is reconciled, and the name and the legal form are [TO CONFIRM]. Below DISC-020: a name or a legal form already in conflict stays a DISCREPANCY with every value side by side. A name without a legal form at its end makes no claim (parameter legal_form_in_name).",
+      "tests": [
+        {"field": "legal_form",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l.", "line": 7}],
+         "other_fields": {"name": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare S.p.A.", "line": 6}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["S.r.l."]}},
+        {"field": "name",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Officine Montefinto S.p.A."}],
+         "other_fields": {"legal_form": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "S.r.l."}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["Officine Montefinto S.p.A."]}},
+        {"field": "legal_form",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "S.p.A."},
+                        {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.p.A."}],
+         "other_fields": {"name": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Cantieri Valfittizia Srl"},
+                                   {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Cantieri Valfittizia S.p.A."}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["S.p.A."]}}
+      ]
+    },
+    {
       "id": "DISC-040",
       "when": "one_current_value",
       "status": "STATED",
       "rationale": "Every readable current source gives the same value. It is shown once, with the latest source first and the others listed.",
       "tests": [
+        {"field": "legal_form",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l."}],
+         "other_fields": {"name": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare srl"}]},
+         "expect": {"status": "STATED", "value": "S.r.l."}},
+        {"field": "name",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare"}],
+         "other_fields": {"legal_form": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.p.A."}]},
+         "expect": {"status": "STATED", "value": "Fonderia Torre Esemplare"}},
+        {"field": "legal_form",
+         "assertions": [{"date": "2025-05-01", "doc": "D3", "role": "event", "series": "RESOLUTION", "value": "S.p.A."}],
+         "other_fields": {"name": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Officine Montefinto S.r.l."},
+                                   {"date": "2025-05-01", "doc": "D3", "role": "event", "series": "RESOLUTION", "value": "Officine Montefinto S.p.A."}]},
+         "expect": {"status": "STATED", "value": "S.p.A."}},
         {
           "params": {"unread_document_scope": "fields_it_may_state"},
           "field": "fin.FY2025.revenue",

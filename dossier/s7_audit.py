@@ -27,7 +27,7 @@ from pathlib import Path
 
 from docx import Document
 
-from . import TO_CONFIRM
+from . import SYNTHETIC_MARKER, TO_CONFIRM
 from .lib import jsonio
 from .lib.numbers import parse_amount, parse_frac, parse_share
 from . import rules_engine
@@ -218,6 +218,29 @@ def unread_scope(u: dict, input_dir: Path | str, rules: Rules | None) -> tuple[s
     return ({"*"} if "*" in fields else fields), tables
 
 
+# The audit's own reading of a legal form at the end of a name (v2.0.6, D35): a second implementation of DISC-035.
+_FORM_CODES = {"srl", "srls", "spa", "sapa", "sas", "snc"}
+_NAME_TAIL = re.compile(r"(?:^|\s)((?:[^\W\d_]\.?\s?){3,4})[.\s]*$")
+
+
+def _tail_form(value, whole: bool) -> str | None:
+    if not isinstance(value, str):
+        return None
+    m = _NAME_TAIL.search(value)
+    code = re.sub(r"[^a-z]", "", m.group(1).lower()) if m else ""
+    if code not in _FORM_CODES or (whole and value[:m.start(1)].strip()):
+        return None
+    return code
+
+
+def form_clash(by_field: dict[str, list[dict]]) -> bool:
+    """Whether a current name ends with a legal form other than a current legal form, by the audit's own reading."""
+    names = [json.loads(k) for k in current_values(by_field.get("name", []))[0]] if by_field.get("name") else []
+    forms = [json.loads(k) for k in current_values(by_field.get("legal_form", []))[0]] if by_field.get("legal_form") else []
+    return any(_tail_form(n, False) and _tail_form(f, True) and _tail_form(n, False) != _tail_form(f, True)
+               for n in names for f in forms)
+
+
 def _in_scope(scope: set[str], fld: str) -> bool:
     return any(m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1])) for m in scope)
 
@@ -248,17 +271,71 @@ class _Words:
         self.neutral = rx(_expand_all(hev["parameters"]["neutral_phrases"], p))
         self.hev = [(None if r["when"] == "always" else rx(_expand_all(r["pattern"], p)), r["outcome"])
                     for r in hev["rules"]]
+        self.not_name = rx(_expand_all(p["slot_not_name_word"], p))
+        self.name_groups = set(p["slot_name_groups"])
 
     def holding(self, text: str) -> bool:
         plain = self.neutral.sub(" ", text)
         return next(out for pat, out in self.hev if pat is None or pat.search(plain)) != "none"
 
-    def name(self, text: str) -> set[str]:
+    def name(self, text: str, names: bool = False) -> set[str]:
         words = re.sub(r"[0-9]", " ", text)
         out = {f for pat, fields in self.topics if pat.search(words) for f in fields}
         if self.holding(words):
             out.add("shareholders")
+        if names and any(self.not_name.search(w) for w in re.findall(r"[^\W\d_]+", text)):
+            out.add("*")         # since v2.0.6: a word that cannot be part of a name, in a slot that holds a name
         return out
+
+
+# The audit's own reading of a name beside an identifier, and of the names that are the identifier's own (v2.0.6, D35).
+_PAIR_AFTER = re.compile(r"(P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+_PAIR_FIRST = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:\d{{1,3}}(?:[.,]\d+)?\s*(?:%|per\s*-?\s*cent|percent|pct)\s*{_SEP}\s*|"
+                         rf"\d+\s*/\s*[1-9]\d*\s*{_SEP}\s*)?([^()|:\t]+?)\s*\((P-\d{{3}}|E-\d{{4}})\)", re.I)
+_ENTITY_HEADER = re.compile(r"^Entity:\s*(.+) \(test registry no\. TEST-REG-(\d{6})\)\s*$")
+_KNOWN_CACHE: dict[tuple, dict[str, set[str]]] = {}
+
+
+def own_names(input_dir: Path | str) -> dict[str, set[str]]:
+    """identifier -> its own names, read again by the audit: the identity layer of the input and the header line
+    'Entity:' of every source file that opens with the SYNTHETIC marker."""
+    root = Path(input_dir)
+    files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
+    ident = root / "identity" / "persons.json"
+    key = (str(root.resolve()),) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
+                                         for f in files + ([ident] if ident.exists() else []))
+    if key in _KNOWN_CACHE:
+        return _KNOWN_CACHE[key]
+    out: dict[str, set[str]] = {}
+    if ident.exists():
+        for pid, person in (json.loads(ident.read_text(encoding="utf-8")) or {}).items():
+            if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
+                out.setdefault(pid, set()).add(" ".join(person["name"].split()))
+    for f in files:
+        try:
+            lines = jsonio.read_bytes(f).decode("utf-8").replace("\r\n", "\n").split("\n")
+        except UnicodeDecodeError:
+            continue
+        if not lines or lines[0].strip() != SYNTHETIC_MARKER:
+            continue
+        for x in lines[1:]:
+            if not x.strip():
+                break
+            if x.partition(":")[1] and x.partition(":")[0].strip() == "Entity":
+                m = _ENTITY_HEADER.match("Entity: " + x.partition(":")[2].strip())
+                if m and m.group(1).strip():
+                    out.setdefault(f"E-{m.group(2)[-4:]}", set()).add(" ".join(m.group(1).split()))
+                break
+    _KNOWN_CACHE[key] = out
+    return out
+
+
+def _not_its_own(line: str, known: dict[str, set[str]]) -> bool:
+    pairs = [(m.group(1), m.group(2)) for m in _PAIR_AFTER.finditer(line)]
+    first = _PAIR_FIRST.match(line)
+    if first:
+        pairs.append((first.group(2), first.group(1)))
+    return any(known.get(i) and " ".join(label.split()) not in known[i] for i, label in pairs)
 
 
 def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern) -> bool:
@@ -287,7 +364,8 @@ def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern) -> b
     before = _LABEL_BEFORE.match(rest)
     if before:
         labels.append(before.group(1))
-    return all(not re.search(r"[0-9]", x) and words.name(x) <= {"name", "legal_form", _topic_of(fld)} for x in labels)
+    return all(not re.search(r"[0-9]", x) and words.name(x, names=True) <= {"name", "legal_form", _topic_of(fld)}
+               for x in labels)
 
 
 def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
@@ -306,6 +384,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
         out["scope"], out["problems"] = {"*"}, [f"{d['doc_id']}: source file not found"]
         return out
     words = words or _Words(rules)
+    known = own_names(input_dir)
     p = rules.extract["parameters"]
     lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
     start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
@@ -337,7 +416,7 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
             rows_of[no] = r["field"]
             nxt = no + 1
             while nxt <= len(lines) and lines[nxt - 1].strip():
-                if _list_row(lines[nxt - 1], r["field"], words, unread_share):
+                if _list_row(lines[nxt - 1], r["field"], words, unread_share) and not _not_its_own(lines[nxt - 1], known):
                     rows_of[nxt] = r["field"]
                 nxt += 1
     kind_topics = {_topic_of(f) for f in expected}
@@ -348,6 +427,10 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
         if not any(ch.isalnum() for ch in line):
             continue
         fields = [rows_of[no]] if no in rows_of else None
+        if fields is None and _not_its_own(line, known):    # a name beside an identifier that is not its own (v2.0.6)
+            out["open"].append(no)
+            out["holding"] = out["holding"] or words.holding(line)
+            continue
         for r in shapes if fields is None else []:
             m = rx(_expand_all(r["pattern"], p)).search(line)
             if not m:
@@ -357,14 +440,15 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
                 label = words.name(g["w_label"])
                 typed = next((k for k in r["value_topics"] if k and g.get(k)), "")
                 both = label & set(r["value_topics"][typed]) if label <= kind_topics else set()
-                if not both or any(v and not words.name(v) <= both for k, v in g.items()
+                if not both or any(v and not words.name(v, names=k in words.name_groups) <= both for k, v in g.items()
                                    if k.startswith("w_") and k != "w_label"):
                     continue
                 fields = sorted(f for f in expected if _topic_of(f) in both)
                 break
             may = r.get("slots_may_name", r["fields"])
             allowed = kind_topics if may == "kind" else {_topic_of(f) for f in may}
-            if any(v and not words.name(v) <= allowed for k, v in m.groupdict().items() if k.startswith("w_")):
+            if any(v and not words.name(v, names=k in words.name_groups) <= allowed
+                   for k, v in m.groupdict().items() if k.startswith("w_")):
                 continue
             fields = [f.replace("{fy}", fy) for f in r["fields"]]
             break
@@ -465,6 +549,7 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
                                 "holders are not marked unread")
             if got["scope"] | said:
                 scopes.append(({"date": meta["date"], "doc_id": meta["doc_id"]}, got["scope"] | said, []))
+        clash = form_clash(by_field)
         for fld, assertions in sorted(by_field.items()):
             values, any_current, unreadable, cutoff = current_values(assertions)
             shown = [f for f in figures if f["field"] == fld and f["section"] in ("facts", "cap_table")]
@@ -490,6 +575,10 @@ def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict |
             elif unreadable:
                 if shown:
                     problems.append(f"{fld}: a value is shown as fact although a current source could not be read")
+            elif clash and fld in ("name", "legal_form") and len(values) == 1:
+                if shown:
+                    problems.append(f"{fld}: shown as fact although the legal form in the name differs from the legal "
+                                    "form stated")
             elif len(values) == 1:
                 if fld == "shareholders" and shown:
                     table = sorted(({"holder": f["holder"], "share": f["value"]} for f in shown),

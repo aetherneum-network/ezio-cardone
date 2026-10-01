@@ -615,11 +615,19 @@ def _topic(fld: str) -> str:
     return fld
 
 
-def slot_topics(text: str, rules: Rules) -> set[str]:
+def not_name_words(text: str, rules: Rules) -> list[str]:
+    """The words of a name slot that cannot be part of a name (rules/extract.json slot_not_name_word, since v2.0.6):
+    every run of letters is tested, case ignored."""
+    pat = _param_rx(rules, "slot_not_name_word")
+    return [w for w in re.findall(r"[^\W\d_]+", text) if pat.search(w)]
+
+
+def slot_topics(text: str, rules: Rules, names: bool = False) -> set[str]:
     """The fields the free words of a closed line may name, by the same test as a document of unrecognised type:
     every 'topic' rule of unread_fields that applies (FEV-010, a word of cancellation or correction, gives every field
     "*"), and the shareholders when a rule of holders_evidence finds a holding. The figures a slot may hold are typed
-    by its grammar (a house number, the mark of an 'interno'): the test reads its words."""
+    by its grammar (a house number, the mark of an 'interno'): the test reads its words. A slot that holds a name
+    (``names``, since v2.0.6) with a word that cannot be part of a name may name every field ("*")."""
     words = re.sub(r"\d+", " ", text)
     out: set[str] = set()
     for r in rules.extract["unread_fields"]["rules"]:
@@ -627,17 +635,42 @@ def slot_topics(text: str, rules: Rules) -> set[str]:
             out.update(r["fields"])
     if holders_evidence(words, rules)["outcome"] != "none":
         out.add("shareholders")
+    if names and not_name_words(text, rules):
+        out.add(EVERY_FIELD)
     return out
 
 
 def _label_ok(label: str | None, fld: str, rules: Rules) -> bool:
     """The name beside an identifier in a list line: a person's or a company's name (parameter slot_label) whose
-    words name nothing but a name, a legal form or the field of the list."""
+    words name nothing but a name, a legal form or the field of the list, and (since v2.0.6) are all words that can
+    be part of a name."""
     if not label or not label.strip():
         return True
     if not rx("^" + _expand("{slot_label}", rules) + "$").search(label.strip()):
         return False
-    return slot_topics(label, rules) <= {"name", "legal_form", _topic(fld)}
+    return slot_topics(label, rules, names=True) <= {"name", "legal_form", _topic(fld)}
+
+
+_LABEL_AFTER_ID = re.compile(r"(P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+
+
+def labelled_identifiers(line: str, rules: Rules) -> list[tuple[str, str]]:
+    """(identifier, the name beside it) of a line: every 'ID (name)', and the name before '(ID)' at the start of the
+    line after an optional list marker and an optional share that stands first (the item grammar of EXT-HOLD-010)."""
+    out = [(m.group(1), m.group(2)) for m in _LABEL_AFTER_ID.finditer(line)]
+    first = rx(_expand(r"^\s*(?:{list_marker}\s+)?(?:(?:{share_token_first})\s*{item_separator}\s*)?"
+                       r"(?P<label>[^()|:\t]+?)\s*\((?P<id>P-\d{3}|E-\d{4})\)", rules)).match(line)
+    if first:
+        out.append((first.group("id"), first.group("label")))
+    return out
+
+
+def label_not_its_own(line: str, known: dict[str, set[str]] | None, rules: Rules) -> list[str]:
+    """The identifiers of a line whose name beside them is not their own known name (CLS-005, since v2.0.6)."""
+    if not known:
+        return []
+    return [ident for ident, label in labelled_identifiers(line, rules)
+            if known.get(ident) and " ".join(label.split()) not in known[ident]]
 
 
 def _share_typed(share: str | None, rules: Rules) -> bool:
@@ -679,10 +712,13 @@ def _list_lines(doc: Document, rules: Rules) -> dict[int, str]:
     return out
 
 
-def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rules: Rules) -> tuple[dict, list[str]]:
+def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rules: Rules,
+                  known: dict[str, set[str]] | None = None) -> tuple[dict, list[str]]:
     """(the rule of rules/extract.json classified_lines that decides one body line of a classified document, the
-    fields the line states). First match wins; ``["*"]`` is every field."""
+    fields the line states). First match wins; ``["*"]`` is every field. ``known``: identifier -> its own names (the
+    identity layer for persons, the entity's own headers for companies; CLS-005, since v2.0.6)."""
     kind_topics = {_topic(_field_name(t, doc)) for t in rules.extract["expected_fields"].get(doc.kind, [])}
+    name_groups = set(rules.extract["parameters"]["slot_name_groups"])
     line = text.strip()
     for r in rules.extract["classified_lines"]["rules"]:
         if r.get("kinds") and doc.kind not in r["kinds"]:
@@ -690,6 +726,10 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
         w = r["when"]
         if w == "always":
             return r, list(r["fields"])
+        if w == "label_not_its_own":
+            if label_not_its_own(line, known, rules):
+                return r, list(r["fields"])
+            continue
         if w == "no_letter_or_digit":
             if not re.search(r"[^\W_]", line):
                 return r, []
@@ -708,7 +748,8 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
             continue
         may = r.get("slots_may_name", r["fields"])
         allowed = kind_topics if may == "kind" else {_topic(f) for f in may}
-        if all(slot_topics(v, rules) <= allowed for k, v in m.groupdict().items() if k.startswith("w_") and v):
+        if all(slot_topics(v, rules, names=k in name_groups) <= allowed
+               for k, v in m.groupdict().items() if k.startswith("w_") and v):
             return r, [_field_name(f, doc) for f in r["fields"]]
         # free words that name another field do not close the line: the next rule decides
     raise RuntimeError("rules/extract.json classified_lines has no default rule")
@@ -726,8 +767,9 @@ def _label_line_fields(doc: Document, m: re.Match, rule: dict, kind_topics: set[
     topics = label & set(rule["value_topics"][value])
     if not topics:
         return []
+    names = set(rules.extract["parameters"]["slot_name_groups"])
     for k, v in groups.items():
-        if k.startswith("w_") and k != "w_label" and v and not slot_topics(v, rules) <= topics:
+        if k.startswith("w_") and k != "w_label" and v and not slot_topics(v, rules, names=k in names) <= topics:
             return []
     return sorted(f for f in (_field_name(t, doc) for t in rules.extract["expected_fields"][doc.kind])
                   if _topic(f) in topics)
@@ -771,7 +813,8 @@ def _lines_text(numbers: list[int]) -> str:
     return ("line " if len(numbers) == 1 else "lines ") + ", ".join(str(n) for n in numbers)
 
 
-def classified_check(doc: Document, assertions: list[dict], rules: Rules) -> dict | None:
+def classified_check(doc: Document, assertions: list[dict], rules: Rules,
+                     known: dict[str, set[str]] | None = None) -> dict | None:
     """What a document of a recognised type may change beyond the fields its rules read (since v2.0.5, D34).
 
     Every non-empty body line is decided by rules/extract.json classified_lines. A line that no rule explains makes the
@@ -793,7 +836,7 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules) -> dic
     for no, text in _body(doc):
         if not text.strip():
             continue
-        rule, fields = classify_line(doc, no, text, lists, rules)
+        rule, fields = classify_line(doc, no, text, lists, rules, known)
         if "*" in fields:
             unexplained.append(no)
             continue
@@ -890,6 +933,22 @@ def list_source_files(input_dir: Path) -> list[tuple[str, str, Path]]:
     return out
 
 
+def known_names(input_dir: Path, docs: list[Document], rules: Rules) -> dict[str, set[str]]:
+    """identifier -> the names that are its own (CLS-005, since v2.0.6): a person's name in the identity layer of the
+    input (identity/persons.json, when present), a company's name in the header (Entity:) of its own documents that
+    carry the SYNTHETIC marker. Spaces are collapsed; nothing else is normalised."""
+    out: dict[str, set[str]] = {}
+    path = Path(input_dir) / "identity" / "persons.json"
+    if path.exists():
+        for pid, person in (jsonio.load(path) or {}).items():
+            if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
+                out.setdefault(pid, set()).add(" ".join(person["name"].split()))
+    for doc in docs:
+        if doc.marker_ok and doc.entity_id and doc.entity_name.strip():
+            out.setdefault(doc.entity_id, set()).add(" ".join(doc.entity_name.split()))
+    return out
+
+
 def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str, dict]:
     """Raw extraction of a whole input folder, keyed by the entity each document names in its content."""
     raw: dict[str, dict] = {}
@@ -899,14 +958,20 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
                                     "filename_divergences": [], "unclassified_documents": [],
                                     "classified_checks": [], "rejected_documents": [], "ignored_after_as_of": []})
 
+    parsed: list[tuple[str, str, Document | None]] = []
     for folder, rel, path in list_source_files(Path(input_dir)):
         data = jsonio.read_bytes(path)
         try:
             text = data.decode("utf-8")
         except UnicodeDecodeError:
+            parsed.append((folder, rel, None))
+            continue
+        parsed.append((folder, rel, parse_document(text, rel, rules, jsonio.sha256_bytes(data))))
+    known = known_names(Path(input_dir), [d for _, _, d in parsed if d is not None], rules)
+    for folder, rel, doc in parsed:
+        if doc is None:
             bucket(folder)["rejected_documents"].append({"file": rel, "reason": "not UTF-8 text"})
             continue
-        doc = parse_document(text, rel, rules, jsonio.sha256_bytes(data))
         eid = doc.entity_id or folder
         b = bucket(eid)
         if doc.registry_no and not b["registry_no"]:
@@ -932,7 +997,7 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
         assertions = extract_document(doc, rules)
         b["documents"].append(doc.summary())
         b["assertions"].extend(assertions)
-        check = classified_check(doc, assertions, rules)
+        check = classified_check(doc, assertions, rules, known)
         if check is not None:
             b["classified_checks"].append(check)
         b["filename_divergences"].extend(filename_divergences(doc, assertions, rules, folder))
@@ -1000,13 +1065,14 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             n += 1
             doc = _test_doc(t["kind"], t["text"], rules, t.get("fy", ""))
             no = doc.body_start + 1 + t.get("line", 1)       # the line-th line of the test body
-            got_rule, got = classify_line(doc, no, doc.lines[no - 1], _list_lines(doc, rules), rules)
+            known = {k: set(v) for k, v in t.get("known", {}).items()} or None
+            got_rule, got = classify_line(doc, no, doc.lines[no - 1], _list_lines(doc, rules), rules, known)
             want = sorted(_field_name(f, doc) for f in t["expect"])
             if got_rule["id"] != r["id"] or sorted(got) != want:
                 bad.append(f"{r['id']}: line {t.get('line', 1)} of {t['text']!r} -> {got} by {got_rule['id']}, "
                            f"expected {want}")
             if "expect_may_change" in t:
-                check = classified_check(doc, extract_document(doc, rules), rules)
+                check = classified_check(doc, extract_document(doc, rules), rules, known)
                 may = check["fields_check"]["may_change"] if check else []
                 if may != t["expect_may_change"]:
                     bad.append(f"{r['id']}: {t['text']!r} may change {may}, expected {t['expect_may_change']}")
