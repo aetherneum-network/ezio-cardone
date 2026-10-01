@@ -7,7 +7,7 @@ Written after the freeze tag, by the author of the pack, for a **different hand*
 AI agent, via Claude Opus 5.5) does not choose the blind seed, never generates or looks at a blind corpus,
 and does not run anything below.
 
-**Updated after the tag `v2.0.6-freeze`.** The blind runs so far, all recorded in `eval/history.json`:
+**Updated after the tag `v2.0.7-freeze`.** The blind runs so far, all recorded in `eval/history.json`:
 
 - `v2.0.0-freeze`: run once, by the evaluator, on 2026-09-30 (run 5, seed 20261011). Not passed: 13
   never-events (0 plain, 1 perturbed, 12 out-of-pool). Its fix (finding T16, `v2.0.1`) changed code, rules
@@ -46,6 +46,51 @@ and does not run anything below.
   3 never-events on those two entities (measured by the builder on a variant of seen data, `CHANGELOG.md` 2.0.6
   section 2). The statement "no case is known" of that section, and the marking of a document of unrecognised
   type as one that only keeps `[TO CONFIRM]`, were wrong (`CHANGELOG.md` 2.0.6).
+- `v2.0.6-freeze`: run once, by the evaluator, on 2026-10-01 (run 16, seed 20261016, hand corpus
+  `eval/blind/hand-16/`, 28 entities, 59 documents). 0 never-events on every corpus. Blocked wrongly: 4 of 150
+  plain, 5 of 150 perturbed, 15 of 28 hand-written. Fields left `[TO CONFIRM]`: 0 of 1384, 665 of 1370, 43 of 99.
+  Of its six typed-slot probes, three blocked (E-0013, E-0018: a name beside an identifier the pack does not know;
+  E-0017) and three kept every field `[TO CONFIRM]` (E-0014, E-0015, E-0016). Two of them were masked: E-0017 (a
+  total line written outside the capital clause blocked the entity on its own) and E-0014 (its office wording,
+  `The seat of the company is moved from`, is the unknown wording of scenario S09, which no field rule reads).
+  Measured afterwards by the builder by class, the residual risk declared by `CHANGELOG.md` 2.0.6 section 4
+  was real on that code: 312 of 600 constructed siblings unsafe, 56 of them a FAILED run (`CHANGELOG.md` 2.0.7
+  section 2). The other findings went the cautious way: a sentence written right after a list was read as a row of
+  it (E-0010 blocked, the directors of E-0019 `[TO CONFIRM]`), "its own" counted as a word of holding (E-0006,
+  E-0011 blocked), an illegible amount as a bare figure (E-0114 of the perturbed corpus blocked).
+
+The change of `v2.0.7` (finding D36, from run 16) changed code, rules and tests - not the scorer. `OWN-015` and
+`unverified_holders_table` keep `block` (D26); holders written in a sentence stay unread (D31); `DISC-005` keeps
+`every_field`; `DISC-006`, `CLS-005` and `DISC-035` stay.
+
+- `rules/extract.json`, `dossier/s1_extract.py`: a name beside an identifier closes its line only when it is that
+  identifier's own known name (`CLS-005`, equality only); an identifier whose own name the corpus does not know (not
+  in the identity layer, no `Entity:` header of its own) leaves the line open. An address (`slot_address`) needs its
+  house number; every word of its street and town must have the form of an Italian place name
+  (`slot_address_word`), name nobody the corpus knows and be no word of `slot_not_name_word`, which gains the
+  English endings `-ing` and `-s`, common irregular past forms, nouns in `-ee`, and Italian words of role and
+  holding. `EXT-OFFICE-010`, `-020` and `-030` read only such an address (`value_slot` `w_office`); a value that
+  fails is not read. A value equal to its identifier's or its entity's own known name is a name whatever its words.
+- `rules/extract.json`, `dossier/s1_extract.py`: a list ends at a blank line or at a line that is a list heading or a
+  full sentence (`list_end_sentence`: a capital first, three words or more, its own `.`, `!` or `?`, no identifier,
+  share, fraction or figure followed by a unit noun); that line is classified on its own. A possessive followed by
+  the adjective "own" is not a word of holding (`neutral_phrases`, `HEV-040`); a currency followed by a figure with
+  `#` is an amount that cannot be read, not a bare figure (`HEV-080`). The fields check names lines that stand
+  inside another field's list as such. The first inline test of `CLS-190` says what the line may change
+  (`expect_may_change_unless_read`): the S09 wording stays unread by design.
+- `dossier/s7_audit.py`: the audit re-derives the equality, the end of a list and the form of an address with its
+  own code.
+- Tests: `tests/test_d36_forms.py` (14 tests; 600 sibling cases of five classes, of which the code of
+  `v2.0.6-freeze` leaves 312 unsafe and `v2.0.7` none; the masked probes of hand-16 unmasked; and the residual risk
+  of `CHANGELOG.md` 2.0.7 section 4 as a test expected to fail), inline tests of `CLS-005`, `CLS-190`, `HEV-040`,
+  `HEV-999`; `tests/test_pipeline_cli.py` writes the identity layer of its input (300 tests in all, one expected
+  failure; 230 inline rule tests).
+
+The change of `v2.0.7` was written by the builder's hand after reading the results and the hand-written documents
+of run 16, and measured only on corpora already seen (run 17, not blind; numbers in `CHANGELOG.md` 2.0.7 section
+8): 0 never-events on all twenty-one results. `CHANGELOG.md` (entry 2.0.7) lists every known limit with what it
+does; **none may publish**; what the proof still rests on is stated as a residual risk, `[TO CONFIRM]`, and kept as
+a test expected to fail.
 
 The change of `v2.0.6` (finding D35, from run 14) changed code, rules, tests and the scorer - not only
 documentation. `OWN-015` and `unverified_holders_table` keep `block` (D26); holders written in a sentence stay
@@ -181,43 +226,52 @@ above say otherwise:
 The change of `v2.0.3` was written by the builder's hand after reading the results and the hand-written
 documents of run 9, and measured only on corpora already seen (run 10, not blind).
 
-This protocol now applies to `v2.0.6-freeze`; besides the names of the tag, it changes section 0 (the seed
-20261015 and the hand-written documents of run 14 are known, the seeds through 20261015 scored again in run 15,
-the texts of the tests of `v2.0.6` are known), rule 1.5 (`exit_code` and `pipeline_status` of a result object),
-section 4 (at least twelve entities and thirty-two documents, the classes `v2.0.6` claims, the complete list of
-its known limits - none may publish -, the residual risk, at least four unmasked probes of typed slots) and
-sections 5 (the shape of the record) and 6. The section-5 rule on the redaction of internal folder names
-(D33) is carried over word for word. The earlier tags are not moved and their blind runs are not repeated;
-`v2.0.4-freeze` was never run blind.
+This protocol now applies to `v2.0.7-freeze`; besides the names of the tag, it changes section 0 (the seed
+20261016 and the hand-written documents of run 16 are known, the seeds through 20261016 scored again in run 17,
+the texts of the tests of `v2.0.7` are known), section 4 (the classes `v2.0.7` claims, the complete list of its
+known limits - none may publish -, the residual risk, adversarial documents of unrecognised and of recognised
+type, at least five unmasked probes of typed slots whose other lines are in forms the pack reads, a
+masked/not-masked statement for each probe, the runs listed by start time) and sections 5 and 6. The section-5
+rule on the redaction of internal folder names (D33) is carried over word for word. The earlier tags are not
+moved and their blind runs are not repeated; `v2.0.4-freeze` was never run blind.
+
+Until `v2.0.6-freeze` this paragraph read: "This protocol now applies to `v2.0.6-freeze`; ... section 4 (at least
+twelve entities and thirty-two documents, the classes `v2.0.6` claims, the complete list of its known limits -
+none may publish -, the residual risk, at least four unmasked probes of typed slots) and sections 5 (the shape of
+the record) and 6."
 
 ## 0. What is frozen
 
 | | |
 |---|---|
-| Tag | `v2.0.6-freeze` (annotated), created at 2026-10-01T05:00:31Z |
-| Tag object | `c7fa9d7a0380a6b81f51efd6c6df562f829c769c` |
-| Commit | `6acebba59e0fb59972e5dab75e0908de77ed67f1` |
-| Frozen files | the 174 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
+| Tag | `v2.0.7-freeze` (annotated), created at 2026-10-01T07:17:00Z |
+| Tag object | `06ff379e511f6ed22cb584aaee981dd3cd0d8b0e` |
+| Commit | `452b46d5e2686aa0fca7d7aa50dec32e2ec3aa38` |
+| Frozen files | the 175 files listed in `MANIFEST.sha256` (code, rules, schema, corpus generator, scenarios, tests, tools, scorer, requirements) |
 | Not frozen | `README.md`, `CLAIMS.md`, `CHANGELOG.md`, `MODEL.md`, `eval/history.json`, `eval/blind/`, this file |
-| Previous tag | `v2.0.5-freeze`, tag object `12453f2ac263d1cba7f88364b2be1a8f9186d344`, commit `267ea87f4fa147bc66fd2af64c499ac2bf019876`: run blind once (run 14), 0 never-events, 5 of 15 hand-written entities blocked wrongly, two probes masked (unmasked by the builder: 3 never-events on that code) |
-| Tag before it | `v2.0.4-freeze`, tag object `66f116539d7421b95d124b94a32d4e8bbc92ba9e`, commit `65b02335fb718ed061d3c9e665e26db97accc9ef`: not run blind; its one known limit that may publish is closed by `v2.0.5` |
+| Previous tag | `v2.0.6-freeze`, tag object `c7fa9d7a0380a6b81f51efd6c6df562f829c769c`, commit `6acebba59e0fb59972e5dab75e0908de77ed67f1`: run blind once (run 16), 0 never-events, 15 of 28 hand-written entities blocked wrongly, two probes masked (unmasked by the builder: E-0014 a FAILED run on that code, E-0017 blocked); its declared residual risk measured afterwards at 312 of 600 constructed siblings unsafe |
+| Tag before it | `v2.0.5-freeze`, tag object `12453f2ac263d1cba7f88364b2be1a8f9186d344`, commit `267ea87f4fa147bc66fd2af64c499ac2bf019876`: run blind once (run 14), 0 never-events, 5 of 15 hand-written entities blocked wrongly, two probes masked (unmasked by the builder: 3 never-events on that code) |
+| Earlier tag | `v2.0.4-freeze`, tag object `66f116539d7421b95d124b94a32d4e8bbc92ba9e`, commit `65b02335fb718ed061d3c9e665e26db97accc9ef`: not run blind; its one known limit that may publish is closed by `v2.0.5` |
 | Earlier tag | `v2.0.3-freeze`, tag object `ae66f49debcb1bb15e83e1827acda35b03c4a3a6`, commit `77e7736f573c93024f0aa49157f5949287bee698`: run blind once (run 11), not passed - 2 never-events on hand-written entity E-0015, 8 of 15 hand-written entities blocked wrongly |
 | Earlier tag | `v2.0.2-freeze`, tag object `475bd994bbd063c4dc7cebb15f50e7b9474ebd58`, commit `023c7cb5629b17295b4ddbbfeb22055a2be16b87`: run blind once (run 9), 0 never-events, 4 of 9 hand-written entities blocked wrongly |
 | Earlier tag | `v2.0.1-freeze`, tag object `91cba79b5671a9f273a7ecf268dc92ffa8679a23`, commit `b65e45a5289133375222fa595abdbd9cd2087be7`: run blind once (run 7), 0 never-events, 89 of 150 perturbed entities blocked wrongly |
 | First tag | `v2.0.0-freeze`, tag object `0c26555916701c4a81ea6490c32d5e7162edcdc8`, commit `d1769d555934ca5eaf4717bafe8135105caffd43`: run blind once (run 5), not passed |
 
 Seeds already used, which therefore cannot be the blind seed: 20260930 (development, inspected),
-20261001 (holdout, scored eight times, never inspected), 20261002 (stress, inspected), 20261011 (the blind
-seed of `v2.0.0-freeze`: its plain, perturbed and out-of-pool corpora were read by the hand that wrote the
-fix and scored again in runs 6, 8, 10, 12, 13 and 15), 20261012 (the blind seed of `v2.0.1-freeze`: its plain
-and perturbed corpora were generated, read and scored again by the hand that wrote `v2.0.2`, runs 8, 10, 12, 13
-and 15), 20261013 (the blind seed of `v2.0.2-freeze`: its plain and perturbed corpora were generated, read and
-scored again by the hand that wrote `v2.0.3`, runs 10, 12, 13 and 15), 20261014 (the blind seed of
-`v2.0.3-freeze`: its plain and perturbed corpora were generated again from the recorded seed, read and scored
-by the hand that wrote `v2.0.4` and `v2.0.5`, runs 12, 13 and 15), 20261015 (the blind seed of
-`v2.0.5-freeze`: its plain and perturbed corpora were generated again from the recorded seed and scored by the
-hand that wrote `v2.0.6`, run 15). For the same reason these wordings are known to `v2.0.6` and are no longer
-out of pool - a new run needs other wordings:
+20261001 (holdout, scored ten times - runs 2, 3, 4, 6, 8, 10, 12, 13, 15 and 17 -, never inspected; until
+`v2.0.7` this line said "eight times", which run 15 had already made wrong), 20261002 (stress, inspected),
+20261011 (the blind seed of `v2.0.0-freeze`: its plain, perturbed and out-of-pool corpora were read by the hand
+that wrote the fix and scored again in runs 6, 8, 10, 12, 13, 15 and 17), 20261012 (the blind seed of
+`v2.0.1-freeze`: its plain and perturbed corpora were generated, read and scored again by the hand that wrote
+`v2.0.2`, runs 8, 10, 12, 13, 15 and 17), 20261013 (the blind seed of `v2.0.2-freeze`: its plain and perturbed
+corpora were generated, read and scored again by the hand that wrote `v2.0.3`, runs 10, 12, 13, 15 and 17),
+20261014 (the blind seed of `v2.0.3-freeze`: its plain and perturbed corpora were generated again from the
+recorded seed, read and scored by the hand that wrote `v2.0.4` and `v2.0.5`, runs 12, 13, 15 and 17), 20261015
+(the blind seed of `v2.0.5-freeze`: its plain and perturbed corpora were generated again from the recorded seed
+and scored by the hand that wrote `v2.0.6`, runs 15 and 17), 20261016 (the blind seed of `v2.0.6-freeze`: its
+plain and perturbed corpora were generated again from the recorded seed, read and scored by the hand that wrote
+`v2.0.7`, run 17). For the same reason these wordings are known to `v2.0.7` and are no longer out of pool - a
+new run needs other wordings:
 
 - the out-of-pool rewrite of run 5 and the ten hand-written documents of run 7 (`eval/blind/hand/`);
 - the 24 hand-written documents of run 9 (`eval/blind/hand-9/`): the headings `Quotaholders at present.`,
@@ -276,7 +330,35 @@ out of pool - a new run needs other wordings:
   headings `4. Shareholdings, entered in the register:`, `4. Members, as recorded in the book of members:`,
   `4. Shareholdings, transferred on 1 May:`; and the inline tests of `CLS-005`, `DISC-035` and the other rules
   changed in `v2.0.6`;
-- every example of `CHANGELOG.md` (sections 2.0.2 to 2.0.6) and of this protocol.
+- the 59 hand-written documents of run 16 (`eval/blind/hand-16/`, 28 entities): the document types `Bank
+  mandate`, `Merger plan`, `Auditor's annotation`, `Correspondence`; the headings `(4) Stockholders of record.`,
+  `§ 4 Shareholding structure, of record:`, `§ 5 Directors:`, `4. Members (current):`, `4. Quotaholders of
+  record.`, `Article 4. Quotaholders (current):`, `Article 5. Directors:`, `4. Allocation of the quotas:`,
+  `Holders after the transfer:`; holder lines `(a) P-001 (...) - 55 per cent`, name first `1) Name (P-...): 3/4`,
+  `* P-001 (...) | 60%`, the share first `1. 7/10 - P-001 (...)`, dot leaders `a) Name (P-...) ........ 40 pct`
+  with a last line `Total ........ 100 pct`, a tab separator `1) P-001 (...)<TAB>450 quotas`, an amount
+  `- P-001 (...): EUR 7.000,00 of the capital`, decimal shares `62,5%`, shares in words `twelve and a half per
+  cent`, `eighty-seven and a half per cent`, a fraction on a line of its own (`one third`, `two thirds`); the
+  sentences "the company's own means stand at twice the figure of the deed", "the doubling of the company's own
+  endowment", "The seat of the company is moved from ... to ...", "The capital is divided into 1.000 quotas.",
+  "The company has issued 900 quotas in all.", "The company's letters are received at ..., where the board also
+  meets.", "having sold out, no longer acts for the company", "the company answers only to", "will have been
+  absorbed", "the company is to be found at", "stands beside the two founders with half of everything", "ceded
+  everything he had in the company to", "holds three quarters of the quotas and ... the remaining quarter"; the
+  words written after a typed slot in its probes (`Our Company Resides There`, `Lia Presunti Funding Everything
+  Added`, `Buying Pio Contraffatti Out`, `Doubling Our Means Five Hundred Thousand Euro Total`, `Teo Congetturi
+  Replacing Ugo Finzione`, `Twenty Euro Apiece`); and the illegible amount `EUR 1#.###,00` of the perturbed corpus
+  of seed 20261016;
+- the 600 sibling cases of `tests/test_d36_forms.py`, written for `v2.0.7`: the words `Carlo Inventati
+  Presiding`, `Ugo Nessuno Presiding`, `Chairing Changes`, `Carlo Inventati Buys`, `Ugo Nessuno Buys`, `Means
+  Doubling`, `Ugo Nessuno Leader`, `Ugo Nessuno Subentra` after, inside or in place of an address, an amount, a
+  count, a name beside an identifier nobody knows and another company's name in a label; the readers' cases
+  (`Via Carlo Inventati 1`, `Via Nuova Leader 1`, `Via Nuova, Montefinto Buys (ZZ)`, `Teo Nessuno Replacing Ugo
+  Nessuno`); the list ends (`The holders sign this deed in person.`, `Nothing else is certified.`, `The price was
+  paid in full.`, `Bice Provetti also joins the board.`, `Aldo Finti holds 300 quotas.`, `Bice Provetti keeps her
+  40%.`, `The quotas are 1000 in total.`); the residual cases `Via Ugo Nessuno Governa 1, Montefinto (ZZ)` and
+  `Montefinto Ugo Nessuno Presiede (ZZ)`; and the inline tests of `CLS-005`, `CLS-190`, `HEV-040` and `HEV-999`;
+- every example of `CHANGELOG.md` (sections 2.0.2 to 2.0.7) and of this protocol.
 
 ## 1. Rules of the run
 
@@ -329,8 +411,8 @@ out of pool - a new run needs other wordings:
 
 ## 2. Before the run: prove that the frozen files are the tagged ones
 
-    git rev-parse "v2.0.6-freeze^{commit}"
-    git diff --stat v2.0.6-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
+    git rev-parse "v2.0.7-freeze^{commit}"
+    git diff --stat v2.0.7-freeze -- corpus dossier rules schema scenarios tests tools eval/__init__.py eval/score.py requirements.txt MANIFEST.sha256 docs
     python tools/manifest.py --check
 
 Expected: the commit above; no output from `git diff`; `manifest OK`. Python 3.12 with the packages of
@@ -390,16 +472,17 @@ The document types, the wordings the rules read and the form of amounts and shar
 (`2025-03-10_deed.txt`, `2026-02-02_registry-extract.txt`). The runner is free - and encouraged - to
 word things otherwise: what the rules do not read must come out as `[TO CONFIRM]`, never as a guess.
 
-For `v2.0.6-freeze` the runner writes **at least twelve entities and at least thirty-two documents**, with
+For `v2.0.7-freeze` the runner writes **at least twelve entities and at least thirty-two documents**, with
 the **holders' tables** in **forms of its own choosing** - the heading, the holder lines, the form of the
 shares and the type of the document that carries the table - not copied from the scenarios, from the
-hand-written documents of runs 7, 9, 11 and 14 (`eval/blind/hand/`, `eval/blind/hand-9/`, `eval/blind/hand-11/`,
-`eval/blind/hand-14/`), from the texts of the tests (`tests/test_d35_forms.py`, `tests/test_d34_forms.py` and
-the earlier test files, the inline tests of `rules/`) or from the examples of this protocol and of
-`CHANGELOG.md`: `v2.0.6` was written after seeing those, and only forms it has not seen measure it. Some of the
-forms should fall **inside** the classes `v2.0.6` claims to read, worded in ways it has not seen, and some
-**outside** them. Write every deed and every registry extract in a form the pack claims to read (section 0 lists
-what it has seen), so that a probe is not masked by an unrelated abstention.
+hand-written documents of runs 7, 9, 11, 14 and 16 (`eval/blind/hand/`, `eval/blind/hand-9/`,
+`eval/blind/hand-11/`, `eval/blind/hand-14/`, `eval/blind/hand-16/`), from the texts of the tests
+(`tests/test_d36_forms.py`, `tests/test_d35_forms.py`, `tests/test_d34_forms.py` and the earlier test files, the
+inline tests of `rules/`) or from the examples of this protocol and of `CHANGELOG.md`: `v2.0.7` was written after
+seeing those, and only forms it has not seen measure it. Some of the forms should fall **inside** the classes
+`v2.0.7` claims to read, worded in ways it has not seen, and some **outside** them. Write every deed and every
+registry extract in a form the pack claims to read (section 0 lists what it has seen), so that a probe is not
+masked by an unrelated abstention.
 
 Claimed: a holders' heading with a holder noun, an optional clause number (`4.`, `iv.`, `(4)`, `Article 4`,
 `§ 4`) and an optional qualifier meaning "current" or "of record" in the words of the rules, ending in `.` or
@@ -424,10 +507,18 @@ takes a qualifier of the class "registered" after a comma; a name slot that hold
 `slot_not_name_word`, a name beside an identifier that is not its own, or the entity's own name slot that is not
 the name of its `Entity:` header leaves the line open (`CLS-999`); a company name whose legal form differs from
 the legal form stated keeps the legal form `[TO CONFIRM]` (`DISC-035`).
+Since `v2.0.7`: a name beside an identifier closes its line only when it equals that identifier's own known name
+(the identity layer, the `Entity:` headers of the corpus); an identifier whose own name the corpus does not know
+leaves its line open. An address closes its line and is read only with a house number and with every word of its
+street and town in the form of an Italian place name (`slot_address_word`), naming nobody the corpus knows and
+holding no word of `slot_not_name_word`; the readers of the office (`EXT-OFFICE-010`, `-020`, `-030`) read only
+such an address. A list ends at a blank line, at a list heading or at a full sentence (`list_end_sentence`), and
+that line is classified on its own; "own" after a possessive is not a word of holding; a currency followed by a
+figure with `#` is an illegible amount, not a bare figure.
 
-Known limits of `v2.0.6`, the complete list of `CHANGELOG.md` (entry 2.0.6), each marked with what it does to
+Known limits of `v2.0.7`, the complete list of `CHANGELOG.md` (entry 2.0.7), each marked with what it does to
 the entity - **blocks**, **keeps `[TO CONFIRM]`** or **may publish**. **No known limit may publish**
-(`v2.0.4`: one; `v2.0.5` and `v2.0.6`: none):
+(`v2.0.4`: one; `v2.0.5`, `v2.0.6` and `v2.0.7`: none):
 
 - holders stated in a sentence rather than in a list under a heading, a holder noun in a sentence of a
   memorandum, a resolution or an appointment among them (D31) - **blocks**;
@@ -462,7 +553,8 @@ the entity - **blocks**, **keeps `[TO CONFIRM]`** or **may publish**. **No known
   (`CLS-999`): every field, when the document is not older than the latest event (`DISC-006`) - **keeps
   `[TO CONFIRM]`**; when the line may state a holding - **blocks** (`OWN-015`);
 - since `v2.0.5`, a closed line that states a field of its kind where no rule of its kind read it (a reworded
-  label, an amount in words, a second clause or list), or a field its kind does not read: that field, when the
+  label, an amount in words, a second clause or list; the office-transfer wording "The seat of the company is
+  moved" of scenario S09 among them, unread by design), or a field its kind does not read: that field, when the
   document is not older than the latest event, even if a later source reads the field - **keeps
   `[TO CONFIRM]`**;
 - since `v2.0.5`, a holders' table in a document of a kind not read for the holders: read whole and summed,
@@ -471,24 +563,47 @@ the entity - **blocks**, **keeps `[TO CONFIRM]`** or **may publish**. **No known
 - since `v2.0.5`, a row of a list of a recognised document whose share is illegible or not typed: the row is
   not closed (`CLS-999`) - every field **keeps `[TO CONFIRM]`**, and when the row may state a holding
   (`holders_evidence`) - **blocks**;
-- since `v2.0.6`, a name slot with a word of `slot_not_name_word`, a name beside an identifier that is not its
-  own (`CLS-005`), or the entity's own name slot that differs from its `Entity:` header - every field **keeps
-  `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**; a real name holding such a
-  word costs the same;
-- since `v2.0.6`, a company name whose legal form differs from the legal form stated - the legal form **keeps
-  `[TO CONFIRM]`** and the name is shown as a discrepancy (`DISC-035`).
+- since `v2.0.7` marked (the list of `v2.0.6` did not cover it), a line right after a list with no blank line
+  that is neither a list heading nor a full sentence of the form `list_end_sentence` - a sentence that names an
+  identifier, a share or a figure with a unit noun (hand-16 E-0010), a wrapped row: a row of the list the grammar
+  cannot read - holders **block**, directors **keep `[TO CONFIRM]`**;
+- since `v2.0.6`, a name slot with a word of `slot_not_name_word` that is not its identifier's or its entity's
+  own known name, a name beside an identifier that is not its own (`CLS-005`), or the entity's own name slot that
+  differs from its `Entity:` header - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may
+  state a holding - **blocks**; a real name holding such a word and not beside its own identifier costs the same
+  (since `v2.0.7` a name equal to its identifier's or its entity's own known name is a name whatever its words);
+- since `v2.0.7`, a name beside an identifier whose own name the corpus does not know (not in the identity layer,
+  no `Entity:` header of its own; every person when the identity layer names nobody): the line is open - every
+  field **keeps `[TO CONFIRM]`**, and the holders **block** (`OWN-015`);
+- since `v2.0.7`, an address without a house number, or whose street or town holds a word that is not of the form
+  of a place name (a real `Viale Kennedy` or `Via Roma Nord` included), a name the corpus knows, or a word of
+  `slot_not_name_word`: the line is open and the office is not read from it - every field **keeps
+  `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**;
+- since `v2.0.6`, a company name whose legal form differs from the legal form stated (`S.r.l.s.` against
+  `S.r.l.` included, by design) - the legal form **keeps `[TO CONFIRM]`** and the name is shown as a discrepancy
+  (`DISC-035`).
 
-Residual risk, `[TO CONFIRM]` (`CHANGELOG.md` 2.0.6, section 4). Entry 2.0.5 called it "not a known limit: no
-case is known"; run 14 found a case (hand-14 E-0011), and the code of `v2.0.5` publishes 147 of 192 siblings of
-it wrongly. `v2.0.6` proves a person's name and the entity's own name by equality (the identity layer, the
-`Entity:` header). What still rests on the word list `slot_not_name_word` and on the lists of `unread_fields`
-and `holders_evidence`: the words of an address slot (street and town), the name beside an identifier that the
-identity layer and the `Entity:` headers of the corpus do not know, and the name of another company in a label
-line. A change of another field written entirely inside such a slot, in capitalised words of no class of those
-lists, would not be seen and could publish.
+Residual risk, `[TO CONFIRM]` (`CHANGELOG.md` 2.0.7, section 4). Entry 2.0.6 stated it for the words of an
+address slot, the name beside an identifier nobody knows and another company's name in a label; run 16 probed it,
+two probes were masked, and measured afterwards by class the code of `v2.0.6` leaves 312 of 600 constructed
+siblings unsafe (56 of them a FAILED run, 256 publish a field). `v2.0.7` closes every name slot by equality and
+the amount, the count and the house number of an address by grammar, and the words of a street and a town by
+their form. What **still rests on a word list** (`slot_not_name_word`, and the names the corpus knows): a street or
+a town whose words all have the form of an Italian place name, name nobody the corpus knows, and state something
+with a word of no class of that list - an Italian verb or noun ending in a vowel (`Via Ugo Nessuno Governa 1,
+Montefinto (ZZ)`). Such a line closes and every field of the entity is published, the directors included. The case
+is constructed and kept as a test expected to fail (`tests/test_d36_forms.py` `D36_ResidualWordList`). The lists of
+`unread_fields` and `holders_evidence` are word lists too; under `every_field` they decide only whether an entity
+blocks or keeps every field `[TO CONFIRM]`.
+
+Until `v2.0.7` this paragraph described the residual risk of `v2.0.6` (`CHANGELOG.md` 2.0.6, section 4): "What
+still rests on the word list `slot_not_name_word` and on the lists of `unread_fields` and `holders_evidence`: the
+words of an address slot (street and town), the name beside an identifier that the identity layer and the
+`Entity:` headers of the corpus do not know, and the name of another company in a label line."
 
 The runner is asked in particular for:
 
+- **at least twelve entities and at least thirty-two documents** in all;
 - **adversarial documents of BOTH unrecognised and recognised types that change a field they are not
   "about"**. Of unrecognised type: a document type the scenarios do not use. Of recognised type: one of the
   eight types above, whose kind is read for some fields only - a resolution on share capital that also
@@ -502,18 +617,29 @@ The runner is asked in particular for:
   capital doubled without the word capital, a holder replaced without the words holder, share or quota, the
   seat moved without the word office, a director replaced without the word director). In the gold every
   field such a document may change is `TO_CONFIRM`;
-- **at least four probes of typed slots that carry extra words**, unmasked: a person or company name, an
-  address, an amount or a count, each in a line of a recognised document whose extra words change another field
-  (the residual risk above: an address slot and a name beside an unknown identifier above all), each placed so
-  that **nothing else in its entity makes it abstain** - its deed and registry extract in a form the pack claims
-  to read, no document of unrecognised type, no other open line. For each probe the record says whether it was
-  masked by an unrelated abstention (and by which rule), as run 14 did for E-0011 and E-0012;
+- **at least five probes of typed slots that carry extra words**, unmasked, each in its own entity: a **name**
+  (a person or a company, beside an identifier), an **ADDRESS**, an **AMOUNT**, a **COUNT**, and one more of the
+  runner's choice - each in a line of a recognised document whose extra words change another field (the
+  residual risk above: the words of a street or a town above all). Every **other** line of the probe's entity is
+  in a form the pack reads, and the runner checks it **line by line** before the run: its deed and registry
+  extract as in section 0, no document of unrecognised type, no other open line. Two forms by name, because run
+  16 masked a probe with each: an office transfer is read only in the sentence `EXT-OFFICE-010` reads, `The
+  registered office is transferred from <address> to <address>.`, with addresses of the form `Via del Collaudo 7,
+  Borgoprova (ZZ)` (street, house number, town, province; "The seat of the company is moved" is read by no rule
+  and keeps the office `[TO CONFIRM]` on its own); and a count of quotas is read with its total only in the
+  capital clause `count_total` reads, as in the deed's `The share capital is EUR 10.000,00, divided into 1.000
+  quotas, fully subscribed and fully paid in.` (a separate total line such as `The capital is divided into 1.000
+  quotas.` is a line no rule explains, and the entity blocks on it alone, `OWN-015`);
+- for **each probe, a statement masked / not masked**: whether anything other than the probe's own line made its
+  entity abstain or block, and by which rule and line (the fields check names them), as runs 14 and 16 did; a
+  masked probe is reported as measuring nothing;
 - holders' tables inside and outside the claimed classes, including tables in documents of a kind not read
-  for the holders, in at least twelve entities and thirty-two documents.
+  for the holders.
 
 With the never-events of this part, report the entities blocked wrongly, the fields left `[TO CONFIRM]` and
 the four counts of the entities not published (rule 1.6), and every time in UTC **with seconds**, as
-`YYYY-MM-DDTHH:MM:SSZ`.
+`YYYY-MM-DDTHH:MM:SSZ`. Each command of sections 3 and 4 is also reported as a run of the Council scorecard's
+shape, and those runs are **listed by start time** (section 5).
 
 In the gold, a holders' table the runner means to be readable is written as a fact, so that a
 wrong block shows, and a field an unread document - or a recognised document beyond its kind - may change is
@@ -570,9 +696,9 @@ and commit it. Nothing already in the list is edited, with one exception: a name
 written in a note is replaced by "the evaluation folders" and the replacement is recorded in the top-level list `redactions`
 (run, field, the SHA-256 of the note before, the commit where the original stays readable, the reason). The numbers and
 the results of a run are never redacted. The entry `blind` of the same file records the
-blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.6-freeze` is recorded in `runs`,
-as the runs of `v2.0.1-freeze`, `v2.0.2-freeze`, `v2.0.3-freeze` and `v2.0.5-freeze` were (runs 7, 9, 11 and
-14), with `code` naming the tag and `run_by` naming the runner. The entry has the seven keys of every run already
+blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.7-freeze` is recorded in `runs`,
+as the runs of `v2.0.1-freeze`, `v2.0.2-freeze`, `v2.0.3-freeze`, `v2.0.5-freeze` and `v2.0.6-freeze` were (runs
+7, 9, 11, 14 and 16), with `code` naming the tag and `run_by` naming the runner. The entry has the seven keys of every run already
 recorded - `n`, `date`, `run_by`, `code`, `command`, `note`, `results` - and no other (runs 14 and 16 were recorded
 so; until `v2.0.7` this section also asked for `kind`, `run_at_utc` and `scorecard` here, which no run has). The
 UTC start and end of each command, with seconds, go in the note.
@@ -581,7 +707,7 @@ UTC start and end of each command, with seconds, go in the note.
       "n": <previous + 1>,
       "date": "<YYYY-MM-DD of the run>",
       "run_by": "<name of who ran it - not the author>",
-      "code": "tag v2.0.6-freeze, commit 6acebba",
+      "code": "tag v2.0.7-freeze, commit 452b46d",
       "command": "<the commands of sections 3 and 4, exactly as typed, seed included>",
       "note": "<exit code and UTC start and end, with seconds (YYYY-MM-DDTHH:MM:SSZ), of each command; for each result the never-events, the entities blocked wrongly, the fields left [TO CONFIRM] and the four counts of the entities not published; who chose the seed and who wrote the hand documents; which forms were meant inside and which outside the claimed classes; anything that went wrong>",
       "results": [ <the objects of the "results" lists of the three JSON files, verbatim, in order 3a, 3b, 4> ]
@@ -591,7 +717,7 @@ The shape of the Council scorecard goes in the evaluator's own scorecard, outsid
 command, **listed by start time**, each with `run_at_utc` (`YYYY-MM-DDTHH:MM:SSZ`, with seconds), `kind`
 (`protocol` for the commands of sections 3 and 4, `out-of-pool` for any other corpus), `run_by`, `n` (the
 entities of the corpus), `abstained` (the metric `fields_abstained`), `never_events` and `metrics` (verbatim from
-the JSON file).
+the JSON file). The note of the history entry gives the same runs in the same order, by start time.
 
     "runs": [
       {"run_at_utc": "<YYYY-MM-DDTHH:MM:SSZ>", "kind": "protocol", "label": "<label>", "run_by": "<name>", "n": <entities>, "abstained": "<fields_abstained>", "never_events": <n>, "metrics": { <the metrics of the result, verbatim> }}
@@ -599,8 +725,8 @@ the JSON file).
 
 The hand-written documents and their gold are committed next to the record, in a new folder
 `eval/blind/hand-<n>/` named after the number of the run (the folders `eval/blind/hand/`,
-`eval/blind/hand-9/`, `eval/blind/hand-11/` and `eval/blind/hand-14/` hold those of runs 7, 9, 11 and 14 and are
-not edited), so that the run can be repeated by anyone. `python -m unittest discover -s tests -t .`
+`eval/blind/hand-9/`, `eval/blind/hand-11/`, `eval/blind/hand-14/` and `eval/blind/hand-16/` hold those of runs 7,
+9, 11, 14 and 16 and are not edited), so that the run can be repeated by anyone. `python -m unittest discover -s tests -t .`
 must still pass after the commit (the record must keep the runs already listed untouched).
 
 ## 6. What the author verified about this protocol, and what not
@@ -655,9 +781,20 @@ must still pass after the commit (the record must keep the runs already listed u
   cases of `tests/test_d35_forms.py`: 147 published wrongly on the code of `v2.0.5-freeze`, 0 on `v2.0.6`; the
   variant of hand-14 E-0011/E-0012 in the exact form: 3 never-events on `v2.0.5-freeze`, 0 on `v2.0.6`. Not
   blind: every corpus had been seen, hand-14 included.
-- Not verified: any seed other than the eight named in section 0; any hand-written document other than
-  the scenario inputs, those of runs 7, 9, 11 and 14 and the texts of the tests; a slot of a closed line that
-  states another field in words of no class of the lists (the residual risk of section 4: addresses, names
-  beside an unknown identifier); a row with "each" and a table with a header row read (not written); a narrower
+- On the code of `v2.0.7-freeze` (verified on 2026-10-01, UTC 2026-10-01T07:01:48Z to 2026-10-01T07:05:08Z, by the
+  builder's hand, run 17 of `eval/history.json`, commit `b624830`, whose frozen files differ from the tag in
+  `MANIFEST.sha256` only): the `--suite` path on the three seeds of the author, the `--seed` path on 20261011 to
+  20261016, plain and perturbed, and the `--corpus ... --gold ...` path on the out-of-pool corpus of run 5 and on
+  the hand-written corpora of runs 7, 9, 11, 14 and 16. 0 never-events on all twenty-one results; eighteen equal
+  to those of `v2.0.6`, hand-11 in figures with source only (134 -> 132), hand-16 published 12 -> 14 of 28 and
+  20261016 perturbed blocked wrongly 5 -> 4. The 600 sibling cases of `tests/test_d36_forms.py`: 312 unsafe on
+  the code of `v2.0.6-freeze` (56 a FAILED run, 256 publish a field), 0 on `v2.0.7`; the masked probes of hand-16
+  unmasked: E-0014 a FAILED run on `v2.0.6-freeze`, every field `[TO CONFIRM]` on `v2.0.7`; E-0017 blocked on
+  both. Not blind: every corpus had been seen, hand-16 included.
+- Not verified: any seed other than the nine named in section 0; any hand-written document other than
+  the scenario inputs, those of runs 7, 9, 11, 14 and 16 and the texts of the tests; a street or a town of
+  place-name-form words of no class of `slot_not_name_word` that states another field (the residual risk of
+  section 4, constructed and kept as a test expected to fail, not closed); a row with "each" and a table with a
+  header row read (not written); a narrower
   criterion for `DISC-006` (a document superseded by a later source that reads the field), which is not written;
   a hand-written gold with a cycle; any operating system other than Windows.
