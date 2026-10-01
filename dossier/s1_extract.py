@@ -224,7 +224,8 @@ def _body(doc: Document) -> list[tuple[int, str]]:
     return [(i + 1, doc.lines[i]) for i in range(doc.body_start, len(doc.lines))]
 
 
-def _extract_text(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
+def _extract_text(doc: Document, rule: dict, rules: Rules, known: dict[str, set[str]] | None = None
+                  ) -> list[dict] | None:
     pat = _pattern(rule, rules)
     for no, text in _body(doc):
         m = pat.search(text)
@@ -233,6 +234,16 @@ def _extract_text(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
         out = []
         value = m.group("value").strip()
         fld = _field_name(rule["field"], doc)
+        if rule.get("value_slot"):
+            # since v2.0.7 (D36): each value is judged as the slot of classified_lines the rule names (w_office, an
+            # address): words that are not part of it, and the line gives no value
+            slots = [v.strip() for k, v in m.groupdict().items() if k in ("value", "previous") and v]
+            if not all(_slot_closes(doc, rule["value_slot"], v, text.strip(), {_topic(fld)}, known, rules)
+                       for v in slots):
+                return [_assertion(doc, fld, rule["nature"], rule["id"], line=no, quote=text,
+                                   reason="the address holds words that are not part of an address (rules/extract.json "
+                                          "slot_address_word, slot_not_name_word, or a name known to the corpus): "
+                                          "not read")]
         if value:
             out.append(_assertion(doc, fld, rule["nature"], rule["id"], value=value, line=no, quote=text))
         else:
@@ -342,13 +353,28 @@ def _extract_capital(doc: Document, rule: dict, rules: Rules) -> list[dict] | No
     return out
 
 
-def _block(doc: Document, heading_no: int) -> list[tuple[int, str]]:
-    """The non-empty lines that follow a heading, up to the first blank line."""
+def ends_list(text: str, rules: Rules) -> bool:
+    """A line that ends a list without being part of it (since v2.0.7, D36; rules/extract.json list_end_note): a
+    heading of a list, or a full sentence (list_end_sentence), with no identifier in it."""
+    line = text.strip()
+    if re.search(r"P-\d{3}|E-\d{4}", line):
+        return False
+    for r in rules.extract["field_rules"]:
+        if r["extractor"] in ("holders", "directors") and (
+                _pattern(r, rules).search(line) or (r.get("line_matches_bare") and rx(
+                    _expand(_expand(r["line_matches_bare"], rules), rules)).search(line))):
+            return True
+    return _param_rx(rules, "list_end_sentence").search(line) is not None
+
+
+def _block(doc: Document, heading_no: int, rules: Rules) -> list[tuple[int, str]]:
+    """The non-empty lines that follow a heading, up to the first blank line or (since v2.0.7) the first line that
+    ends the list without being part of it (ends_list): that line is classified on its own."""
     out = []
     for no, text in _body(doc):
         if no <= heading_no:
             continue
-        if not text.strip():
+        if not text.strip() or ends_list(text, rules):
             break
         out.append((no, text))
     return out
@@ -461,7 +487,7 @@ def _list_headings(doc: Document, rule: dict, rules: Rules) -> list[tuple[int, s
         if heading.search(line):
             out.append((no, text))
         elif bare is not None and bare.search(line):
-            block = _block(doc, no)
+            block = _block(doc, no, rules)
             if block and block[0][0] == no + 1 and item.match(block[0][1]):
                 out.append((no, text))
     return out
@@ -474,7 +500,7 @@ def _extract_list(doc: Document, rule: dict, rules: Rules) -> list[dict] | None:
     if not found:
         return None
     no, text = found[0]
-    block = _block(doc, no)
+    block = _block(doc, no, rules)
     quote = "\n".join([text] + [t for _, t in block])
     end = block[-1][0] if block else no
 
@@ -525,7 +551,7 @@ def holders_check(doc: Document, rules: Rules) -> dict:
     covered: set[int] = set()
     tables = []
     for no, _text in _list_headings(doc, rule, rules):
-        block = _block(doc, no)
+        block = _block(doc, no, rules)
         # the line of a total stated for counts is not covered: it is still checked for evidence below, so a
         # table of counts in a document of unrecognised type is not read (known limit of v2.0.3)
         value, why, _, stated_total = _read_items(block, item, "holders", doc, rules, _total_rx(rule, rules))
@@ -647,11 +673,12 @@ def slot_topics(text: str, rules: Rules, names: bool = False) -> set[str]:
     return out
 
 
-def _label_ok(label: str | None, fld: str, rules: Rules) -> bool:
+def _label_ok(label: str | None, fld: str, rules: Rules, own: bool = False) -> bool:
     """The name beside an identifier in a list line: a person's or a company's name (parameter slot_label) whose
     words name nothing but a name, a legal form or the field of the list, and (since v2.0.6) are all words that can
-    be part of a name."""
-    if not label or not label.strip():
+    be part of a name. ``own`` (since v2.0.7): the label is its identifier's own known name, a name whatever its
+    words."""
+    if not label or not label.strip() or own:
         return True
     if not rx("^" + _expand("{slot_label}", rules) + "$").search(label.strip()):
         return False
@@ -687,11 +714,72 @@ def labelled_identifiers(line: str, rules: Rules) -> list[tuple[str, str]]:
 
 
 def label_not_its_own(line: str, known: dict[str, set[str]] | None, rules: Rules) -> list[str]:
-    """The identifiers of a line whose name beside them is not their own known name (CLS-005, since v2.0.6)."""
+    """The identifiers of a line whose name beside them is not their own known name (CLS-005, since v2.0.6), and
+    (since v2.0.7, D36) the identifiers whose own name is known nowhere in the corpus: such a name cannot be checked.
+    ``known`` None (an inline test that gives no names) checks nothing."""
     if not known:
         return []
     return [ident for ident, label in labelled_identifiers(line, rules)
-            if known.get(ident) and " ".join(label.split()) not in known[ident]]
+            if " ".join(label.split()) not in known.get(ident, ())]
+
+
+def own_label(ident: str | None, label: str | None, known: dict[str, set[str]] | None) -> bool:
+    """The name beside an identifier is that identifier's own known name (since v2.0.7): a name whatever its words."""
+    return bool(known and ident and label is not None and " ".join(label.split()) in known.get(ident, ()))
+
+
+def _bare_company(name: str, rules: Rules) -> str:
+    m = rx(rules.param("discrepancy", "legal_form_in_name")).search(name)
+    return " ".join((name[:m.start("form")] if m else name).split())
+
+
+def known_name_inside(text: str, known: dict[str, set[str]] | None, rules: Rules) -> list[str]:
+    """The names known to the corpus (a person's of the identity layer, a company's of an Entity: header, its legal
+    form set aside) that stand, as whole words, inside ``text`` (an address slot, since v2.0.7, D36)."""
+    if not known:
+        return []
+    plain = " ".join(text.split())
+    out = []
+    for ident, names in known.items():
+        for name in names:
+            bare = _bare_company(name, rules) if ident.startswith("E-") else name
+            if bare and re.search(r"(?<![^\W_])" + re.escape(bare) + r"(?![^\W_])", plain, re.I):
+                out.append(bare)
+    return sorted(set(out))
+
+
+def _own_value(doc: Document, group: str, value: str, line: str, known: dict[str, set[str]] | None,
+               rules: Rules) -> bool:
+    """A slot that holds its own known value (since v2.0.7): the entity's own name of the document's header (the
+    groups of slot_own_name_groups), or the own name of an identifier of the line (a person's slot beside it). Its
+    words are a name whatever their class: the word test of slot_not_name_word is not applied to it."""
+    p = rules.extract["parameters"]
+    if group in p["slot_own_name_groups"]:
+        return bool(doc.entity_name.strip()) and not own_name_differs(doc, value, rules)
+    return any(own_label(ident, value, known) for ident, _ in labelled_identifiers(line, rules))
+
+
+def address_form_ok(value: str, rules: Rules) -> bool:
+    """The street and the town of an address are words of the form of an Italian place name (rules/extract.json
+    slot_address_part, slot_address_word; since v2.0.7, D36)."""
+    m = _param_rx(rules, "slot_address_part").match(" ".join(value.split()))
+    if not m:
+        return False
+    word = _param_rx(rules, "slot_address_word")
+    return all(word.match(w) for w in re.findall(r"[^\W\d_]+", m.group("street") + " " + m.group("town")))
+
+
+def _slot_closes(doc: Document, group: str, value: str, line: str, allowed: set[str],
+                 known: dict[str, set[str]] | None, rules: Rules) -> bool:
+    """The free words of one slot name only the ``allowed`` fields: the topic test (slot_topics), the word test of a
+    name slot unless it holds its own known value (v2.0.6, v2.0.7); an address (slot_address_groups, v2.0.7) has
+    the form of an Italian place name (address_form_ok) and no name known to the corpus inside it."""
+    p = rules.extract["parameters"]
+    names = group in p["slot_name_groups"] and not _own_value(doc, group, value, line, known, rules)
+    if group in p["slot_address_groups"] and (not address_form_ok(value, rules)
+                                              or known_name_inside(value, known, rules)):
+        return False
+    return slot_topics(value, rules, names=names) <= allowed
 
 
 def _share_typed(share: str | None, rules: Rules) -> bool:
@@ -705,11 +793,11 @@ def _share_typed(share: str | None, rules: Rules) -> bool:
             or rx("^" + _expand("{slot_share_unread}", rules) + "$").search(s) is not None)
 
 
-def _list_lines(doc: Document, rules: Rules) -> dict[int, str]:
+def _list_lines(doc: Document, rules: Rules, known: dict[str, set[str]] | None = None) -> dict[int, str]:
     """line -> field, for every line of a list under a heading of a list rule: the heading, an item line of the rule's
     grammar whose name passes _label_ok and whose share is typed (_share_typed), and the last line 'Total' of a
     holders' table with a typed share. Holders' tables are looked for in documents of every kind; directors' lists in
-    the kinds of their rule."""
+    the kinds of their rule. ``known``: a name that is its identifier's own known name passes _label_ok (v2.0.7)."""
     out: dict[int, str] = {}
     for rule in rules.extract["field_rules"]:
         if rule["extractor"] not in ("holders", "directors"):
@@ -719,12 +807,13 @@ def _list_lines(doc: Document, rules: Rules) -> dict[int, str]:
         item, total = _item_rx(rule, rules), _total_rx(rule, rules)
         for no, _text in _list_headings(doc, rule, rules):
             out[no] = rule["field"]
-            block = _block(doc, no)
+            block = _block(doc, no, rules)
             for i, (n, t) in enumerate(block):
                 m = item.match(t)
                 if m:
                     groups = m.groupdict()
-                    if (_label_ok(groups.get("label") or groups.get("label_first"), rule["field"], rules)
+                    label = groups.get("label") or groups.get("label_first")
+                    if (_label_ok(label, rule["field"], rules, own_label(_item_id(m), label, known))
                             and _share_typed(groups.get("share"), rules)):
                         out[n] = rule["field"]
                 elif (total is not None and i == len(block) - 1 and len(block) > 1 and total.match(t)
@@ -739,7 +828,6 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
     fields the line states). First match wins; ``["*"]`` is every field. ``known``: identifier -> its own names (the
     identity layer for persons, the entity's own headers for companies; CLS-005, since v2.0.6)."""
     kind_topics = {_topic(_field_name(t, doc)) for t in rules.extract["expected_fields"].get(doc.kind, [])}
-    name_groups = set(rules.extract["parameters"]["slot_name_groups"])
     own_groups = set(rules.extract["parameters"]["slot_own_name_groups"])
     line = text.strip()
     for r in rules.extract["classified_lines"]["rules"]:
@@ -766,20 +854,21 @@ def classify_line(doc: Document, no: int, text: str, lists: dict[int, str], rule
         if any(v and own_name_differs(doc, v, rules) for k, v in m.groupdict().items() if k in own_groups):
             continue              # the entity's own name slot holds more, or other, than the entity's name (v2.0.6)
         if w == "label":
-            fields = _label_line_fields(doc, m, r, kind_topics, rules)
+            fields = _label_line_fields(doc, m, r, kind_topics, rules, line, known)
             if fields:
                 return r, fields
             continue
         may = r.get("slots_may_name", r["fields"])
         allowed = kind_topics if may == "kind" else {_topic(f) for f in may}
-        if all(slot_topics(v, rules, names=k in name_groups) <= allowed
+        if all(_slot_closes(doc, k, v, line, allowed, known, rules)
                for k, v in m.groupdict().items() if k.startswith("w_") and v):
             return r, [_field_name(f, doc) for f in r["fields"]]
         # free words that name another field do not close the line: the next rule decides
     raise RuntimeError("rules/extract.json classified_lines has no default rule")
 
 
-def _label_line_fields(doc: Document, m: re.Match, rule: dict, kind_topics: set[str], rules: Rules) -> list[str]:
+def _label_line_fields(doc: Document, m: re.Match, rule: dict, kind_topics: set[str], rules: Rules,
+                       line: str = "", known: dict[str, set[str]] | None = None) -> list[str]:
     """The fields a label line states (rule CLS-250): the fields of the kind whose topic both the label and the type of
     the value name (value_topics); [] when there is none, when the label names a field outside its kind, or when the
     free words of the value name anything but the fields of the line."""
@@ -791,9 +880,8 @@ def _label_line_fields(doc: Document, m: re.Match, rule: dict, kind_topics: set[
     topics = label & set(rule["value_topics"][value])
     if not topics:
         return []
-    names = set(rules.extract["parameters"]["slot_name_groups"])
     for k, v in groups.items():
-        if k.startswith("w_") and k != "w_label" and v and not slot_topics(v, rules, names=k in names) <= topics:
+        if k.startswith("w_") and k != "w_label" and v and not _slot_closes(doc, k, v, line, topics, known, rules):
             return []
     return sorted(f for f in (_field_name(t, doc) for t in rules.extract["expected_fields"][doc.kind])
                   if _topic(f) in topics)
@@ -813,7 +901,7 @@ def _classified_holders(doc: Document, open_lines: list[int], rules: Rules) -> d
                                                  "which one is current is not ours to choose"}
         item = _item_rx(rule, rules)
         for no, _text in found:
-            block = _block(doc, no)
+            block = _block(doc, no, rules)
             value, why, _, stated_total = _read_items(block, item, "holders", doc, rules, _total_rx(rule, rules))
             if value is None:
                 return {"status": "not_read", "why": f"the holders' table at line {no} of a document of kind "
@@ -831,6 +919,24 @@ def _classified_holders(doc: Document, open_lines: list[int], rules: Rules) -> d
         return {"status": "read", "why": "", "edition": doc.edition, "tables": tables}
     return {"status": "no_table", "why": "no holders' table outside the lists of its kind and no line that may "
                                          "state a holding"}
+
+
+_LIST_NOUN = {"shareholders": "holders' table", "directors": "directors' list"}
+
+
+def _list_region(doc: Document, rules: Rules) -> dict[int, tuple[str, int]]:
+    """line -> (field of the list, line of its heading), for every line of the block of a list heading (the lists
+    of _list_lines: holders' tables in every kind, directors' lists in the kinds of their rule), rows or not."""
+    out: dict[int, tuple[str, int]] = {}
+    for rule in rules.extract["field_rules"]:
+        if rule["extractor"] not in ("holders", "directors"):
+            continue
+        if rule["extractor"] == "directors" and doc.kind not in rule["kinds"]:
+            continue
+        for no, _text in _list_headings(doc, rule, rules):
+            for n, _t in _block(doc, no, rules):
+                out.setdefault(n, (rule["field"], no))
+    return out
 
 
 def _lines_text(numbers: list[int]) -> str:
@@ -853,10 +959,12 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
     for a in assertions:
         if a["line"] is not None and not a["field"].endswith(".previous"):
             spans.setdefault(a["field"], []).append((a["line"], a["line_end"]))
-    lists = _list_lines(doc, rules)
+    lists = _list_lines(doc, rules, known)
+    region = _list_region(doc, rules)
     unexplained: list[int] = []
     again: dict[str, list[int]] = {}
     foreign: dict[str, list[int]] = {}
+    inside: dict[tuple[str, int, str, str], list[int]] = {}
     for no, text in _body(doc):
         if not text.strip():
             continue
@@ -865,27 +973,36 @@ def classified_check(doc: Document, assertions: list[dict], rules: Rules,
             unexplained.append(no)
             continue
         for f in fields:
-            if f not in expected:
+            if no in region and region[no][0] != f:
+                # a line inside the list of another field that reads as a line of this one (v2.0.7, D36 (e): a holder
+                # without a share reads as a director's line, CLS-240): the document may change both fields
+                inside.setdefault((region[no][0], region[no][1], f, rule["id"]), []).append(no)
+            elif f not in expected:
                 foreign.setdefault(f, []).append(no)
             elif not spans.get(f) or any(not (first <= no <= last) for first, last in spans[f]):
                 again.setdefault(f, []).append(no)      # no rule of the kind read the field from this line
     holders = _classified_holders(doc, unexplained, rules)
-    if not unexplained and not again and not foreign and holders["status"] == "no_table":
+    if not unexplained and not again and not foreign and not inside and holders["status"] == "no_table":
         return None
     why = []
     if unexplained:
         why.append(f"{_lines_text(unexplained)} read by no rule of its kind (rules/extract.json classified_lines)")
     for f in sorted(again):
         why.append(f"{_lines_text(again[f])} state the {f} and no rule of its kind read them")
+    for (lf, head, f, rid), nos in sorted(inside.items()):
+        why.append(f"{_lines_text(nos)} stand in the {_LIST_NOUN.get(lf, lf)} of line {head} and are not rows it reads "
+                   f"(each reads as a line of the {f}, {rid}); no rule of its kind read them")
     for f in sorted(foreign):
         why.append(f"{_lines_text(foreign[f])}: a list of the {f} in a document of kind {doc.kind}")
-    may = [EVERY_FIELD] if unexplained else sorted(set(again) | set(foreign))
+    may = [EVERY_FIELD] if unexplained else sorted(set(again) | set(foreign)
+                                                   | {x for lf, _, f, _ in inside for x in (lf, f)})
     return {"doc_id": doc.doc_id, "file": doc.file, "date": doc.date, "kind": doc.kind,
             "fields_check": {"may_change": may, "why": "; ".join(why)}, "holders_check": holders}
 
 
-def extract_document(doc: Document, rules: Rules) -> list[dict]:
-    """Every assertion of one classified document, abstentions included."""
+def extract_document(doc: Document, rules: Rules, known: dict[str, set[str]] | None = None) -> list[dict]:
+    """Every assertion of one classified document, abstentions included. ``known`` (since v2.0.7): the names known to
+    the corpus, refused inside a value that is a slot of names (value_slot_names)."""
     if doc.kind == "UNKNOWN":
         return []
     out: list[dict] = []
@@ -893,7 +1010,8 @@ def extract_document(doc: Document, rules: Rules) -> list[dict]:
     for rule in rules.extract["field_rules"]:
         if doc.kind not in rule["kinds"] or rule["field"] in done:
             continue
-        got = _EXTRACTORS[rule["extractor"]](doc, rule, rules)
+        got = (_extract_text(doc, rule, rules, known) if rule["extractor"] == "text"
+               else _EXTRACTORS[rule["extractor"]](doc, rule, rules))
         if got is None:
             continue
         done.add(rule["field"])      # first match wins: no later rule is tried for this field
@@ -1018,7 +1136,7 @@ def extract_corpus(input_dir: Path | str, rules: Rules, as_of: str) -> dict[str,
             b["rejected_documents"].append({"file": rel, "reason": f"document id {doc.doc_id} is already used by "
                                                                    f"{twin['file'].rsplit('/', 1)[-1]}"})
             continue
-        assertions = extract_document(doc, rules)
+        assertions = extract_document(doc, rules, known)
         b["documents"].append(doc.summary())
         b["assertions"].extend(assertions)
         check = classified_check(doc, assertions, rules, known)
@@ -1091,16 +1209,21 @@ def run_inline_tests(rules: Rules) -> tuple[int, list[str]]:
             doc.entity_name = t.get("entity", "")            # a test without 'entity' has no own name to compare
             no = doc.body_start + 1 + t.get("line", 1)       # the line-th line of the test body
             known = {k: set(v) for k, v in t.get("known", {}).items()} or None
-            got_rule, got = classify_line(doc, no, doc.lines[no - 1], _list_lines(doc, rules), rules, known)
+            got_rule, got = classify_line(doc, no, doc.lines[no - 1], _list_lines(doc, rules, known), rules, known)
             want = sorted(_field_name(f, doc) for f in t["expect"])
             if got_rule["id"] != r["id"] or sorted(got) != want:
                 bad.append(f"{r['id']}: line {t.get('line', 1)} of {t['text']!r} -> {got} by {got_rule['id']}, "
                            f"expected {want}")
-            if "expect_may_change" in t:
-                check = classified_check(doc, extract_document(doc, rules), rules, known)
+            if "expect_may_change" in t or "expect_may_change_unless_read" in t:
+                found = extract_document(doc, rules, known)
+                check = classified_check(doc, found, rules, known)
                 may = check["fields_check"]["may_change"] if check else []
-                if may != t["expect_may_change"]:
-                    bad.append(f"{r['id']}: {t['text']!r} may change {may}, expected {t['expect_may_change']}")
+                want_may = t.get("expect_may_change")
+                if want_may is None:     # (v2.0.7) what the line may change when no field rule of its kind reads it, and
+                    #                      nothing when one does (scenario S09 adds such a rule for this wording)
+                    want_may = [] if any("value" in a for a in found) else t["expect_may_change_unless_read"]
+                if may != want_may:
+                    bad.append(f"{r['id']}: {t['text']!r} may change {may}, expected {want_may}")
     for r in rules.figure_nature["rules"]:
         for t in r.get("tests", []):
             n += 1

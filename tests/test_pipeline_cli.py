@@ -64,9 +64,13 @@ class ExitCodes(unittest.TestCase):
 
 class RefusedBeforeAnythingIsBuilt(unittest.TestCase):
     def _no_config(self):
+        """A deed and its identity layer, and no config.json (so no reference date). Since v2.0.7 (D36) the identity
+        layer is part of what makes the deed publishable: a name beside a person identifier whose own name the corpus
+        does not know leaves its line open (CLS-005), and its holders block."""
         rel, text = mk.deed("E-0001", 1, "2025-03-10", mk.OFFICE_A, mk.FULL.format(a="50.000,00"),
                             [("P-001", "100%")], ["P-001"])
-        return s.write_tree(s.tmp(), {rel: text})
+        rel_id, text_id = mk.identity(["P-001"])
+        return s.write_tree(s.tmp(), {rel: text, rel_id: text_id})
 
     def test_the_date_is_never_taken_from_the_clock(self):
         work = s.tmp()

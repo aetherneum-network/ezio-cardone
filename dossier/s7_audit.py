@@ -338,18 +338,39 @@ def own_names(input_dir: Path | str) -> dict[str, set[str]]:
     return out
 
 
-def _not_its_own(line: str, known: dict[str, set[str]]) -> bool:
+def _pairs(line: str) -> list[tuple[str, str]]:
     pairs = [(m.group(1), m.group(2)) for m in _PAIR_AFTER.finditer(line)]
     first = _PAIR_FIRST.match(line)
     if first:
         pairs.append((first.group(2), first.group(1)))
-    return any(known.get(i) and " ".join(label.split()) not in known[i] for i, label in pairs)
+    return pairs
 
 
-def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern) -> bool:
+def _not_its_own(line: str, known: dict[str, set[str]]) -> bool:
+    """A name beside an identifier that is not its own known name (v2.0.6), or beside an identifier whose own name
+    the corpus does not know (v2.0.7, D36: it cannot be checked)."""
+    return bool(known) and any(" ".join(label.split()) not in known.get(i, ()) for i, label in _pairs(line))
+
+
+def _is_own(text: str, line: str, known: dict[str, set[str]]) -> bool:
+    """The text is the own known name of an identifier of its line (v2.0.7): a name whatever its words."""
+    return any(" ".join(text.split()) in known.get(i, ()) for i, _ in _pairs(line))
+
+
+def _known_inside(text: str, known: dict[str, set[str]]) -> bool:
+    """A name known to the corpus (a person's, or a company's without its legal form) inside an address (v2.0.7)."""
+    plain = " ".join(text.split())
+    return any(re.search(r"(?<![^\W_])" + re.escape(b) + r"(?![^\W_])", plain, re.I)
+               for i, names in known.items() for n in names
+               for b in [_bare_name(n) if i.startswith("E-") else n] if b)
+
+
+def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern,
+              known: dict[str, set[str]] | None = None) -> bool:
     """A line of a list by the audit's own grammar: a director, or a holder (or the Total) whose share is read as a
     share or a number, or is a figure without words; the name beside the identifier has no figure and names
-    nothing but a name, a legal form or the field of the list."""
+    nothing but a name, a legal form or the field of the list (its own known name passes whatever its words,
+    v2.0.7)."""
     if fld == "directors":
         if not _PERSON_LINE.match(line):
             return False
@@ -372,7 +393,8 @@ def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern) -> b
     before = _LABEL_BEFORE.match(rest)
     if before:
         labels.append(before.group(1))
-    return all(not re.search(r"[0-9]", x) and words.name(x, names=True) <= {"name", "legal_form", _topic_of(fld)}
+    return all(_is_own(x, line, known or {}) or (
+        not re.search(r"[0-9]", x) and words.name(x, names=True) <= {"name", "legal_form", _topic_of(fld)})
                for x in labels)
 
 
@@ -415,6 +437,15 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
                                    "source states")
     unread_share = re.compile(_expand_all(p["slot_share_unread"], p), re.I)
     rows_of: dict[int, str] = {}
+    every_head = [rx(_expand_all(r[k], p)) for r in rules.extract["field_rules"]
+                  if r["extractor"] in ("holders", "directors") for k in ("line_matches", "line_matches_bare") if r.get(k)]
+    sentence = rx(_expand_all(p["list_end_sentence"], p))
+
+    def ends(x: str) -> bool:     # a heading or a full sentence ends a list and is read on its own (v2.0.7, D36)
+        x = x.strip()
+        return not re.search(r"P-\d{3}|E-\d{4}", x) and (any(h.search(x) for h in every_head)
+                                                          or sentence.search(x) is not None)
+
     for r in rules.extract["field_rules"]:
         if r["extractor"] != "holders" and not (r["extractor"] == "directors" and kind in r["kinds"]):
             continue
@@ -424,13 +455,31 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
                 continue
             rows_of[no] = r["field"]
             nxt = no + 1
-            while nxt <= len(lines) and lines[nxt - 1].strip():
-                if _list_row(lines[nxt - 1], r["field"], words, unread_share) and not _not_its_own(lines[nxt - 1], known):
+            while nxt <= len(lines) and lines[nxt - 1].strip() and not ends(lines[nxt - 1]):
+                if (_list_row(lines[nxt - 1], r["field"], words, unread_share, known)
+                        and not _not_its_own(lines[nxt - 1], known)):
                     rows_of[nxt] = r["field"]
                 nxt += 1
     kind_topics = {_topic_of(f) for f in expected}
     shapes = [r for r in rules.extract["classified_lines"]["rules"]
               if r.get("pattern") and (not r.get("kinds") or kind in r["kinds"])]
+
+    address_part = rx(_expand_all(p["slot_address_part"], p))
+    address_word = rx(_expand_all(p["slot_address_word"], p))
+
+    def address_form(v: str) -> bool:
+        m = address_part.match(" ".join(v.split()))
+        return bool(m) and all(address_word.match(w) for w in re.findall(r"[^\W\d_]+", m["street"] + " " + m["town"]))
+
+    def names_of(k: str, v: str, line: str) -> set[str]:
+        """The fields the words of one slot may name (v2.0.7: a slot that holds its own known value is a name
+        whatever its words; an address not of the form of a place name, or with a known name inside it, names
+        every field)."""
+        if k in p["slot_address_groups"] and (not address_form(v) or _known_inside(v, known)):
+            return {"*"}
+        own_value = (bool(own) and _bare_name(v) == _bare_name(own)) if k in p["slot_own_name_groups"] \
+            else _is_own(v, line, known)
+        return words.name(v, names=k in words.name_groups and not own_value)
     for no in range(start + 1, len(lines) + 1):
         line = lines[no - 1].strip()
         if not any(ch.isalnum() for ch in line):
@@ -452,14 +501,14 @@ def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
                 label = words.name(g["w_label"])
                 typed = next((k for k in r["value_topics"] if k and g.get(k)), "")
                 both = label & set(r["value_topics"][typed]) if label <= kind_topics else set()
-                if not both or any(v and not words.name(v, names=k in words.name_groups) <= both for k, v in g.items()
+                if not both or any(v and not names_of(k, v, line) <= both for k, v in g.items()
                                    if k.startswith("w_") and k != "w_label"):
                     continue
                 fields = sorted(f for f in expected if _topic_of(f) in both)
                 break
             may = r.get("slots_may_name", r["fields"])
             allowed = kind_topics if may == "kind" else {_topic_of(f) for f in may}
-            if any(v and not words.name(v, names=k in words.name_groups) <= allowed
+            if any(v and not names_of(k, v, line) <= allowed
                    for k, v in m.groupdict().items() if k.startswith("w_")):
                 continue
             fields = [f.replace("{fy}", fy) for f in r["fields"]]
