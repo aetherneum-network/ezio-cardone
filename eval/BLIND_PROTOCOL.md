@@ -384,7 +384,10 @@ of the gold (not its values) and note the correction in the record of section 5.
 ## 5. Recording the outcome
 
 Append one run to the `runs` list of `eval/history.json`, after the last one, numbered `n` = previous + 1,
-and commit it. Nothing already in the list is edited. The entry `blind` of the same file records the
+and commit it. Nothing already in the list is edited, with one exception: a name of the owner's internal folders
+written in a note is replaced by "the evaluation folders" and the replacement is recorded in the top-level list `redactions`
+(run, field, the SHA-256 of the note before, the commit where the original stays readable, the reason). The numbers and
+the results of a run are never redacted. The entry `blind` of the same file records the
 blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.4-freeze` is recorded in `runs`,
 as the runs of `v2.0.1-freeze`, `v2.0.2-freeze` and `v2.0.3-freeze` were (runs 7, 9 and 11), with `code`
 naming the tag and `run_by` naming the runner.
