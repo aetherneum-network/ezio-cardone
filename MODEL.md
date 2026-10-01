@@ -52,6 +52,16 @@
   v2.0.6 (run 16, seed 20261016, `eval/blind/hand-16/`). Its rules and its 600 sibling cases
   (`tests/test_d36_forms.py`) were written by the same hand with those documents in view. The same limit applies:
   hand-16 is now seen, and its numbers (run 17) are not blind.
+- **The change of v2.0.8** (finding D37: an address, a company's header name, a title and a label are facts only
+  when a second document states them alike, token for token - `address_corroboration`, `name_corroboration`,
+  `text_corroboration`, `DISC-038` -, one equal to another plus words is a line no rule explains; three forms of
+  hand-18 declared as blocks and one as `[TO CONFIRM]`; one count per kind of never-event in the scorer) was
+  written with the same model, in a separate session on 2026-10-01, as the builder's hand, after reading the
+  results and the hand-written documents of the blind run of v2.0.7 (run 18, seed 20261017,
+  `eval/blind/hand-18/`). Its rules and its 738 sibling cases (`tests/test_d37_forms.py`,
+  `tests/test_d37_slots.py`) were written by the same hand with those documents in view. What it rests on is the
+  premise that two documents which state the same text alike state it (`CHANGELOG.md` 2.0.8 section 4). The same
+  limit applies: hand-18 and seed 20261017 are now seen, and its numbers (run 19) are not blind.
 
 ## What runs at runtime
 

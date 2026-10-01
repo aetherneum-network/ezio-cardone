@@ -17,7 +17,7 @@ The full map, sentence by sentence, is `CLAIMS.md`.
 | Claim of the profile | Scenarios | What is checked |
 |---|---|---|
 | A1 - every figure carries its source document and date | S03, S04, S10 | document, date and edition on every figure; a superseded figure in outgoing text is traced; the nature of an amount (historical, resolved, subscribed, paid-in) is classified before it is shown; since v2.0.1 an amount is read whole or abstained, and the audit compares its digits with the quote (`tests/test_amount_grouping.py`) |
-| A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled; since v2.0.5 a document of a recognised type whose text may change a field its rules do not read keeps that field `[TO CONFIRM]` (`DISC-006`, `tests/test_d34_forms.py`) |
+| A2 - conflicting sources are shown side by side | S01, S06 | deed vs registry extract; file name vs content; nothing is reconciled; since v2.0.5 a document of a recognised type whose text may change a field its rules do not read keeps that field `[TO CONFIRM]` (`DISC-006`, `tests/test_d34_forms.py`); since v2.0.8 an address, a company's header name, a title or a label is a fact only when a second document states it alike, and one equal to another plus words is not a conflict but a line no rule explains (`tests/test_d37_forms.py`, `tests/test_d37_slots.py`) |
 | A3 - a cap table that does not sum to 100% is blocked | S02, S07 | exact fractions, no floats; 3 x 33,33% is blocked, 3 x 1/3 builds; cross-holdings are reported; since v2.0.1 a holders' table that could not be read blocks the entity too (`OWN-015`); since v2.0.2 more table forms are read - a reworded heading, a document of unrecognised type whose body holds no table or only tables read whole - and what is still not read keeps blocking (`tests/test_holders_forms.py`); since v2.0.3 more headings and holder lines, shares in words and counts of quotas with one total stated in the same document are read, and the forms that are not read still block (`tests/test_d30_forms.py`); since v2.0.4 a stated Total line must equal the exact sum of the rows (`tests/test_d30b_forms.py`); since v2.0.5 a holders' table in a document of another recognised type is read whole and summed, or blocks (`tests/test_d34_forms.py`) |
 | A4 - the dossier is a build artefact | S09 | same inputs, same bytes, DOCX included; a rule change moves only the expected field |
 | A5 - no snapshot is ever overwritten | S05 | the state at an earlier date is answered from the snapshots |
@@ -37,7 +37,9 @@ v2.0.2 (decision D29) it is also, word for word, the definition of section 1.5 o
 
 `tests/test_never_event.py` tries to make them happen - tampered records, tampered provenance, tampered
 output, unread documents, ties between sources - and requires a refusal each time; it also checks that the
-scorer counts every kind of the list. A field that cannot be decided is written `[TO CONFIRM]`; when two
+scorer counts every kind of the list. Since v2.0.8 the scorer also gives one count per kind
+(`<kind>_wrong_committed`) and their sum (`never_events_by_kind_total`), which must equal `never_events`
+(`tests/test_d37_score.py`). A field that cannot be decided is written `[TO CONFIRM]`; when two
 current sources disagree both values are shown with their sources. The blind run of `v2.0.0-freeze` found
 never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v2.0.3-freeze` found
 two (run 11, below); v2.0.4 is the fix, and v2.0.5 closes the one known limit of v2.0.4 that could publish
@@ -51,6 +53,15 @@ for the words of a typed slot was real on its code (312 unsafe, 56 of them a FAI
 equality and by form (0 of 600) and states what still rests on a word list as `[TO CONFIRM]`. The blind run of
 `v2.0.7-freeze` (run 18, below) found 4 never-events in one hand-written entity, in that residual risk: claim
 A2 is downgraded for that tag (`CLAIMS.md` section 8) and the fix goes into a new version under a new tag.
+After run 18 the coordinator measured hand-18 on `v2.0.6-freeze` (commit `6acebba`) at 10:27 UTC+2 on
+2026-10-01: the same 4 never-events on E-0015 (facts exact 39/111, fields `[TO CONFIRM]` 75/134, blocked
+wrongly 10; not blind). v2.0.8 is the answer to run 18 (`CHANGELOG.md` 2.0.8): an address, a company's
+header name, a title or a label is a fact only when a second document states it alike, token for token; one
+equal to another plus words is a line no rule explains, every field `[TO CONFIRM]`. On 738 constructed
+siblings 429 publish wrongly on the code of v2.0.6, 423 on v2.0.7 and 0 on v2.0.8; on the seen hand-18,
+E-0015 has every field `[TO CONFIRM]` and the never-events go from 4 to 0. The price is facts kept
+`[TO CONFIRM]` wherever one document alone states an address (run 19, below). v2.0.8 has not been run blind
+and nothing is upgraded (`CLAIMS.md` section 9).
 
 ## Re-run it
 
@@ -61,23 +72,29 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK (expected failures=1)` after 300 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. The
-expected failure is the residual risk of `CHANGELOG.md` 2.0.7 section 4, kept as a test
-(`tests/test_d36_forms.py`, `D36_ResidualWordList`). Until v2.0.6 the line was `OK` after 286 tests.
+Expected last lines: `OK (expected failures=1)` after 321 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. The
+expected failure is the premise of corroboration of `CHANGELOG.md` 2.0.8 section 4 - an address written
+alike, words and all, in two documents is read as written (`tests/test_d36_forms.py`,
+`D36_ResidualWordList`). In v2.0.7 the line was the same after 300 tests; until v2.0.6 it was `OK` after 286
+tests.
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 17, code at commit `b624830` (pipeline, rules, tests and scorer of the tag
-`v2.0.7-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
-not blind: every seed had been seen. The three rows are identical to those of v2.0.6 (run 15, code at commit
-`a982b7b`) and of v2.0.5 (run 13). Reference date of every corpus as of 2026-09-30. 150 entities per suite.
+Source: `eval/history.json`, run 19, code at commit `67cb31d` (pipeline, rules, tests and scorer of the tag
+`v2.0.8-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
+not blind: every seed had been seen. In v2.0.7 (run 17, code at commit `b624830`), as in v2.0.6 (run 15) and
+v2.0.5 (run 13), facts exact were 1386/1386, 1285/1285 and 681/1285, fields `[TO CONFIRM]` 0/1472, 0/1378 and
+635/1372, figures with source 3694/3694, 3521/3521 and 2868/2868; every other column was as below. The difference
+is the price of corroboration (`CHANGELOG.md` 2.0.8 section 3): a field that a document whose address no second
+document states alike may change is `[TO CONFIRM]`. Reference date of every corpus as of 2026-09-30. 150
+entities per suite.
 Command: `python -m eval.score --suite dev --suite holdout --suite stress`.
 
 | Suite | Never-events | Dossiers published | Conflicts found | Conflicts reported that are real | Facts exact | Fields left `[TO CONFIRM]` | Blocks correct | Figures with source |
 |---|---|---|---|---|---|---|---|---|
-| development, seed 20260930 (inspected while the rules were written) | 0 | 139/150 | 50/50 | 50/50 | 1386/1386 | 0/1472 | 9/9 | 3694/3694 |
-| holdout, seed 20261001 (scored, never inspected) | 0 | 137/150 | 45/45 | 45/45 | 1285/1285 | 0/1378 | 11/11 | 3521/3521 |
-| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 16/47 | 16/16 | 681/1285 | 635/1372 | 12/12 | 2868/2868 |
+| development, seed 20260930 (inspected while the rules were written) | 0 | 139/150 | 50/50 | 50/50 | 1180/1386 | 206/1472 | 9/9 | 3700/3700 |
+| holdout, seed 20261001 (scored, never inspected) | 0 | 137/150 | 45/45 | 45/45 | 1122/1285 | 163/1378 | 11/11 | 3477/3477 |
+| stress, seed 20261002 (wording perturbed) | 0 | 137/150 | 16/47 | 16/16 | 591/1285 | 725/1372 | 12/12 | 2860/2860 |
 
 How to read them:
 
@@ -101,7 +118,8 @@ How to read them:
 - The first stress run (run 2, commit `9a50ea3`) had **32 never-events**. It was fixed in the rule files, not in
   the outputs; the price was abstention: the rules read one wording and abstain on the others. Every run,
   the bad ones included, is in `eval/history.json`.
-- The holdout was scored ten times (runs 2, 3, 4, 6, 8, 10, 12, 13, 15, 17) and is no longer a clean holdout.
+- The holdout was scored eleven times (runs 2, 3, 4, 6, 8, 10, 12, 13, 15, 17, 19) and is no longer a clean
+  holdout.
 - The blind run of `v2.0.0-freeze` (run 5, by the evaluator, not the author) found **13 never-events**: 0 in the
   plain corpus, 1 in the perturbed one, 12 in the out-of-pool one. Five were capital figures read a thousand
   times too small (`EUR 150'000.00` read as `150.00`, finding T16); eight were dossiers published for
@@ -255,20 +273,43 @@ How to read them:
   name, a second address, an amount, a count and a legal-form label, each with words added - opened their line
   or blocked, unmasked; the second address was caught by a word of the list, not by its form. These go into a
   new version under a new tag; this tag is not moved.
+- v2.0.8 (finding D37) is the answer to run 18, and it does not lengthen the word list or tighten a form: an
+  address is a fact only when two documents of the entity state it alike, token for token, or a recognised
+  office transfer states it and a later source repeats it; an address equal to another plus words is a line no
+  rule explains (every field `[TO CONFIRM]`, the entity blocked when the line may state a holding), not a
+  conflict; a genuine difference is still shown side by side. The same principle decides the company's name of
+  the header, the title of a document and the label of a line. Measured by class first on 738 constructed
+  siblings (`tests/test_d37_forms.py`, `tests/test_d37_slots.py`): 429 publish wrongly on the code of
+  `v2.0.6-freeze`, 423 on `v2.0.7-freeze`, 0 on v2.0.8, where 6 end the run FAILED and publish nothing (a
+  company's name, stated once, that holds a person's name of the identity layer; they fail on the earlier codes
+  too). The three forms that blocked undeclared in run 18 are declared limits that block; E-0012's capital
+  keeps `[TO CONFIRM]`; the scorer gives one count per kind of never-event. On the corpora already seen (run 19) it has 0 never-events on
+  all twenty-four results; hand-18 goes from 4 to 0 (E-0015 published with every field `[TO CONFIRM]`); published
+  and blocked wrongly do not move anywhere; the price is facts kept `[TO CONFIRM]` wherever one document alone
+  states an address: 1294/1294 to 1082/1294 facts exact on seed 20261017, 655 to 542 on its perturbed corpus,
+  39/111 to 35/111 on hand-18, 47/102 to 33/102 on hand-16 (`CHANGELOG.md` 2.0.8 section 3). What it rests on -
+  two documents that state the same text alike are taken to state it - is section 4 of that entry. That is not
+  a blind result, and nothing is upgraded (`CLAIMS.md` section 9).
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `b624830`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `67cb31d`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `454a0d64934d8791f9ae7af9e6cd620960a94d30b77be23e73c19e5e692a9342` |
-| S03, `dossier_shareable.docx` of E-0004 | `0b9822c5ca635a82b2d8438dc6f81309215263e130f3b1349e2cb3e34feefce4` |
-| S03, whole build (11 files) | `fbd46f8fa1af789b564c5a86920a66660fe2227b04c688f7a66a555c6df6a8b6` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `0c8519e36376aff8a652964119f59a7552769d6e229d6dd60b38d16c60fc9eb5` |
+| S03, `dossier.docx` of E-0004 | `94cbadc08989ecaba7ebf0f04aa15133ef32d1f35dc64bd650e9756eaced0557` |
+| S03, `dossier_shareable.docx` of E-0004 | `13da78110453a9427e8e54ebd53a9099d250e0317231ab85517c5fd1bf62ed15` |
+| S03, whole build (11 files) | `a567fa989ad4585d7c1c7c411b0b4f6f576d7aec21787f87bedff6734e24b4da` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `bba7e48b3bd4ee66eb48beebab9584b74c0df571ebf013cb599cd4f970e10f0e` |
 
-The v2.0.6 hashes (commit `a982b7b`) were `9b729f7ebb22b189ab6f17ac5c3aad58aa0db31b34d36f293cfa79b03ee715a8`,
+The v2.0.7 hashes (commit `b624830`) were `454a0d64934d8791f9ae7af9e6cd620960a94d30b77be23e73c19e5e692a9342`,
+`0b9822c5ca635a82b2d8438dc6f81309215263e130f3b1349e2cb3e34feefce4`,
+`fbd46f8fa1af789b564c5a86920a66660fe2227b04c688f7a66a555c6df6a8b6` and
+`0c8519e36376aff8a652964119f59a7552769d6e229d6dd60b38d16c60fc9eb5`. They differ from those of v2.0.8 because
+the dossier names its generator (`dossier 2.0.8`) and because v2.0.8 keeps `[TO CONFIRM]` the fields that a
+document whose address is not corroborated may change (206 fields of the development corpus, `CHANGELOG.md`
+2.0.8 section 3); the same entities are published and blocked (run 19). The v2.0.6 hashes (commit `a982b7b`) were `9b729f7ebb22b189ab6f17ac5c3aad58aa0db31b34d36f293cfa79b03ee715a8`,
 `c81c2515437fbe8d8f3a8bd3e00d31dfc8cca7ebc7df123888fbe948d31a01c9`,
 `441ad30bbb60f4dc11045050f55aa6524bf05a95dec93882bc12b5f986d02488` and
 `2c514e9ba6cb190914309f3e40b1c5bae7e6e3c8d9ff4b90ede01b985aee08ee`. They differ from those of v2.0.7

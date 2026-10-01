@@ -234,3 +234,7 @@ The related sentences "Cross-source discrepancy detection" and "lets a human adj
 at `v2.0.7-freeze`, for the same entity. Rows A1, A3, A4, A5 and A6 are not touched by the run. The same run
 found three forms that block without being read or declared (E-0020, E-0025, E-0026); a block publishes nothing,
 so they touch no claim.
+
+## 9. v2.0.8
+
+v2.0.8 has not been run blind, nothing is upgraded.
