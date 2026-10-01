@@ -572,23 +572,30 @@ written in a note is replaced by "the evaluation folders" and the replacement is
 the results of a run are never redacted. The entry `blind` of the same file records the
 blind run of `v2.0.0-freeze` and is not edited either: the run of `v2.0.6-freeze` is recorded in `runs`,
 as the runs of `v2.0.1-freeze`, `v2.0.2-freeze`, `v2.0.3-freeze` and `v2.0.5-freeze` were (runs 7, 9, 11 and
-14), with `code` naming the tag and `run_by` naming the runner. Since `v2.0.6` the record has the shape of the
-Council scorecard as well: one `run_at_utc` per command, `YYYY-MM-DDTHH:MM:SSZ` with seconds; `kind`, `protocol`
-for the commands of sections 3 and 4 and `out-of-pool` for any other corpus; `run_by`; `n`; and, per result,
-`abstained` (the metric `fields_abstained`), `never_events` and `metrics` (verbatim from the JSON file).
+14), with `code` naming the tag and `run_by` naming the runner. The entry has the seven keys of every run already
+recorded - `n`, `date`, `run_by`, `code`, `command`, `note`, `results` - and no other (runs 14 and 16 were recorded
+so; until `v2.0.7` this section also asked for `kind`, `run_at_utc` and `scorecard` here, which no run has). The
+UTC start and end of each command, with seconds, go in the note.
 
     {
       "n": <previous + 1>,
       "date": "<YYYY-MM-DD of the run>",
       "run_by": "<name of who ran it - not the author>",
       "code": "tag v2.0.6-freeze, commit 6acebba",
-      "kind": "protocol",
       "command": "<the commands of sections 3 and 4, exactly as typed, seed included>",
-      "run_at_utc": ["<YYYY-MM-DDTHH:MM:SSZ, the start of each command, in order 3a, 3b, 4>"],
       "note": "<exit code and UTC start and end, with seconds (YYYY-MM-DDTHH:MM:SSZ), of each command; for each result the never-events, the entities blocked wrongly, the fields left [TO CONFIRM] and the four counts of the entities not published; who chose the seed and who wrote the hand documents; which forms were meant inside and which outside the claimed classes; anything that went wrong>",
-      "results": [ <the objects of the "results" lists of the three JSON files, verbatim, in order 3a, 3b, 4> ],
-      "scorecard": [ {"label": "<label>", "run_at_utc": "<YYYY-MM-DDTHH:MM:SSZ>", "n": <entities>, "abstained": "<fields_abstained>", "never_events": <n>, "metrics": { <the metrics of the result, verbatim> }} ]
+      "results": [ <the objects of the "results" lists of the three JSON files, verbatim, in order 3a, 3b, 4> ]
     }
+
+The shape of the Council scorecard goes in the evaluator's own scorecard, outside this repository: one run per
+command, **listed by start time**, each with `run_at_utc` (`YYYY-MM-DDTHH:MM:SSZ`, with seconds), `kind`
+(`protocol` for the commands of sections 3 and 4, `out-of-pool` for any other corpus), `run_by`, `n` (the
+entities of the corpus), `abstained` (the metric `fields_abstained`), `never_events` and `metrics` (verbatim from
+the JSON file).
+
+    "runs": [
+      {"run_at_utc": "<YYYY-MM-DDTHH:MM:SSZ>", "kind": "protocol", "label": "<label>", "run_by": "<name>", "n": <entities>, "abstained": "<fields_abstained>", "never_events": <n>, "metrics": { <the metrics of the result, verbatim> }}
+    ]
 
 The hand-written documents and their gold are committed next to the record, in a new folder
 `eval/blind/hand-<n>/` named after the number of the run (the folders `eval/blind/hand/`,

@@ -183,3 +183,28 @@ identifier the pack does not know - is a residual risk, `[TO CONFIRM]`, stated i
 never-events on all eighteen results) seventeen results do not move and hand-14 goes from 2/64 to 27/64 facts
 exact. The row A2 above stays downgraded for `v2.0.3-freeze`; v2.0.6 has not been run blind, so nothing is
 upgraded here.
+
+### What the blind run of v2.0.6 found, and what v2.0.7 does for A2 (not run blind)
+
+The blind run of `v2.0.6-freeze` (run 16, by the evaluator, seed 20261016, hand corpus `eval/blind/hand-16/`)
+found 0 never-events. Its probes of the residual risk of `CHANGELOG.md` 2.0.6 section 4 did not reach it: two
+blocked, and two were masked - the address probe used the office-transfer wording no field rule reads, the count
+probe a total line outside the capital clause. Measured by the builder by class (`tests/test_d36_forms.py`, 600
+siblings), that risk was real on the code of `v2.0.6-freeze`: 256 cases publish as fact a field that the extra
+words of an address slot, or a name beside an identifier nobody knows, may change, and 56 more end the run FAILED
+(the extra words reached the shareable layer). The sentence of that section that no case was known in the corpora
+seen was true of the corpora, not of the class. Unmasked on the same seen data, the hand-16 probes publish nothing
+wrong on either code (E-0014 FAILED on v2.0.6, OK with every field `[TO CONFIRM]` on v2.0.7; E-0017 blocks).
+
+v2.0.7 (tag `v2.0.7-freeze`, finding D36): a name beside an identifier closes its line only when it equals that
+identifier's own known name - an identifier whose name the corpus does not know leaves the line open; an address
+needs its house number, every word of its street and town must have the form of a place name and name nobody the
+corpus knows, and the readers of the office read only such an address (`value_slot`). The 600 siblings: 312
+unsafe on v2.0.6, 0 on v2.0.7. A list now ends at a full sentence or a heading; "own" after a possessive and an
+illegible amount are not words of holding. What still rests on a word list - a street or town of place-name form
+that states something with a word of no class of `slot_not_name_word` - is a residual risk, `[TO CONFIRM]`, kept as
+a test expected to fail (`CHANGELOG.md` 2.0.7 section 4); `CHANGELOG.md` 2.0.7 lists the known limits: none of them
+may publish. On the corpora already seen (run 17: 0 never-events on all twenty-one results) eighteen results do
+not move, hand-11 moves in its figures with source only (134 to 132); hand-16 goes from 12 to 14 of 28 published
+and 46/89 to 47/102 facts exact. The row A2 above stays
+downgraded for `v2.0.3-freeze`; v2.0.7 has not been run blind, so nothing is upgraded here.

@@ -2,6 +2,289 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.7] - 2026-10-01 (freeze tag `v2.0.7-freeze`; not yet run blind)
+
+### D36 - blind run of v2.0.6, run 16: the residual risk of section 4 measured by class, a list that ends without a blank line, "own", an illegible amount
+
+Source: the evaluator's blind run of `v2.0.6-freeze`, `eval/history.json` run 16, seed 20261016 and the hand
+corpus `eval/blind/hand-16/` (28 entities, 59 documents): 0 never-events on the three corpora. Found: (a) the
+residual risk of section 4 of entry 2.0.6 was probed, but two probes were masked - E-0014 (an address slot with
+extra words) used the office-transfer wording of scenario S09, which no field rule reads, and E-0017 (a count
+slot with extra words) blocked on a total line written outside the capital clause that `count_total` reads;
+(b) a sentence or a heading written right after a list with no blank line was read as a row of that list, so the
+whole list was unread (E-0010 blocked; the directors of E-0008 and E-0019 `[TO CONFIRM]`); (c) the adjective
+"own" (`its own means`) counted as a word of holding (`HEV-040`; E-0006 and E-0011 blocked); (d) an illegible
+amount `EUR 1#.###,00` counted as a bare figure that may state a holding (`HEV-080`; E-0114 of the perturbed
+corpus blocked); (e) the fields check of E-0025 named holder rows without a share "lines that state the
+directors"; (f) the list of known limits of 2.0.6 did not cover E-0010's form, and the first test of `CLS-190`
+did not say what the rule does; (g) the protocol asked the history entry for keys that the recorder does not
+write. Fixed by the builder's hand in this order: (a) first, then (b), (c), (d), (e), (f), (g). `OWN-015` stays
+`block` (D26), holders in a sentence stay unread (D31), `DISC-005` stays `every_field`, `DISC-006`, `CLS-005`
+and `DISC-035` stay. Measured on corpora already seen only (`eval/history.json` run 17): not blind.
+
+**One statement of entry 2.0.6 was incomplete, and is completed here (the entry 2.0.6 is kept as written):**
+
+- section 4 of 2.0.6 called the words of an address slot and a name beside an identifier nobody knows a residual
+  risk of which "no case ... is in the corpora seen". The siblings of section 2 below show that on the code of
+  `v2.0.6-freeze` the class was wide: 256 of 600 cases publish a field that the extra words may change as fact,
+  and 56 more end the run FAILED. The probes of run 16 did not reach it (two blocked, two masked).
+- `CHANGELOG.md:220-221` at `v2.0.6-freeze` (a row of a list that is illegible or not typed) did not cover the
+  form of E-0010: a sentence written right after a list, with no blank line. Since v2.0.7 a full sentence or a
+  heading ends the list (section 5); a sentence that names an identifier, a share or a count, as in E-0010, still
+  does not, and is marked below (**blocks** for the holders, **keeps `[TO CONFIRM]`** for the directors).
+
+#### 1. The rule (a): a typed slot states only its own value - by equality where the value is known, by form where it is not
+
+- An address (`rules/extract.json:59` `slot_address`) is a street, a house number, a town and the province in
+  parentheses (optionally `- interno`, `- scala` or `- piano` and a mark), then the end of the line or the
+  sentence's own full stop. The house number is no longer optional, so that no word stands in its place. Every
+  word of the street and of the town must have the form of an Italian place name (`:76` `slot_address_word`: it
+  ends in a vowel, or is a particle, an elided particle, a truncated form such as `San` or `Castel`, or a Roman
+  numeral), must not be a name the corpus knows (a person of the identity layer, a company of an `Entity:`
+  header, its legal form set aside) and must not be a word of `slot_not_name_word` (`:73`), which adds the
+  English verb endings `-ing` and `-s`, the commonest irregular past forms, nouns in `-ee`, and Italian nouns
+  and verbs of role and holding (`subentra`, `cede`, `detiene`, `amministratore`...). `dossier/s1_extract.py:762`
+  `address_form_ok`, `:736` `known_name_inside`, `:772` `_slot_closes`.
+- The readers of the registered office read only such an address: `EXT-OFFICE-010`, `-020` and `-030`
+  (`rules/extract.json:224`, `:235`, `:246`) carry `value_slot` `w_office` (`:230`, `:241`, `:252`); an address
+  read is judged as that slot of `classified_lines`, and one that fails is not read
+  (`dossier/s1_extract.py:237-241`). The extra words therefore never reach the office value nor the shareable
+  layer: on v2.0.6 they did, and the run FAILED (`s8`).
+- A name beside an identifier is judged by equality only (`CLS-005`, `rules/extract.json:636`;
+  `dossier/s1_extract.py:716` `label_not_its_own`): it closes its line only when it is that identifier's own
+  known name. An identifier whose own name the corpus does not know (no name in the identity layer, no `Entity:`
+  header of its own) cannot be checked, and the line is open - the word list is no longer consulted there. A
+  value that is its identifier's own known name, or the entity's own name equal to its header, is a name whatever
+  its words (`:751` `_own_value`: `Holding` or `Trading` in a company's own name is not a verb).
+- An amount slot (currency and figure, and the words the rules already read) and a count slot (a figure and the
+  unit noun) were already typed in v2.0.6: extra words after them make the line one no rule explains. The
+  siblings below confirm it on both codes (0 unsafe). Another company's name in a label is judged by equality with
+  that company's header (holder rows) or with the document's own header (label lines), as in v2.0.6.
+- The audit re-derives all of it in its own code (`dossier/s7_audit.py:349` `_not_its_own`, `:470`
+  `address_form`, `:474` `names_of`) and refuses a record less strict than its own reading.
+
+#### 2. Siblings by class (`tests/test_d36_forms.py`), and the code of v2.0.6
+
+Each case is a deed and a registry extract that agree, with one slot changed, or a later document (an office
+transfer, a capital resolution, a financial summary, a transfer notice, a ledger, an appointment) dated after
+both. The extra words are eight wordings of capitalised words that state another field - the directors, the
+holders or the capital - naming a person the corpus knows, a person it does not know, or nobody, among them an
+Italian verb (`Subentra`) and a noun of role in no list (`Leader`); none is a literal string of hand-16. A case is
+unsafe when a field the words may change is published as fact, the slot's own field is published with the words
+in it, a holding is derived from a table the words may contradict, or the run FAILED. The same file was run on the
+code of `v2.0.6-freeze` (commit `6acebba`).
+
+| Class (places) | Cases | Unsafe on v2.0.6 | of which FAILED | Unsafe on v2.0.7 |
+|---|---|---|---|---|
+| address slot: after the province, after the house number, in place of it, inside the town, inside the street, after `interno`, as the town (deed, extract, label line, office transfer new and previous address) | 280 | 164 | 56 | 0 |
+| amount slot (deed clause, extract, capital resolution, financial summary) | 80 | 0 | 0 | 0 |
+| count slot (capital clause, holder rows in quotas) | 32 | 0 | 0 | 0 |
+| a name beside an identifier nobody knows (holder rows `P-`, `E-`; director lines `ID (name)`, `name (ID)`) | 176 | 148 | 0 | 0 |
+| another company's name in a label (holder row, label line) | 32 | 0 | 0 | 0 |
+| all | 600 | 312 | 56 | 0 |
+
+The unmasked probes (goal (a) on seen data): `D36_HandSixteenUnmasked` builds at run time, from
+`eval/blind/hand-16/` (not changed), E-0014 with its office change in the wording `EXT-OFFICE-010` reads and the
+extra words after the new address kept, and E-0017 with the total of quotas inside the deed's capital clause that
+`count_total` reads and the extra words on a holder row. v2.0.6: 0 never-events, E-0014 **FAILED** (the reader
+took the extra words, two person names among them, into the office, and they reached the shareable layer; nothing
+published), E-0017 BLOCKED (the row is not typed: `CLS-999`, `OWN-015`). v2.0.7: 0 never-events, E-0014 OK with
+every field `[TO CONFIRM]` and no office value read from the transfer (`value_slot`), E-0017 BLOCKED. Nothing is
+published as fact on either code. `D36_ReaderRefusesTheSlot` (5 reader cases) fails on v2.0.6, passes on v2.0.7;
+the plain addresses and the plain office transfer of `D36_PlainAddressesStillRead` pass on both (its third test,
+the address without a house number, is the price of section 3 and fails on v2.0.6 by design).
+
+#### 3. The price of (a)
+
+Counted with `address_form_ok` on every address of the recorded corpora (suites, seeds 20261011 to 20261016 plain
+and perturbed, the out-of-pool corpus of run 5, hand corpora of runs 7, 9, 11, 14 and 16, scenarios): 8845 of
+8848 pass. The 3 that do not are one address without a house number (hand-11 E-0009, `Piazza Senza Numero`),
+which is no longer an address; its fields were `[TO CONFIRM]` already (`DISC-005`). A corpus whose identity layer
+names no person cannot check any name beside a person identifier: its holders block (`D36_UnknownIdentifierIsOpen`;
+`tests/test_pipeline_cli.py` now writes the identity layer of its one-deed input). A real street or town with a
+word of another form (`Viale Kennedy`, `Via Roma Nord`) costs the same as an address with extra words. In run 17,
+(a) moves one count of one result: on hand-11, figures with source 134/134 -> 132/132 - the two readings of
+E-0009's office (deed and extract) are no longer read and no longer listed beside the `[TO CONFIRM]` field; no
+status of any field changes there.
+
+#### 4. The premise of the proof, for v2.0.7 (what still rests on it)
+
+The proof of entry 2.0.5 section 1 assumes that a typed slot states nothing but the value of its own field.
+**Closed by equality** in v2.0.7: every name slot - a name beside an identifier (the identifier's own known name,
+or the line is open), the entity's own name (its header), another company's name (its header). **Closed by
+grammar**: the amount and count slots (currency and figure, figure and unit noun: any other word opens the line),
+the house number of an address, and the form of the words of a street and a town (each ends in a vowel, or is a
+particle, a truncated form or a Roman numeral).
+What **still rests on a word list** (`slot_not_name_word`, and the names the corpus knows): a street or a town
+whose words all have the form of a place name, name nobody the corpus knows, and state something with a word of
+no class of that list - an Italian verb or noun ending in a vowel (`Via Ugo Nessuno Governa 1, Montefinto (ZZ)`;
+`Montefinto Ugo Nessuno Presiede (ZZ)`). No grammar tells such a street from `Via Giuseppe Garibaldi 1`. Such a
+line closes, and every field of the entity is published - the directors included, whatever those words were meant
+to say. This is a residual risk, **`[TO CONFIRM]`**, not "no case is known": the case above is constructed and
+kept as a test expected to fail (`tests/test_d36_forms.py` `D36_ResidualWordList`); when it passes, this section
+must change. The lists of `unread_fields` and `holders_evidence` (sentences) are word lists too; under
+`every_field` they decide only whether an entity blocks or keeps every field `[TO CONFIRM]`. The blind protocol
+asks the next hand to probe the address slot, unmasked.
+
+#### 5. (b) A list ends at a sentence or a heading
+
+`dossier/s1_extract.py:356` `ends_list`, `:370` `_block`, and the audit's own reading
+(`dossier/s7_audit.py:444`): a list (a holders' table, a directors' list) runs from its heading to the first blank
+line or to the first line that is a heading of a list (`holders_heading`, `directors_heading`, with or without the
+terminal mark, no identifier) or a full sentence (`rules/extract.json:29` `list_end_sentence`: a capital first, no
+list marker, three words or more, `.`, `!` or `?` after a letter, no identifier, no share, no fraction, no figure
+followed by a unit noun). That line is classified on its own (`classified_lines`; `CLS-999` and `DISC-006`;
+`OWN-015` when it may state a holding). Any other line stays a row: a wrapped row, a share, an identifier, a line
+that ends in a figure leaves the whole list unread, as before. `D36_ListEnd`: a sentence or a heading after a
+list in a deed, an extract, a transfer notice and an appointment (5 of 6 fail on v2.0.6), and a wrapped row, a
+sentence with a count, a sentence with a share, a sentence of the total, which still block. hand-16: E-0019's
+directors are read (`[TO CONFIRM]` -> `P-007`, exact); E-0008 keeps every field `[TO CONFIRM]` on both codes, by
+`DISC-006`: its line 11, a sentence that gives an address where the board meets, is read by no rule of an
+appointment - on v2.0.6 as a row of the list, on v2.0.7 on its own; E-0010 still blocks (its sentence names
+`P-001` and `P-013`), as marked below.
+
+#### 6. (c) and (d): "own" after a possessive; an illegible amount
+
+- `rules/extract.json:387` `neutral_phrases`: a possessive (`its`, `their`, `the company's`, a name's) followed by
+  the adjective "own" is not a word of holding unless "own" is followed by an article, a determiner or a figure;
+  the verb ("Aldo Finti and Bice Provetti own the company", "they own the whole of it") still is (`HEV-040`,
+  `:426`, 3 new tests). `D36_PossessiveOwn` on a document of unrecognised type: 2 cases blocked on v2.0.6 now keep
+  every field `[TO CONFIRM]` (`DISC-005`); 3 still block. hand-16 E-0006, E-0011: BLOCKED -> OK, every field
+  `[TO CONFIRM]`.
+- `HEV-080` (`:470`): a currency followed by a figure with `#` in it is an amount that cannot be read, not a bare
+  figure. `D36_IllegibleAmount`: 2 cases blocked on v2.0.6 are now published; a name and a bare figure still
+  block. E-0114 of seed 20261016 perturbed: BLOCKED -> OK; the thirteen gold facts it adds are all left
+  `[TO CONFIRM]` and the field the gold leaves open is kept (section 8).
+
+#### 7. (e), (f), (g)
+
+- (e) `dossier/s1_extract.py:927` `_list_region`, `:993`: lines that stand inside another field's list are named
+  as such - hand-16 E-0025: "lines 12, 14 stand in the holders' table of line 11 and are not rows it reads (each
+  reads as a line of the directors, CLS-240); no rule of its kind read them" (it said "state the directors"). The
+  outcome is unchanged (BLOCKED). `D36_ListLineMessage`.
+- (f) The first test of `CLS-190` (`rules/extract.json:780`) says what the line may change with a new key,
+  `expect_may_change_unless_read` (`dossier/s1_extract.py:1162` `run_inline_tests`): `registered_office` when no
+  field rule of its kind reads it, nothing when one does - scenario S09 adds such a rule. "The seat of the company
+  is moved" **stays unread by design**: it is S09's unknown wording, and reading it would break S09's
+  expectation that the rule added on top moves that field only. A test of the read wording ("is transferred",
+  nothing may change) is added.
+- (g) `eval/BLIND_PROTOCOL.md` section 5 now asks the history entry for the seven keys the recorder writes (`n`,
+  `date`, `run_by`, `code`, `command`, `note`, `results`) and the Council-shape runs, listed by start time, in the
+  evaluator's scorecard. The paragraph of D33 is unchanged.
+
+#### 8. The price, measured on every corpus already seen
+
+Run 17 (v2.0.7, builder's hand, NOT blind): the commands of run 15 plus seed 20261016 plain and perturbed and
+hand-16. Compared with v2.0.6 (run 15 for eighteen results, run 16 - the evaluator on the same code - for 20261016
+plain, perturbed and hand-16; the v2.0.6 code was re-run by the builder on all twenty-one, and every count and
+metric equals the recorded one). Never-events 0 on all twenty-one results; every never_event_list is empty.
+
+**Eighteen of the twenty-one results do not move at all**: dev, holdout, stress, seeds 20261011 to 20261016 plain,
+20261011 to 20261015 perturbed, the out-of-pool corpus of run 5, hand (run 7), hand-9, hand-14. hand-11 moves in
+one count only (section 3).
+
+| Result | v2.0.6 | v2.0.7 |
+|---|---|---|
+| hand-16: never-events | 0 | 0 |
+| hand-16: published, blocked wrongly | 12/28, 15 | 14/28, 13 |
+| hand-16: facts exact | 46/89 | 47/102 |
+| hand-16: fields `[TO CONFIRM]` | 43/99 | 55/118 |
+| hand-16: `[TO CONFIRM]` kept | 7/7 | 13/13 |
+| hand-16: effective holdings exact, superseded linked, figures with source | 5/9, 0/13, 144/144 | 5/11, 1/13, 181/181 |
+| 20261016 perturbed: never-events | 0 | 0 |
+| 20261016 perturbed: published, blocked wrongly | 136/150, 5 | 137/150, 4 |
+| 20261016 perturbed: facts exact, fields `[TO CONFIRM]`, kept | 649/1261, 665/1370, 29/29 | 649/1274, 678/1384, 30/30 |
+| 20261016 perturbed: effective holdings exact, superseded linked, figures with source | 34/86, 211/496, 2760/2760 | 34/87, 211/507, 2778/2778 |
+| hand-11: figures with source (all else unchanged) | 134/134 | 132/132 |
+
+hand-16 moves on four entities: E-0006 and E-0011 are published with every field `[TO CONFIRM]` ((c)), the
+directors of E-0019 are exact ((b)), and the fields check of E-0025 has its new message ((e)); 20261016 perturbed
+on one, E-0114 ((d)). The thirteen blocked wrongly are declared limits: holders in a sentence (D31),
+a table with a header row, a row with "each", per mille, a sentence with an identifier right after a list
+(E-0010), and the typed-slot probes that open a line which may state a holding (E-0013, E-0017, E-0018).
+[TO CONFIRM: the per-entity attribution of the thirteen is the builder's reading of the views; the counts are the
+scorer's.]
+
+### Known limits of v2.0.7
+
+Each limit is marked with what it does to the entity: **blocks**, **keeps `[TO CONFIRM]`** or **may publish**.
+**No known limit may publish.** The residual risk of section 4 is stated there, as `[TO CONFIRM]`.
+
+- holders stated in a sentence rather than in a list under a heading, including a holder noun in a sentence of
+  a memorandum, a resolution or an appointment (hand-9 E-0003, E-0007; hand-14 E-0005, E-0007, E-0009): not
+  read, by the owner's risk decision D31 - **blocks**;
+- a row naming several holders with "each" (hand-14 E-0003) - **blocks**;
+- a qualifier meaning "current" in free words in the heading (hand-11 E-0002), and a participle of another class
+  than "registered" after a comma in the heading - **blocks**;
+- a table with a header row (hand-11 E-0011, hand-9 E-0003, hand-14 E-0014) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words - **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them (`OWN-015`) - **blocks**;
+- shares planted as illegible block by design (D26) - **blocks**;
+- a document of unrecognised type (a type label the rules do not list) not older than the latest event of a
+  field: every field (`DISC-005`, `every_field`) - **keeps `[TO CONFIRM]`**; when it holds a line that may state
+  a holding (`holders_evidence`), or a holders' table that is not read whole - **blocks** (`OWN-015`);
+- a document of a recognised type with a body line that no rule of its kind explains (`CLS-999`): every field,
+  when the document is not older than the latest event (`DISC-006`) - **keeps `[TO CONFIRM]`**; when the line
+  may state a holding - **blocks** (`OWN-015`);
+- a closed line that states a field of its kind where no rule of its kind read it (the office-transfer wording
+  "The seat of the company is moved", scenario S09, among them), or a field its kind does not read: that field,
+  when the document is not older than the latest event - **keeps `[TO CONFIRM]`**;
+- a holders' table in a document of a kind not read for the holders: read whole and summed, then the holders
+  **keep `[TO CONFIRM]`**; not read, or two of them - **blocks**;
+- a row of a list of a recognised document whose share is illegible or not typed - every field **keeps
+  `[TO CONFIRM]`**, and when the row may state a holding - **blocks**;
+- since v2.0.7 marked (2.0.6 did not list it), a line right after a list with no blank line that is neither a
+  heading nor a full sentence of the form `list_end_sentence` - a sentence that names an identifier, a share or a
+  figure with a unit noun (hand-16 E-0010), a wrapped row: a row of the list the grammar cannot read - holders
+  **block**, directors **keep `[TO CONFIRM]`**;
+- a name slot with a word of `slot_not_name_word` that is not its identifier's or its entity's own known name, a
+  name beside an identifier that is not its own (`CLS-005`), or the entity's own name slot that differs from its
+  `Entity:` header: the line is one no rule explains - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and
+  when the line may state a holding - **blocks**. A real name that holds such a word and is not beside its own
+  identifier (since v2.0.7 a name equal to its identifier's or its entity's own known name is a name whatever its
+  words) costs the same;
+- since v2.0.7, a name beside an identifier whose own name the corpus does not know (not in the identity layer,
+  no `Entity:` header of its own; every person when the identity layer names nobody): the line is open - every
+  field **keeps `[TO CONFIRM]`**, and the holders **block** (`OWN-015`);
+- since v2.0.7, an address without a house number, or whose street or town holds a word that is not of the form
+  of a place name (a real `Viale Kennedy` or `Via Roma Nord` included), a name the corpus knows, or a word of
+  `slot_not_name_word`: the line is open and the office is not read from it - every field **keeps
+  `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**;
+- a company name whose legal form differs from the legal form stated (`S.r.l.s.` against `S.r.l.` included, by
+  design) - the name is a discrepancy and the legal form **keeps `[TO CONFIRM]`** (`DISC-035`).
+
+Count of limits marked **may publish**: v2.0.4 1, v2.0.5 0, v2.0.6 0, v2.0.7 0.
+
+### Tests and numbers
+
+- `tests/test_d36_forms.py`, 14 tests in 10 classes: the 600 siblings (312 unsafe on the v2.0.6 code, 0 on
+  v2.0.7), the unmasked hand-16 probes through the scorer, the plain addresses that still publish and the address
+  without a house number that does not, the readers that refuse the slot, the end of a list, "own" after a
+  possessive, an illegible amount, the message of a line inside a list, an identity layer with nobody in it, and
+  the residual of section 4 as a test expected to fail (an expected failure on both codes). Run on the code of
+  `v2.0.6-freeze` (the reader test with the two-argument call of that code), 10 of the 13 others fail
+  (`test_ends_list` errors: `ends_list` is new); the 3 that pass on both are controls - plain addresses, a plain
+  office transfer, a broken row and sentences with a share or a count that still block.
+- Inline rule tests: `classified_lines` 83 -> 87 (`CLS-005` 4 -> 7, `CLS-190` 2 -> 3), `holders_evidence` 23 ->
+  30 (`HEV-040` 1 -> 4, `HEV-999` 9 -> 13); 219 -> 230 in all. `tests/test_rules.py` still counts 90 rules.
+- `tests/test_pipeline_cli.py`: the one-deed input of `RefusedBeforeAnythingIsBuilt` now has its identity layer.
+- Measured by the builder on corpora already seen (`eval/history.json` run 17; NOT blind): section 8.
+
 ## [2.0.6] - 2026-10-01 (freeze tag `v2.0.6-freeze`; not yet run blind)
 
 ### D35 - blind run of v2.0.5, run 14: two probes masked by a one-character miss, a judgement shown wrongly, a limit marked wrongly

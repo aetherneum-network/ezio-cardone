@@ -45,6 +45,13 @@
   documents of the blind run of v2.0.5 (run 14, seed 20261015, `eval/blind/hand-14/`). Its rules and its 192
   sibling cases (`tests/test_d35_forms.py`) were written by the same hand with those documents in view. The same
   limit applies: hand-14 is now seen, and its numbers (run 15) are not blind.
+- **The change of v2.0.7** (finding D36: typed slots closed by equality and by form, the readers of the office
+  bound to the address slot, the end of a list at a sentence or a heading, "own" after a possessive, an illegible
+  amount, the message of a line inside a list) was written with the same model, in a separate session on
+  2026-10-01, as the builder's hand, after reading the results and the hand-written documents of the blind run of
+  v2.0.6 (run 16, seed 20261016, `eval/blind/hand-16/`). Its rules and its 600 sibling cases
+  (`tests/test_d36_forms.py`) were written by the same hand with those documents in view. The same limit applies:
+  hand-16 is now seen, and its numbers (run 17) are not blind.
 
 ## What runs at runtime
 
