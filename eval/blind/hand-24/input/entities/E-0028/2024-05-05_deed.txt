@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0028-01
+Document type: Deed of incorporation
+Document date: 2024-05-05
+Edition: DEED/1
+Entity: Molini Castelfittizio S.r.l. (test registry no. TEST-REG-000028)
+
+1. Name and form. The company is named Molini Castelfittizio S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via dei Prototipi Quote Riunite In Un Solo Socio 15, Castelfittizio (ZZ).
+3. Share capital. The share capital is EUR 30.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-053 (Elio Modelli): 50%
+- P-054 (Franca Segnaposto): 50%
+
+5. Directors.
+- P-053 (Elio Modelli)

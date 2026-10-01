@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0011-03
+Document type: Notarial certificate
+Document date: 2026-07-21
+Edition: CERT/1
+Entity: Distillerie Castelfittizio S.r.l. (test registry no. TEST-REG-000011)
+
+Certificate of the notary (synthetic).
+After the contribution received today the capital of the company stands at EUR 120.000,00, fully subscribed and fully paid in; the quotas remain in the same hands in the same proportions.

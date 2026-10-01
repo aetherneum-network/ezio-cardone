@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0020-01
+Document type: Deed of incorporation
+Document date: 2022-08-08
+Edition: DEED/1
+Entity: Cartiere Valfittizia S.r.l. (test registry no. TEST-REG-000020)
+
+1. Name and form. The company is named Cartiere Valfittizia S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Vicolo Fittizio 25, Valfittizia (ZZ).
+3. Share capital. The share capital is EUR 40.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-039 (Sergio Segnaposto): 60%
+- P-040 (Tina Collaudi): 40%
+
+5. Directors.
+- P-039 (Sergio Segnaposto)

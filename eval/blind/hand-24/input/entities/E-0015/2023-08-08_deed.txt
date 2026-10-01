@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0015-01
+Document type: Deed of incorporation
+Document date: 2023-08-08
+Edition: DEED/1
+Entity: Cantieri Fontesegnaposto S.r.l. (test registry no. TEST-REG-000015)
+
+1. Name and form. The company is named Cantieri Fontesegnaposto S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Largo Simulato 2, Fontesegnaposto (ZZ).
+3. Share capital. The share capital is EUR 35.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-030 (Franca Fasulli): 50%
+- P-031 (Gino Ipotetici): 50%
+
+5. Directors.
+- P-030 (Franca Fasulli)

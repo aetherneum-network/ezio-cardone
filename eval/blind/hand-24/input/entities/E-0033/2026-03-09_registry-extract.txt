@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0033-02
+Document type: Test registry extract
+Document date: 2026-03-09
+Edition: EXTRACT/1
+Entity: Finanziaria Collesintesi S.p.A. (test registry no. TEST-REG-000033)
+
+Name: Finanziaria Collesintesi S.p.A.
+Legal form: S.p.A.
+Registered office: Viale degli Esempi 14, Collesintesi (ZZ)
+Share capital: resolved EUR 240.000,00; subscribed and paid in EUR 240.000,00
+Holders:
+- P-061 (Piero Ipotetici): 75%
+- P-062 (Rita Finti): 25%
+
+Directors:
+- P-061 (Piero Ipotetici)

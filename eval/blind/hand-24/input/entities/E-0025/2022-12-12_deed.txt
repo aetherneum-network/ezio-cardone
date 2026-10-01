@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0025-01
+Document type: Deed of incorporation
+Document date: 2022-12-12
+Edition: DEED/1
+Entity: Finanziaria Pietrafinta S.p.A. (test registry no. TEST-REG-000025)
+
+1. Name and form. The company is named Finanziaria Pietrafinta S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Largo Simulato 4, Pietrafinta (ZZ).
+3. Share capital. The share capital is EUR 150.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-049 (Aldo Sintetici): 50%
+- P-050 (Bice Esempi): 50%
+
+5. Directors.
+- P-049 (Aldo Sintetici)
+- P-050 (Bice Esempi)
