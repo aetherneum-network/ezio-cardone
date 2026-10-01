@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-01
+Document type: Deed of incorporation
+Document date: 2024-05-20
+Edition: DEED/1
+Entity: Maglificio Serra Favolosa S.r.l. (test registry no. TEST-REG-000008)
+
+1. Name and form. The company is named Maglificio Serra Favolosa S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via dei Burattini 6, Vado Posticcio (ZZ).
+3. Share capital. The share capital is EUR 40.000,00, fully subscribed and fully paid in.
+4. Quotaholders:
+- P-001 (Mara Apocrifi): 3/4
+- P-003 (Vera Chimerici): 1/4
+
+5. Directors:
+- P-001 (Mara Apocrifi)

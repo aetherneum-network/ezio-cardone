@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0017-01
+Document type: Deed of incorporation
+Document date: 2025-01-06
+Edition: DEED/1
+Entity: Cantina Rocca Chimera S.r.l. (test registry no. TEST-REG-000017)
+
+1. Name and form. The company is named Cantina Rocca Chimera S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Largo delle Ombre 1, Rocca Chimera (ZZ).
+3. Share capital. The share capital is EUR 45.000,00, fully subscribed and fully paid in.
+4. Holders.
+a) Vera Chimerici (P-003): 1/2
+b) Lena Supposti (P-005): 1/2
+
+5. Directors.
+a) Vera Chimerici (P-003)

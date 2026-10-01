@@ -1,0 +1,8 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0024-03
+Document type: Transfer of registered office
+Document date: 2026-01-20
+Edition: OFFICE/1
+Entity: Stamperia Vado Posticcio S.r.l. (test registry no. TEST-REG-000024)
+
+The registered office is transferred from Via delle Sagome 30, Vado Posticcio (ZZ) to Via delle Chimere 7, Colle Apocrifo (ZZ).

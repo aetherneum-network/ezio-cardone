@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-02
+Document type: Test registry extract
+Document date: 2026-03-03
+Edition: EXTRACT/1
+Entity: Segheria Colle Apocrifo S.r.l. (test registry no. TEST-REG-000006)
+
+Name: Segheria Colle Apocrifo S.r.l.
+Legal form: S.r.l.
+Registered office: Largo del Simulacro Regia Nuova Tullio 5, Rocca Chimera (ZZ)
+Share capital: resolved EUR 18.000,00; subscribed and paid in EUR 18.000,00
+Holders:
+- P-007 (Sara Favolosi): 70%
+- P-008 (Tito Spuri): 30%
+
+Directors:
+- P-008 (Tito Spuri)

@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0018-03
+Document type: Notarial attestation
+Document date: 2026-08-03
+Edition: ATTEST/1
+Entity: Ferramenta Lago Fasullo S.r.l. (test registry no. TEST-REG-000018)
+
+Declaration of the test notary (synthetic).
+Appeared before me Tito Spuri (P-008), who from this day signs for the company in every matter; Sara Favolosi (P-007) lays down the pen today.

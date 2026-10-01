@@ -1,0 +1,86 @@
+{
+  "P-001": {
+    "name": "Mara Apocrifi",
+    "born": "1962-03-14",
+    "email": "mara.apocrifi@persons.example",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "name": "Dino Posticci",
+    "born": "1958-11-02",
+    "email": "dino.posticci@persons.example",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "name": "Vera Chimerici",
+    "born": "1970-06-21",
+    "email": "vera.chimerici@persons.example",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "name": "Ivo Illusori",
+    "born": "1965-09-09",
+    "email": "ivo.illusori@persons.example",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "name": "Lena Supposti",
+    "born": "1979-01-30",
+    "email": "lena.supposti@persons.example",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "name": "Oreste Immaginari",
+    "born": "1955-12-12",
+    "email": "oreste.immaginari@persons.example",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "name": "Sara Favolosi",
+    "born": "1983-04-04",
+    "email": "sara.favolosi@persons.example",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "name": "Tito Spuri",
+    "born": "1960-08-25",
+    "email": "tito.spuri@persons.example",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "name": "Nilo Burleschi",
+    "born": "1972-02-17",
+    "email": "nilo.burleschi@persons.example",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "name": "Ada Mendaci",
+    "born": "1968-10-05",
+    "email": "ada.mendaci@persons.example",
+    "tax_code": "SYN-CF-P010"
+  },
+  "P-011": {
+    "name": "Bruno Fallaci",
+    "born": "1975-07-07",
+    "email": "bruno.fallaci@persons.example",
+    "tax_code": "SYN-CF-P011"
+  },
+  "P-012": {
+    "name": "Enzo Parvenze",
+    "born": "1959-05-19",
+    "email": "enzo.parvenze@persons.example",
+    "tax_code": "SYN-CF-P012"
+  },
+  "P-013": {
+    "name": "Irma Larvati",
+    "born": "1981-09-23",
+    "email": "irma.larvati@persons.example",
+    "tax_code": "SYN-CF-P013"
+  },
+  "P-014": {
+    "name": "Olga Simulata",
+    "born": "1966-12-01",
+    "email": "olga.simulata@persons.example",
+    "tax_code": "SYN-CF-P014"
+  }
+}
