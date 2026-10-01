@@ -139,3 +139,22 @@ corpora (`CHANGELOG.md` 2.0.4). One gap of the same kind is still open and is de
 another field without the rules of its kind reading it would publish the older value of that field as a fact.
 The row A2 above stays downgraded for `v2.0.3-freeze`; v2.0.4 has been measured by the author on data
 already seen (run 12: 0 never-events) and has not been run blind, so nothing is upgraded here.
+
+### What v2.0.5 does for A2 (not run blind)
+
+v2.0.5 (tag `v2.0.5-freeze`, decision D34) closes the gap that v2.0.4 left open and declared: every non-empty
+body line of a document of a **recognised** type is now decided by the ordered rules `classified_lines`
+(`rules/extract.json`). A line that no rule of its kind explains makes the document one that may change every
+field; a line that states a field its kind does not read, or that no rule of its kind read from it, makes it one
+that may change that field; `DISC-006` keeps such a field `[TO CONFIRM]` when the document is not older than the
+latest event of the field, as `DISC-005` does for a document of unrecognised type. A holders' table in a
+document of another kind is read whole and summed, or the holders cannot be summed and `OWN-015` blocks; a line
+that may state a holding outside a list read whole blocks too. Holders written in a sentence stay unread (D31).
+On 379 siblings of five classes (`tests/test_d34_forms.py`: a capital resolution whose new quotas go to a new
+holder, a transfer notice that also moves the seat, an appointment that also states a capital change, an office
+transfer that also names a new director, a resolution that holds a holders' table), the v2.0.4 code publishes 348
+wrongly and fails on 15; v2.0.5 publishes none. `CHANGELOG.md` 2.0.5 lists the known limits: none of them may
+publish. The price is coverage on the reworded corpora (run 13: facts exact on stress 711 -> 681 of 1285, on the
+out-of-pool corpus 330 -> 290 of 925; the plain corpora do not move). The row A2 above stays downgraded for
+`v2.0.3-freeze`; v2.0.5 has been measured by the author on data already seen (run 13: 0 never-events on all
+fifteen results) and has not been run blind, so nothing is upgraded here.

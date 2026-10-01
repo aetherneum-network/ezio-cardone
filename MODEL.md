@@ -32,6 +32,12 @@
   `eval/blind/hand-11/`) and reproducing them on that seed and on the corpora already recorded. The same limit
   applies: the code has seen those corpora and those wordings (hand-11 is now seen), and its numbers (run 12)
   are not blind.
+- **The change of v2.0.5** (decision D34: every body line of a document of a recognised type decided by ordered
+  rules, `DISC-006`, a holders' table in a document of another kind summed or blocked) was written with the same
+  model, in a separate session on 2026-10-01, as the builder's hand, to close the last known limit of v2.0.4
+  that could publish. Its rules were written with the corpora already recorded and the hand-written documents
+  of runs 7, 9 and 11 in view, and its sibling cases (`tests/test_d34_forms.py`) were written by the same
+  hand. The same limit applies: its numbers (run 13) are not blind.
 
 ## What runs at runtime
 

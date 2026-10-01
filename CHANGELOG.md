@@ -2,6 +2,224 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.5] - 2026-10-01 (freeze tag `v2.0.5-freeze`; not yet run blind)
+
+### D34 - the limit "may publish" of v2.0.4 closed: every body line of a document of a recognised type is decided
+
+Source: the last known limit of entry 2.0.4 (`CHANGELOG.md:133-143` at `v2.0.4-freeze`), the only one marked
+**may publish**: a document of a recognised type was read for the fields of its kind only, so a recognised
+document whose text also changed another field left the older value of that field published as a fact.
+Decision D34 (2026-10-01, under the owner's delegation of that day): close it before any further blind run, by
+class and not by literal strings, and measure the price on every corpus already seen. `OWN-015` stays `block`;
+holders written in a sentence stay unread (D31). Measured by the builder's hand on corpora already seen only
+(`eval/history.json` run 13): not blind.
+
+The entry 2.0.4 is kept as written (`CHANGELOG.md:100` "One limit may publish" refers to that version). On the
+corpora seen, every field that v2.0.5 moves from a value to `[TO CONFIRM]` is counted in section 3 with its cause;
+none of the values v2.0.4 published there was a never-event (0 in run 12), so the move is caution, not a second
+gap found. A recognised document that states a field of its own kind in a wording its rule does not read already kept
+that field `[TO CONFIRM]` in v2.0.4 when the document was current, by `DISC-030`.
+
+#### 1. The rule
+
+- `rules/extract.json:605-871`, new ordered group `classified_lines` (20 rules, first match wins, default last),
+  run on every non-empty body line of a document whose type is recognised (`dossier/s1_extract.py:682`
+  `classify_line`, `:774` `classified_check`):
+  - `CLS-010` a line with no letter or digit (a banner, a rule);
+  - `CLS-020` a line of a list that a rule of its kind reads: the heading, a row whose label passes the test of an
+    unread document and whose share is typed (`:643` `_share_typed`: a share or a count that is read, or a
+    figure that is not read, parameter `slot_share_unread`; a share in other words leaves the row open), the
+    last `Total`;
+  - `CLS-110` to `CLS-240` the whole line of a clause of its kind (name and form, office, capital and its
+    counts, financial figures, resolution, office transfer, appointment, transfer, list headings), with typed
+    slots: an amount, a count, an address, a company or person name, a legal form (`slot_*` parameters,
+    `rules/extract.json:49-69`); the free words of a slot go through the topic rules of `unread_fields` and
+    `holders_evidence` (digits removed) and may name only the fields of the rule;
+  - `CLS-250` a label and a typed value (`:717` `_label_line_fields`): the label (at most eight words of letters)
+    may name fields of its kind only; the line states the fields of the kind that both the label and the type of
+    the value name (`value_topics`), else it is not closed;
+  - `CLS-900` a title made of the nouns of `FEV-920` (parameter `title_nouns`, now shared), `CLS-910` the
+    closing sentence;
+  - `CLS-999` anything else: **the document may change every field**.
+- What a line does (`dossier/s1_extract.py:774-817`): a line decided by `CLS-999` makes the document one that may
+  change every field (`*`); a closed line whose field no rule of its kind read from that very line (no assertion
+  of the field, or one read from another line) or whose field its kind does not read makes it one that may
+  change that field. The record carries `classified_checks` (`dossier/s2_record.py:51`,
+  `schema/entity_record.schema.json:25`), the run report and the view list them (`dossier/run.py:46`), the
+  dossier prints them in section 6 (`dossier/s6_build.py:303`).
+- `rules/discrepancy.json:151` new rule `DISC-006` (`dossier/s3_discrepancy.py:121` `classified_that_matter`,
+  `:146-149`, `:177`): a field stays `[TO CONFIRM]` when a document of a recognised type that may change it is not
+  older than the latest event of the field - the criterion of `DISC-005`. There is no exception for a table that
+  agrees with the current one.
+- Holders (`dossier/s1_extract.py:736` `_classified_holders`, `dossier/s4_ownership.py:49` and `:87`): a holders'
+  table in a document of a kind that is not read for the holders is searched as in an unread document - read
+  whole and summed (`OWN-010`), or the holders cannot be summed and `OWN-015` blocks; two such tables block; a
+  line decided by `CLS-999` that may state a holding (`holders_evidence`) blocks by `OWN-015`.
+  `rules/ownership.json` (note of `unverified_holders_table`, version 2.0.5) and `docs/ASSUMPTIONS.md` say so.
+- The audit (`dossier/s7_audit.py:293` `classified_scope`, `:449-465`) is a second implementation: it re-reads
+  every source of a recognised type, finds the list blocks by their headings, reads the rows with its own
+  grammar (`:264` `_list_row`) and words (`:238` `_Words`), matches the shapes and the label rule with its own
+  slot test, re-sums the holders' tables of other kinds, and refuses a record that omits an open line, a field
+  stated again where no rule read it, or a line that may state a holding.
+
+**Equivalence with the rule asked for.** The rule asked for: in a document of a recognised type, every body line
+that no rule of its kind reads is checked by the test of a line of an unread document (`unread_fields`: a holders'
+heading `FEV-910`, a title `FEV-920` and a closing sentence `FEV-930` state no field; anything else may state any
+field, `FEV-900`, `FEV-999`). v2.0.5 is at least as strict, in four steps: (a) every non-empty body line is
+decided, and the default `CLS-999` is every field; (b) a line means no field only as a title of the nouns of
+`FEV-920` (`CLS-900`), the closing sentence of `FEV-930` (`CLS-910`), a heading of a list that a rule of its kind
+reads (`CLS-020`, as `FEV-910`) or a line with no letter and no digit (`CLS-010`, which cannot write a value); (c)
+every other closed line is a whole fixed statement of named fields with typed values (`CLS-020` rows and Total,
+`CLS-110` to `CLS-250`), whose free words pass the topic test of a line of an unread document, and each field it
+states is either read from that very line by a rule of its kind - the document is then a source of that field, as
+before - or kept `[TO CONFIRM]` by `DISC-006` when the document is not older than the latest event; (d) a line that
+may state a holding and is not a row of a list read whole and summed blocks by `OWN-015`, as in an unread document.
+So a field is published from an older document only if no line of the newer document can state it. The proof rests
+on one premise: a typed slot states nothing but the value of its own field (section 4). `CLS-999` and `DISC-006`
+are tested by `tests/test_d34_forms.py` and by 66 inline tests of `classified_lines`.
+
+#### 2. The sibling classes, tested by class (`tests/test_d34_forms.py`)
+
+Five classes in 24 wordings - a separate line, the same line (or the same line as a row or a heading), words of the
+pack's own lists (`taken up`, `has its seat at`, `paid in`, a `Directors:` list in an office transfer) and
+sentences that change the field without naming it (`put in the whole of the increase`, `receives its post and holds
+its meetings at`, `takes over the running of the company`, a bare address, a bare name); for the holders' table: a
+table read whole, under a heading of its own, one that does not sum, two tables, rows without a heading. Each
+wording runs with no title line, with the generator's own title line of its kind (the office transfer has none) and
+with each of the 14 title nouns of `FEV-920`: 379 cases. The base is a deed and a registry extract that agree; the
+sibling is dated after both.
+Safe = the entity blocked, or every field the text changes `[TO CONFIRM]` and no holding derived from an older
+table. Run on the code of `v2.0.4-freeze` (commit `65b0233`) and on v2.0.5:
+
+| Class | Cases | v2.0.4 published wrongly | v2.0.5 |
+|---|---|---|---|
+| a capital resolution whose new quotas go to a new holder | 80 | 80 (the older holders as a fact, holdings derived) | 0 |
+| a transfer notice that also moves the seat | 80 | 64 (the older office; the 16 with the seat in a row blocked) | 0 |
+| an appointment that also states a capital change | 64 | 64 (the older capital) | 0 |
+| an office transfer that also names a new director | 75 | 60 (the older directors) + 15 runs that failed (the office value took the appointment sentence and the identity check refused the shareable layer) | 0 |
+| a resolution that holds a holders' table | 80 | 80 (the older holders, holdings derived) | 0 |
+
+348 of 379 published wrongly on v2.0.4, 15 failed, 16 were safe; on v2.0.5, 0 of 379. The cost side is tested
+too: a plain resolution, transfer, appointment and office transfer in the generator's own forms keep every field
+`STATED` with no classified check; a resolution with a holders' table that agrees is summed and keeps the holders
+`[TO CONFIRM]` (`DISC-006`).
+
+#### 3. The price, measured on every corpus already seen (that cost is accepted)
+
+Run 12 (v2.0.4, commit `4c90d53`) -> run 13 (v2.0.5, commit `f76dfad`), same commands, builder's hand, NOT blind.
+Never-events 0 on all fifteen results, before and after; every never_event_list is empty. Dossiers published,
+entities blocked wrongly and rightly, `[TO CONFIRM]` kept and the published dossiers whose holders are
+`[TO CONFIRM]` do not move on any corpus. Dev, holdout, the four plain corpora (20261011 to 20261014) and the
+three hand corpora (runs 7, 9, 11) do not move at all.
+
+| Corpus | Facts exact | Fields `[TO CONFIRM]` | Conflicts found |
+|---|---|---|---|
+| stress, seed 20261002 | 711 -> 681 of 1285 | 605 -> 635 of 1372 | 16 -> 16 of 47 |
+| 20261011 perturbed | 603 -> 568 of 1323 | 744 -> 782 of 1413 | 26 -> 23 of 50 |
+| 20261012 perturbed | 686 -> 653 of 1328 | 655 -> 688 of 1396 | 23 -> 23 of 36 |
+| 20261013 perturbed | 650 -> 618 of 1379 | 761 -> 796 of 1482 | 21 -> 18 of 53 |
+| 20261014 perturbed | 667 -> 652 of 1365 | 726 -> 748 of 1461 | 16 -> 9 of 44 |
+| out-of-pool corpus of run 5 | 330 -> 290 of 925 | 611 -> 652 of 986 | 13 -> 12 of 29 |
+| hand (run 7), hand-9, hand-11 | 10/10, 32/48, 32/71 (unchanged) | 0/11, 16/51, 39/86 (unchanged) | unchanged |
+
+Where it falls (fields of published dossiers that went from a value to `[TO CONFIRM]`, all by `DISC-006`): stress
+31, the four perturbed corpora 42, 43, 35, 23, out-of-pool 50 - 224 in all. 200 of them (stress 31, perturbed
+38, 36, 35, 23, out-of-pool 37) come from a closed line that the rule of its kind does not read - mostly lines of a
+registry extract (`Seat:`, `Share capital:` with an amount in words or `paid up`, `Board:`), some figure labels of a
+financial statement - in an **intermediate** edition that a later source reading the same field supersedes;
+`DISC-006` keeps the field `[TO CONFIRM]` because it compares with the latest event, as `DISC-005` does, not with
+the latest source. 20 come from a line decided by `CLS-999` in the latest document (perturbed 20261011 4, 20261012
+7, out-of-pool 9) and 4 from a closed line in the latest document (out-of-pool). A narrower criterion - a classified
+document older than a later source that reads the field does not count - could win back up to those 200; it is
+not written and not measured: it publishes more, and needs its own proof and the owner's decision.
+
+Every figure published still carries its source (stress 2868/2868, the four perturbed corpora 2915, 2909, 3086,
+2965, out-of-pool 1787, each N of N). The shapes of `classified_lines` were written by the builder with the
+corpora already seen in view - the generator's own clauses and the variants seen (the currency after the figure,
+`nominal` and `issued` capital, `wholly subscribed and wholly paid in`, `domiciled at`, `go up` or `be raised`, a
+second sentence `It is split into N quotas`, from hand-11 E-0003, which otherwise blocked) and the label rule
+`CLS-250` - so these numbers are not a blind measure. A wording the shapes do not know opens the line (`CLS-999`):
+it costs coverage, never a fact.
+
+#### 4. Residual risk of the premise (not a known limit: no case is known)
+
+The proof of section 1 assumes that a typed slot states nothing but the value of its own field. A name or address
+slot admits only capitalised words of letters and a few particles (a company name of up to eight words and its
+legal form, a person name of up to five, an address made of a street, a house number, a town and a province in
+parentheses), no other figure and no identifier; an amount or a count slot admits a figure and its currency only.
+The words of a slot are judged by the same lists of `unread_fields` and `holders_evidence` that run 11 showed incomplete for whole
+sentences. A change of another field written entirely inside such a slot, in words those lists do not know, would
+not be seen; if one is found it publishes, and it goes into a new version under a new tag. None is known; the
+blind protocol asks the next hand for it.
+
+### Known limits of v2.0.5
+
+Each limit is marked with what it does to the entity: **blocks**, **keeps `[TO CONFIRM]`** or **may publish**.
+**No known limit may publish** (v2.0.4: one). The residual risk of section 4 is not a known limit and is stated
+there.
+
+- holders stated in a sentence rather than in a list under a heading (hand-9 E-0003 and E-0007): not read, by
+  the owner's risk decision D31 - **blocks**;
+- a qualifier meaning "current" in free words in the heading (`Shareholders once the transfer has taken
+  effect:`, hand-11 E-0002) - **blocks**;
+- a table with a header row (`| Identifier | Holder | Share |`, hand-11 E-0011, hand-9 E-0003) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words (`On the third of July ... received a third`) -
+  **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions: `half` alone, decimals in words, a number that
+  does not agree (`two third`, `one thirds`), more than a hundred per cent - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them: it may change every field and
+  its holders cannot be summed (`OWN-015`; 41 of the 44 entities blocked wrongly in the out-of-pool corpus of
+  run 5) - **blocks**;
+- shares planted as illegible block by design (D26): 2, 2, 1, 3, 3, 3, 3, 0, 0, 2, 2 entities of dev, holdout,
+  stress and the seeds 20261011 to 20261014, plain and perturbed - **blocks**;
+- a document of unrecognised type not older than the latest event of a field: every field (`DISC-005`,
+  `every_field`); the rules of `unread_fields` decide nothing under the default - **keeps `[TO CONFIRM]`**;
+- since v2.0.5, a document of a recognised type with a body line that no rule of its kind explains
+  (`CLS-999`): every field, when the document is not older than the latest event (`DISC-006`) - **keeps
+  `[TO CONFIRM]`**; when the line may state a holding - **blocks** (`OWN-015`);
+- since v2.0.5, a closed line that states a field of its kind where no rule of its kind read it (a reworded
+  label, an amount in words, a second clause or list), or a field its kind does not read: that field, when the
+  document is not older than the latest event, even if a later source reads the field (section 3) - **keeps
+  `[TO CONFIRM]`**;
+- since v2.0.5, a holders' table in a document of a kind not read for the holders: read whole and summed, then
+  the holders **keep `[TO CONFIRM]`** (no exception for a table that agrees); not read, or two of them -
+  **blocks**;
+- since v2.0.5, a row of a list of a recognised document whose share is illegible or not typed: the row is not
+  closed (`CLS-999`) - every field **keeps `[TO CONFIRM]`**, and when the row may state a holding
+  (`holders_evidence`) - **blocks**.
+
+Count of limits marked **may publish**: v2.0.4 1, v2.0.5 0.
+
+### Tests and numbers
+
+- `tests/test_d34_forms.py`, 5 tests in 2 classes: the 379 siblings (348 published wrongly and 15 failed on the
+  v2.0.4 code, 0 on v2.0.5), the title nouns of the rule, the plain documents that still publish, a table that
+  agrees and still keeps the holders, a capital raise that does not state the subscription (subscribed and
+  paid-in `[TO CONFIRM]` by `DISC-030`, as in v2.0.4).
+- Inline rule tests: `classified_lines` 66 (17 of them on `CLS-999`), `DISC-006` 3; `tests/test_rules.py` counts
+  88 rules (67 + 20 `CLS` + `DISC-006`) and checks that the inline tests of `classified_lines` bite.
+  `tests/test_d30b_forms.py` reads the title nouns from the shared parameter. 275 tests in all.
+- An inline test that expects what a line may change depends on the field rules: the expectation of `CLS-190`
+  sits on a wording that no field rule reads, so that scenario S09, which adds a field rule on top for the other
+  wording, still passes.
+- Measured by the builder on corpora already seen (`eval/history.json` run 13, commit `f76dfad`; NOT blind):
+  section 3. hand-11 stays at 10 of 15 published, 3 blocked wrongly (the three limits above), `[TO CONFIRM]`
+  kept 12/12.
+
 ## [2.0.4] - 2026-10-01 (freeze tag `v2.0.4-freeze`; not yet run blind)
 
 ### D30b - blind run of v2.0.3, run 11: two never-events (DISC-005 scope, FEV-040), undeclared blocks, scorer gap
