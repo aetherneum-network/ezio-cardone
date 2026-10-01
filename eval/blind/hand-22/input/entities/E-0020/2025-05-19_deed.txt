@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0020-01
+Document type: Deed of incorporation
+Document date: 2025-05-19
+Edition: DEED/1
+Entity: Vetrerie Campomodello S.r.l. (test registry no. TEST-REG-000020)
+
+1. Name and form. The company is named Vetrerie Campomodello S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Collaudo 21, Campomodello (ZZ).
+3. Share capital. The share capital is EUR 30.000,00, divided into 3.000 quotas Riunite In Mano A Nino Fantasmi, fully subscribed and fully paid in.
+4. Holders.
+- P-011 (Nino Fantasmi): 1.800 quotas
+- P-013 (Piero Collaudi): 1.200 quotas
+
+5. Directors.
+- P-013 (Piero Collaudi)

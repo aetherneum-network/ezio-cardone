@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0040-01
+Document type: Deed of incorporation
+Document date: 2025-09-22
+Edition: DEED/1
+Entity: Ceramiche Pietrafinta S.r.l. (test registry no. TEST-REG-000040)
+
+1. Name and form. The company is named Ceramiche Pietrafinta S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Segnaposto 25, Pietrafinta (ZZ).
+3. Share capital. The share capital is EUR 19.000,00, fully subscribed and fully paid in.
+4. Holders.
+- 7/10 P-012 (Olga Modelli)
+- 3/10 P-016 (Tina Campioni)
+
+5. Directors.
+- P-012 (Olga Modelli)

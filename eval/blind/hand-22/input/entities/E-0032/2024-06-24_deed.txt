@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0032-01
+Document type: Deed of incorporation
+Document date: 2024-06-24
+Edition: DEED/1
+Entity: Cantieri Largo Simulato S.r.l. (test registry no. TEST-REG-000032)
+
+1. Name and form. The company is named Cantieri Largo Simulato S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Corso dei Modelli 20, Castelfittizio (ZZ).
+3. Share capital. The share capital is EUR 48.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-035 (Nino Esempi): 70%
+- P-036 (Olga Ipotetici): 30%
+
+5. Directors.
+- P-036 (Olga Ipotetici)

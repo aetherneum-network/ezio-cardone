@@ -1,0 +1,266 @@
+{
+  "P-001": {
+    "name": "Aldo Finti",
+    "born": "1960-01-12",
+    "email": "aldo.finti@persons.example",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "name": "Bice Provetti",
+    "born": "1965-02-14",
+    "email": "bice.provetti@persons.example",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "name": "Carlo Inventati",
+    "born": "1970-03-16",
+    "email": "carlo.inventati@persons.example",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "name": "Dora Sintetici",
+    "born": "1972-04-18",
+    "email": "dora.sintetici@persons.example",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "name": "Elio Collaudi",
+    "born": "1968-05-20",
+    "email": "elio.collaudi@persons.example",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "name": "Franca Esempi",
+    "born": "1975-06-22",
+    "email": "franca.esempi@persons.example",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "name": "Gino Segnaposto",
+    "born": "1963-07-24",
+    "email": "gino.segnaposto@persons.example",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "name": "Ida Fittizi",
+    "born": "1978-08-26",
+    "email": "ida.fittizi@persons.example",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "name": "Livio Sintetici",
+    "born": "1966-09-28",
+    "email": "livio.sintetici@persons.example",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "name": "Mara Campioni",
+    "born": "1980-10-02",
+    "email": "mara.campioni@persons.example",
+    "tax_code": "SYN-CF-P010"
+  },
+  "P-011": {
+    "name": "Nino Fantasmi",
+    "born": "1962-11-04",
+    "email": "nino.fantasmi@persons.example",
+    "tax_code": "SYN-CF-P011"
+  },
+  "P-012": {
+    "name": "Olga Modelli",
+    "born": "1977-12-06",
+    "email": "olga.modelli@persons.example",
+    "tax_code": "SYN-CF-P012"
+  },
+  "P-013": {
+    "name": "Piero Collaudi",
+    "born": "1969-01-08",
+    "email": "piero.collaudi@persons.example",
+    "tax_code": "SYN-CF-P013"
+  },
+  "P-014": {
+    "name": "Rita Fantasmi",
+    "born": "1974-02-10",
+    "email": "rita.fantasmi@persons.example",
+    "tax_code": "SYN-CF-P014"
+  },
+  "P-015": {
+    "name": "Sergio Prototipi",
+    "born": "1961-03-12",
+    "email": "sergio.prototipi@persons.example",
+    "tax_code": "SYN-CF-P015"
+  },
+  "P-016": {
+    "name": "Tina Campioni",
+    "born": "1979-04-14",
+    "email": "tina.campioni@persons.example",
+    "tax_code": "SYN-CF-P016"
+  },
+  "P-017": {
+    "name": "Ugo Fasulli",
+    "born": "1967-05-16",
+    "email": "ugo.fasulli@persons.example",
+    "tax_code": "SYN-CF-P017"
+  },
+  "P-018": {
+    "name": "Vera Modelli",
+    "born": "1973-06-18",
+    "email": "vera.modelli@persons.example",
+    "tax_code": "SYN-CF-P018"
+  },
+  "P-019": {
+    "name": "Walter Fasulli",
+    "born": "1964-07-20",
+    "email": "walter.fasulli@persons.example",
+    "tax_code": "SYN-CF-P019"
+  },
+  "P-020": {
+    "name": "Zita Ipotetici",
+    "born": "1981-08-22",
+    "email": "zita.ipotetici@persons.example",
+    "tax_code": "SYN-CF-P020"
+  },
+  "P-021": {
+    "name": "Lia Fasulli",
+    "born": "1976-09-24",
+    "email": "lia.fasulli@persons.example",
+    "tax_code": "SYN-CF-P021"
+  },
+  "P-022": {
+    "name": "Remo Modelli",
+    "born": "1959-10-26",
+    "email": "remo.modelli@persons.example",
+    "tax_code": "SYN-CF-P022"
+  },
+  "P-023": {
+    "name": "Nora Ipotetici",
+    "born": "1982-11-28",
+    "email": "nora.ipotetici@persons.example",
+    "tax_code": "SYN-CF-P023"
+  },
+  "P-024": {
+    "name": "Dino Simulati",
+    "born": "1971-12-30",
+    "email": "dino.simulati@persons.example",
+    "tax_code": "SYN-CF-P024"
+  },
+  "P-025": {
+    "name": "Aldo Prototipi",
+    "born": "1958-01-03",
+    "email": "aldo.prototipi@persons.example",
+    "tax_code": "SYN-CF-P025"
+  },
+  "P-026": {
+    "name": "Bice Campioni",
+    "born": "1983-02-05",
+    "email": "bice.campioni@persons.example",
+    "tax_code": "SYN-CF-P026"
+  },
+  "P-027": {
+    "name": "Carlo Fittizi",
+    "born": "1966-03-07",
+    "email": "carlo.fittizi@persons.example",
+    "tax_code": "SYN-CF-P027"
+  },
+  "P-028": {
+    "name": "Dora Esempi",
+    "born": "1975-04-09",
+    "email": "dora.esempi@persons.example",
+    "tax_code": "SYN-CF-P028"
+  },
+  "P-029": {
+    "name": "Elio Sintetici",
+    "born": "1962-05-11",
+    "email": "elio.sintetici@persons.example",
+    "tax_code": "SYN-CF-P029"
+  },
+  "P-030": {
+    "name": "Franca Inventati",
+    "born": "1979-06-13",
+    "email": "franca.inventati@persons.example",
+    "tax_code": "SYN-CF-P030"
+  },
+  "P-031": {
+    "name": "Gino Provetti",
+    "born": "1968-07-15",
+    "email": "gino.provetti@persons.example",
+    "tax_code": "SYN-CF-P031"
+  },
+  "P-032": {
+    "name": "Ida Finti",
+    "born": "1973-08-17",
+    "email": "ida.finti@persons.example",
+    "tax_code": "SYN-CF-P032"
+  },
+  "P-033": {
+    "name": "Livio Collaudi",
+    "born": "1960-09-19",
+    "email": "livio.collaudi@persons.example",
+    "tax_code": "SYN-CF-P033"
+  },
+  "P-034": {
+    "name": "Mara Segnaposto",
+    "born": "1984-10-21",
+    "email": "mara.segnaposto@persons.example",
+    "tax_code": "SYN-CF-P034"
+  },
+  "P-035": {
+    "name": "Nino Esempi",
+    "born": "1965-11-23",
+    "email": "nino.esempi@persons.example",
+    "tax_code": "SYN-CF-P035"
+  },
+  "P-036": {
+    "name": "Olga Ipotetici",
+    "born": "1977-12-25",
+    "email": "olga.ipotetici@persons.example",
+    "tax_code": "SYN-CF-P036"
+  },
+  "P-037": {
+    "name": "Piero Fantasmi",
+    "born": "1963-01-27",
+    "email": "piero.fantasmi@persons.example",
+    "tax_code": "SYN-CF-P037"
+  },
+  "P-038": {
+    "name": "Rita Simulati",
+    "born": "1980-02-01",
+    "email": "rita.simulati@persons.example",
+    "tax_code": "SYN-CF-P038"
+  },
+  "P-039": {
+    "name": "Sergio Finti",
+    "born": "1970-03-03",
+    "email": "sergio.finti@persons.example",
+    "tax_code": "SYN-CF-P039"
+  },
+  "P-040": {
+    "name": "Tina Provetti",
+    "born": "1976-04-05",
+    "email": "tina.provetti@persons.example",
+    "tax_code": "SYN-CF-P040"
+  },
+  "P-041": {
+    "name": "Orsola Parvenze",
+    "born": "1969-05-07",
+    "email": "orsola.parvenze@persons.example",
+    "tax_code": "SYN-CF-P041"
+  },
+  "P-042": {
+    "name": "Benedetto Sembianze",
+    "born": "1974-06-09",
+    "email": "benedetto.sembianze@persons.example",
+    "tax_code": "SYN-CF-P042"
+  },
+  "P-043": {
+    "name": "Ugo Campioni",
+    "born": "1961-07-11",
+    "email": "ugo.campioni@persons.example",
+    "tax_code": "SYN-CF-P043"
+  },
+  "P-044": {
+    "name": "Vera Sintetici",
+    "born": "1978-08-13",
+    "email": "vera.sintetici@persons.example",
+    "tax_code": "SYN-CF-P044"
+  }
+}

@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0004-01
+Document type: Deed of incorporation
+Document date: 2025-04-07
+Edition: DEED/1
+Entity: Cartiere Rivaprova S.r.l. (test registry no. TEST-REG-000004)
+
+1. Name and form. The company is named Cartiere Rivaprova S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via della Prova 19, Rivaprova (ZZ).
+3. Share capital. The share capital is EUR 30.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-008 (Ida Fittizi): 45%
+- P-009 (Livio Sintetici): 35%
+- P-012 (Olga Modelli): 15%
+
+5. Directors.
+- P-008 (Ida Fittizi)

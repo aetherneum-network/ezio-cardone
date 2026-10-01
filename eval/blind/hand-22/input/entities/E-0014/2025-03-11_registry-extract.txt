@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0014-02
+Document type: Test registry extract
+Document date: 2025-03-11
+Edition: EXTRACT/1
+Entity: Ceramiche Valcollaudo S.r.l. (test registry no. TEST-REG-000014)
+
+Name: Ceramiche Valcollaudo S.r.l.
+Legal form: S.r.l.
+Registered office: Piazza Inventata 7, Valcollaudo (ZZ)
+Share capital: resolved EUR 22.000,00; subscribed and paid in EUR 22.000,00
+Holders:
+- P-035 (Nino Esempi): 50%
+- P-036 (Olga Ipotetici): 50%
+
+Directors:
+- P-035 (Nino Esempi)

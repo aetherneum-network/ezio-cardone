@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0030-02
+Document type: Test registry extract
+Document date: 2026-01-26
+Edition: EXTRACT/1
+Entity: Vetrerie Borgoprova S.r.l. (test registry no. TEST-REG-000030)
+
+Name: Vetrerie Borgoprova S.r.l.
+Legal form: S.r.l.
+Registered office: Via del Segnaposto 9, Borgoprova Dino Fasulli (ZZ)
+Share capital: resolved EUR 44.000,00; subscribed and paid in EUR 44.000,00
+Holders:
+- P-031 (Gino Provetti): 60%
+- P-032 (Ida Finti): 40%
+
+Directors:
+- P-031 (Gino Provetti)

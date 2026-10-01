@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-02
+Document type: Test registry extract
+Document date: 2024-02-26
+Edition: EXTRACT/1
+Entity: Holding Serrafinta Partecipazioni S.p.A. (test registry no. TEST-REG-000003)
+
+Name: Holding Serrafinta Partecipazioni S.p.A.
+Legal form: S.p.A.
+Registered office: Piazza Inventata 1, Serrafinta (ZZ)
+Share capital: resolved EUR 120.000,00; subscribed and paid in EUR 120.000,00
+Holders:
+- P-005 (Elio Collaudi): 70%
+- P-006 (Franca Esempi): 30%
+
+Directors:
+- P-005 (Elio Collaudi)

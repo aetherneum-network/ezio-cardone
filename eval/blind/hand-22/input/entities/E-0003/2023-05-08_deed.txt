@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-01
+Document type: Deed of incorporation
+Document date: 2023-05-08
+Edition: DEED/1
+Entity: Holding Serrafinta Partecipazioni S.p.A. (test registry no. TEST-REG-000003)
+
+1. Name and form. The company is named Holding Serrafinta Partecipazioni S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Piazza Inventata 1, Serrafinta (ZZ).
+3. Share capital. The share capital is EUR 120.000,00, fully subscribed and fully paid in.
+§ 4 Shareholders:
+(a) Elio Collaudi (P-005): 70 percent
+(b) Franca Esempi (P-006): 30 percent
+
+§ 5 Directors:
+(a) Elio Collaudi (P-005)

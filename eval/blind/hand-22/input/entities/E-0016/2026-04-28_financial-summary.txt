@@ -1,0 +1,12 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0016-03
+Document type: Financial statements summary
+Document date: 2026-04-28
+Edition: FIN-FY2025/1
+Entity: Finanziaria Pratofinto S.p.A. (test registry no. TEST-REG-000016)
+Financial year: 2025
+
+Net equity: EUR 310.500,00
+Total assets: EUR 1.250.000,00
+Revenue: EUR 980.250,75
+The figures above are drawn up for the premises at Piazza Inventata 4, Casalprova (ZZ), the company's seat since January.

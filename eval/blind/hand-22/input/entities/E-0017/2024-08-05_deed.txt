@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0017-01
+Document type: Deed of incorporation
+Document date: 2024-08-05
+Edition: DEED/1
+Entity: Fornaci Collesintesi S.r.l. (test registry no. TEST-REG-000017)
+
+1. Name and form. The company is named Fornaci Collesintesi S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Segnaposto 18, Collesintesi (ZZ).
+3. Share capital. The share capital is EUR 80.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-002 (Bice Provetti): 50%
+- P-004 (Dora Sintetici): 50%
+
+5. Directors.
+- P-002 (Bice Provetti)
