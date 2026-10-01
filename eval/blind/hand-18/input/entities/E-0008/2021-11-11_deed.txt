@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-01
+Document type: Deed of incorporation
+Document date: 2021-11-11
+Edition: DEED/1
+Entity: Distillerie Serraillusoria S.r.l. (test registry no. TEST-REG-000008)
+
+1. Name and form. The company is named Distillerie Serraillusoria S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Corso dei Fantasmi 77, Serraillusoria (ZZ).
+3. Share capital. The share capital is EUR 20.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-008 (Ivo Chimerici): 70%
+- P-010 (Mino Spuri): 30%
+
+5. Directors.
+- P-010 (Mino Spuri)
