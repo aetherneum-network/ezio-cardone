@@ -71,6 +71,10 @@ v2.0.9; on the seen hand-20 the never-events go from 8 to 0. The price falls on 
 places and names are not of the gazetteer: they block almost whole (run 21, below). The blind run of
 `v2.0.9-freeze` (run 22, below) found no never-event, with every probe unmasked; the defects it found block
 or keep a field open, and one is in the scorer: in a very deep folder it reports a failed read as zero.
+v2.0.10 is the answer to run 22 (`CHANGELOG.md` 2.0.10): the scorer reads a build where the pipeline writes it and
+exits 3 (MEASUREMENT FAILED) when it could not measure; the count form of the capital clause is read when it is
+stated without qualification; the limits run 22 found are declared, each as a block. On 78 constructed siblings of
+the count form 0 publish wrongly on the code of v2.0.9 and 0 on v2.0.10 (run 23, below).
 
 ## Re-run it
 
@@ -81,7 +85,9 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 339 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. In v2.0.8 the line was
+Expected last lines: `OK` after 364 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. In v2.0.9 the line was `OK`
+after 339 tests. `python -m eval.score` exits 0 when it measured with no never-event, 1 when a result has a
+never-event, and since v2.0.10 3 when it could not measure (the reason on stderr). In v2.0.8 the line was
 `OK (expected failures=1)` after 321 tests: the expected failure was the premise of corroboration of
 `CHANGELOG.md` 2.0.8 section 4 - an address written alike, words and all, in two documents is read as written
 (`tests/test_d36_forms.py`, `D36_ResidualWordList`) -, which passes since v2.0.9. In v2.0.7 the line was
@@ -89,12 +95,15 @@ Expected last lines: `OK` after 339 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`
 
 ## The numbers, with their seed and date
 
-Source: `eval/history.json`, run 21, code at commit `99894a9` (pipeline, rules, tests and scorer of the tag
-`v2.0.9-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
-not blind: every seed had been seen. Every number of the table below is the same as in v2.0.8 (run 19, code at
-commit `67cb31d`): the places, streets, trades and names of the generated corpora are drawn from the lists the
-gazetteer of v2.0.9 is made of, so identification costs nothing there, and says little; its price is on the
-hand-written corpora (`CHANGELOG.md` 2.0.9 section 3). In v2.0.7 (run 17, code at commit `b624830`), as in v2.0.6 (run 15) and
+Source: `eval/history.json`, run 23, code at commit `564dc73` (pipeline, rules, tests and scorer of the tag
+`v2.0.10-freeze`; the tag adds the documents and the manifest), measured on 2026-10-01 (UTC) by the builder's hand,
+not blind: every seed had been seen, seed 20261019 and the hand-written corpus of run 22 included. Every number of
+the table below is the same as in v2.0.9 (run 21, code at commit `99894a9`): the generator does not write the count
+form of the capital clause that v2.0.10 reads, and the scorer's new checks of the measurement change no count; the
+two facts gained are on the hand-written corpus of run 22 (`CHANGELOG.md` 2.0.10 section 2). In v2.0.9, as in
+v2.0.8 (run 19, code at commit `67cb31d`), every number was the same too: the places, streets, trades and names of
+the generated corpora are drawn from the lists the gazetteer of v2.0.9 is made of, so identification costs nothing
+there, and says little; its price is on the hand-written corpora (`CHANGELOG.md` 2.0.9 section 3). In v2.0.7 (run 17, code at commit `b624830`), as in v2.0.6 (run 15) and
 v2.0.5 (run 13), facts exact were 1386/1386, 1285/1285 and 681/1285, fields `[TO CONFIRM]` 0/1472, 0/1378 and
 635/1372, figures with source 3694/3694, 3521/3521 and 2868/2868; every other column was as below. The difference
 is the price of corroboration (`CHANGELOG.md` 2.0.8 section 3): a field that a document whose address no second
@@ -358,20 +367,39 @@ How to read them:
   without being named among the limits; `CHANGELOG.md` 2.0.9 says an address holding a known name keeps its
   fields open, where a whole gazetteer street that holds a surname is published, with the right value.
   These go into a new version under a new tag; this tag is not moved.
+- v2.0.10 (finding D39) is the answer to run 22. First the measurement: `eval/score.py` reads a build through the
+  same extended-length path the pipeline writes it with, and exits **3** (`MEASUREMENT FAILED`, the reason on stderr)
+  when an entity the run reports as built cannot be read, when the counts disagree, when built entities give no
+  scored field or when an entity of the gold is missing from the run; on hand-22 in a work folder of 282 characters
+  it now gives the numbers of a short folder, where `v2.0.9-freeze` gave 0/0 and exit 0. The count form of the
+  capital clause, without qualification, is read as the plain form (`NAT-025`); on 78 constructed siblings 0
+  publish wrongly on the code of `v2.0.9-freeze` and 0 on v2.0.10, and the probes of earlier runs that put words
+  inside that form are still not read. The bracket holder row, a blank line inside a list of holders and the
+  numeral case of `IDN-010` are declared as blocks, each made true by a test; the sentence of 2.0.9 on an address
+  holding a known name is restated (`CHANGELOG.md` 2.0.10). The audit's caches are keyed by the content of the
+  rules instead of the id of an object that Python may reuse. On the corpora already seen (run 23) every count is
+  that of v2.0.9 but hand-22, 2 facts more (78/223 to 80/223); 0 never-events everywhere. That is not a blind
+  result, and nothing is upgraded (`CLAIMS.md` section 12).
 
 ## Two rebuilds, same bytes
 
-`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `99894a9`: two builds in two different folders, compared
+`python tools/rebuild.py`, run on 2026-10-01 (UTC) on the code of commit `564dc73`: two builds in two different folders, compared
 file by file.
 
 | What | SHA-256 |
 |---|---|
-| S03, `dossier.docx` of E-0004 | `45413792b6d952f268661af3e4909c4e7e1135d327b9edb14d631e8a5abc5632` |
-| S03, `dossier_shareable.docx` of E-0004 | `5f1202b5ed10174007c734f718d697659155d37f119538a3acf506646da60137` |
-| S03, whole build (11 files) | `92de062e959b70242219ee45a85aa79eead7039172400e99bcfb536058b15485` |
-| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `77da4d300bcd283f7533e31ddcd82eefa1ae3f7c102bbefabbbe1887a79bceb5` |
+| S03, `dossier.docx` of E-0004 | `28bc6f3d3f4de4d9ce344bd8c5224ac9118736469882bf240b267e649da1f7ad` |
+| S03, `dossier_shareable.docx` of E-0004 | `52244643ba0ffeb5071f3d2f0ed41115e65e561686af6a50682cd8ae6fb7b84f` |
+| S03, whole build (11 files) | `7ec498cd735f07c3d89834246bafe819cd8e5668d525a0501d732e33f677569e` |
+| development corpus, seed 20260930, whole build (1275 files, 278 DOCX) | `e646ee22e704a66481df34572284f8f7dea222ba861e52aad2954f75d734fc48` |
 
-The v2.0.8 hashes (commit `67cb31d`) were `94cbadc08989ecaba7ebf0f04aa15133ef32d1f35dc64bd650e9756eaced0557`,
+The v2.0.9 hashes (commit `99894a9`) were `45413792b6d952f268661af3e4909c4e7e1135d327b9edb14d631e8a5abc5632`,
+`5f1202b5ed10174007c734f718d697659155d37f119538a3acf506646da60137`,
+`92de062e959b70242219ee45a85aa79eead7039172400e99bcfb536058b15485` and
+`77da4d300bcd283f7533e31ddcd82eefa1ae3f7c102bbefabbbe1887a79bceb5`. They differ from those of v2.0.10 where a build
+names its version: the dossier its generator (`dossier 2.0.10`), the run report the version of
+`rules/figure_nature.json` (2.0.10). Every count and metric of the development corpus is the same (run 23); a
+comparison file by file with the version set aside was not made for v2.0.10. The v2.0.8 hashes (commit `67cb31d`) were `94cbadc08989ecaba7ebf0f04aa15133ef32d1f35dc64bd650e9756eaced0557`,
 `13da78110453a9427e8e54ebd53a9099d250e0317231ab85517c5fd1bf62ed15`,
 `a567fa989ad4585d7c1c7c411b0b4f6f576d7aec21787f87bedff6734e24b4da` and
 `bba7e48b3bd4ee66eb48beebab9584b74c0df571ebf013cb599cd4f970e10f0e`. They differ from those of v2.0.9 because

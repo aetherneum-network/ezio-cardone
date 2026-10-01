@@ -276,3 +276,14 @@ only when every word of it is identified, whatever the documents agree on) is in
 by the builder on corpora already seen only (`eval/history.json` run 21, NOT blind). Row A2 stays downgraded for
 `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10): a downgrade is lifted only by a blind
 run that passes, never by the builder.
+
+## 12. v2.0.10
+
+v2.0.10 has not been run blind, nothing is upgraded. The blind run of `v2.0.9-freeze` (run 22) found no
+never-event, so nothing was downgraded for that tag. What v2.0.10 changes (finding D39: the scorer, which in a
+very deep folder reported a failed read as zero and exited 0; the count form of the capital clause; a
+declaration of `CHANGELOG.md` 2.0.9 that was not true as written and a form that blocked without being declared;
+the test suite) is in `CHANGELOG.md` 2.0.10,
+measured by the builder on corpora already seen only (`eval/history.json` run 23, NOT blind). Row A2 stays
+downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10): a downgrade is lifted
+only by a blind run that passes, never by the builder.

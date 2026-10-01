@@ -74,6 +74,15 @@
   scenarios of the same author, so the generated corpora are identified by construction and say little about it;
   the hand-written corpora, whose words are not in it, block. The same limit applies: hand-20 and seed 20261018 are
   now seen, and its numbers (run 21) are not blind.
+- **The change of v2.0.10** (finding D39: the scorer reads a build the way the pipeline writes it and exits 3 when
+  it could not measure; the count form of the capital clause, `NAT-025`; the bracket holder row, a blank line inside
+  a list and the numeral case of `IDN-010` declared as blocks, the address holding a known surname inside a whole
+  gazetteer street restated; the audit's caches keyed by the content of the rules; the test suite removes what it
+  creates) was written with the same model, in a separate session on 2026-10-01, as the builder's hand, after
+  reading the results and the hand-written documents of the blind run of v2.0.9 (run 22, seed 20261019,
+  `eval/blind/hand-22/`), which found no never-event. Its rule and its 78 sibling cases
+  (`tests/test_d39_capital_count.py`) were written by the same hand with those documents in view. The same limit
+  applies: hand-22 and seed 20261019 are now seen, and its numbers (run 23) are not blind.
 
 ## What runs at runtime
 

@@ -2,6 +2,303 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.10] - 2026-10-01 (freeze tag `v2.0.10-freeze`; not yet run blind)
+
+### D39 - blind run of v2.0.9, run 22: no never-event; a measurement that does not fail, the count form of the capital, a declaration not true as written and a block not declared, the test suite
+
+Source: the evaluator's blind run of `v2.0.9-freeze`, `eval/history.json` run 22, seed 20261019 and the hand
+corpus `eval/blind/hand-22/` (42 entities, 100 documents): 0 never-events in the plain, the perturbed and the
+hand-written corpus, every probe unmasked. The run found four defects, none of which publishes: D1, in a work folder
+of 282 characters `eval/score.py` read the build by plain path, counted every built entity failed and 0 fields,
+and exited 0 with an empty stderr; D2, the count form "EUR 20.000,00, divided into 2.000 quotas, fully subscribed
+and fully paid in" left the subscribed and the paid-in capital `[TO CONFIRM]` (E-0007); D3, the sentence of entry
+2.0.9 on an address "with a name the corpus knows inside it" is not what the code does (E-0033); D4, the holder row
+`- Name [P-015]: 60%` blocks without being declared (E-0006). The fixer of v2.0.9 left three findings on the test
+suite: a docstring that names the wrong entity, temporary folders never removed, and a failure that comes and goes.
+Fixed by the builder's hand in this order: (a) first - the scorer -, then (b) the count form, (c) the
+declarations, (d) the test suite; (e) the two flags of the measurer change nothing in the pack. `OWN-015` stays
+`block` (D26), holders in a sentence stay unread (D31), `DISC-005` stays `every_field`, `DISC-006`, `CLS-005`,
+`DISC-035` and `DISC-038` stay; whatever v2.0.9 decides by positive identification (the gazetteer, `IDN-010` to
+`IDN-999`, `NAM-005`, `TXT-005`, `TXT-020`) is exactly as strict. Measured on corpora already seen only
+(`eval/history.json` run 23): not blind; seed 20261019 and hand-22 are now seen.
+
+#### 1. (a) The scorer reads where the pipeline writes, and a measurement that did not measure fails
+
+Since v2.0.9 the pipeline derives every path of a build from the work folder with the extended-length prefix
+(`dossier/run.py` line 63, `jsonio.ext`); the scorer did not. Now:
+
+- `eval/score.py`: `score()` takes the prefix on the work folder (line 121) and reads every provenance file through
+  `_read` (line 108), which returns the reason of a failed read instead of a quiet absence; `evaluate()` takes it
+  on the base folder, the generated corpus and a given corpus (lines 311-317), and reads the gold through
+  `jsonio.read_text`.
+- `score()` returns `measurement` (line 303): `OK`, or `FAILED` with its problems (lines 258-278) when an entity the
+  run reports as built (status OK) cannot be read; when the run's counts differ from its own list of entities;
+  when the number of built entities read differs from the run's count; when the run built entities and no field
+  was scored; when an entity of the gold is not in the run.
+- `main()` exits **3** (`MEASUREMENT_FAILED`, line 105) when any result is FAILED, and says each problem on stderr
+  (`MEASUREMENT FAILED - <label>: ...`) and on stdout; the JSON is still written, with the problems in it. A run
+  that raises (no run report, a folder that cannot be written) is exit 3 with its reason (line 370), not a
+  traceback. 3 wins over 1 (a never-event); 0 means measured, with no never-event.
+- The same pattern elsewhere, fixed: `tools/rebuild.py` walks a build by the prefix and raises `NothingRead` when a
+  walk reads no file (lines 28-39; under a deep TEMP two empty walks were "identical"); `scenarios/_common.py`
+  `workdir` (line 38: under a deep TEMP the checks "no DOCX written" and "not published" of S02 were made true by
+  not reading); `tools/manifest.py` (line 25: `is_file()` False on a long path would have dropped files from the
+  manifest on `--write`). Not changed: `tools/assumptions.py` and the `--check` of `scenarios/make_inputs.py` read
+  files of the repository by plain path, which fails loudly (an exception), never quietly.
+
+Measured (hand-22, `--work` folder of 282 characters, same machine, no long-path support): the code of
+`v2.0.9-freeze` exits 0 with an empty stderr, fields exact 0/0, fields abstained 0/0, 31 built entities counted
+failed; this code exits 0 with the numbers of the short folder (78/223 exact, 145/251 abstained, 430/430 figures
+with source) and `measurement` OK. An entity whose `provenance.json` is removed after the build: `v2.0.9-freeze`
+exits 0 and scores 30 entities as if the 31st had failed (70/215 exact); this code exits 3, stderr "1 entities the
+run reports as built (status OK) cannot be read: E-0001 (no file)" and "the scorer read 30 built entities, the
+run counts 31". A folder in place of that file: `v2.0.9-freeze` ends with a traceback (exit 1); this code exits 3.
+
+#### 2. (b) The count form of the capital clause: `NAT-025`
+
+`rules/figure_nature.json` `NAT-025` (line 31, after `NAT-020`, before `NAT-030`): the amount, then exactly
+", divided (or split) into N [ordinary | registered | equal] quotas (or shares), fully subscribed and fully paid in",
+and nothing after it but the full stop, in one sentence of one line; and the amount is the only current amount of
+the clause (`single_current_amount`). One amount, three natures (resolved, subscribed, paid in), as `NAT-020`. Read
+by grammar, only without qualification: any other word, a second amount, a second sentence or a second line leaves
+the amount to the rules below (`NAT-070`: resolved only; `NAT-999`: no nature). `NAT-020` now asks the same
+`single_current_amount` (line 22): the siblings found that "the share capital is EUR 100.000,00, of which EUR
+20.000,00 fully subscribed and fully paid in" gave the part all three natures; the line, which no capital line rule
+explains, kept every field `[TO CONFIRM]`, so nothing was published, but the nature was wrong. Each rule has its
+tests inline; the self-test passes.
+
+Siblings, by class (`tests/test_d39_capital_count.py`): 25 clauses - the claimed count form in four wordings, the
+plain form, and twenty that must not close (Italian; subscribed only; paid in only; partly; for one quarter; to be
+paid in; of which an amount paid in; subscribed for an amount; split across two sentences; qualified after;
+negated; of which before; a nominal amount per quota; another count verb; an exception after; a contradiction after
+a semicolon) - each in three setups (the deed alone with a witness of its office; with a later extract that states
+the full values; with one that states another paid-in amount), plus a second capital clause that contradicts and the
+words split across two lines: 78 rows. Published wrongly: **0 on the code of `v2.0.9-freeze`, 0 on v2.0.10**. The
+four count forms now give what the plain form gives in every setup (alone and with the full later extract: three
+facts; with the other paid-in amount: resolved and subscribed facts, paid in a DISCREPANCY); on v2.0.9 they gave
+the resolved capital only. Every other form is as on v2.0.9: every capital field `[TO CONFIRM]`, the entity
+blocked when the line is one no rule explains and may state a holding.
+
+Facts gained (run 23 against v2.0.9 on the same corpora): on hand-22, fields exact 78/223 -> 80/223 and fields
+abstained 145/251 -> 143/251: the subscribed and the paid-in capital of E-0007, the gold's values. On every other
+corpus already seen - the three suites, seeds 20261011 to 20261019 plain and perturbed, the hand corpora of runs 7
+to 20 and the out-of-pool corpus of run 5 - every count and metric is that of v2.0.9: the generator does not write
+the count form, and the probes of runs 18, 20 and 22 that put words inside it (`divided into 1.000 quotas Timone
+Mutato, fully subscribed and fully paid in`, E-0014 of hand-20; E-0017 of hand-18; E-0020 of hand-22) and the
+nominal amount per quota of hand-9 E-0008 are still not read: their gold states the three capital values, so
+each is an abstention (or a block of its entity), never a value published.
+
+#### 3. (c) Declarations
+
+- D3 - the intended behaviour, kept: an address is read when every word of it is identified (a whole street entry
+  of the gazetteer, a house number, a town and a province of the gazetteer) and a second document states it alike;
+  a word of a whole gazetteer street entry is part of the street even when it is also a known surname (E-0033 of
+  hand-22: `Via del Segnaposto 5, Campomodello (ZZ)`, `Segnaposto` being the surname of P-007; published, the
+  value right). The known names are not looked for inside an identified address: a name that is not part of a
+  gazetteer entry leaves the address unidentified, and the line open (`Via Gino Segnaposto 5`: the office stays
+  `[TO CONFIRM]`). The sentence of entry 2.0.9 "an address without a house number, or with a name the corpus knows
+  inside it: the line is open" is true for a known name outside the gazetteer's entries, not for one inside a whole
+  street entry; it is restated below. `tests/test_d39_limits.py` `D39_Hand22Limits` checks both.
+- D4 - declared, not read: the holder row with the identifier in square brackets (`- Name [P-015]: 60%`, and the
+  other bracket orders) is in no rule; the row is not read, the table cannot be summed, the entity **blocks**
+  (`OWN-015`). Reading it would need the verification of the C2 form `Name (P-001)` and its own sibling suite;
+  left declared (`tests/test_d39_limits.py` `D39_DeclaredLimits`).
+- The numeral case of `IDN-010` is **meant to block** when the line may state a holding (E-0025 and E-0028 of
+  hand-22, a numeral inside a free-text slot of a deed): a numeral may state a quantity, and a quantity beside a
+  holders' table or the capital is not left open. Elsewhere it keeps every field `[TO CONFIRM]`.
+- E-0005 of hand-22, now a named limit: a blank line inside a list of holders ends the list; the rows after it are
+  not part of the table, the table sums to less than the whole (`OWN-010`) and the entity **blocks**.
+
+#### 4. (d) The test suite
+
+- `tests/test_d38_identification.py` line 405: the docstring names E-0025 of hand-20 (it said E-0007).
+- `tests/support.py`: every folder `tmp()` creates is removed when the test process ends (`_remove_created`,
+  lines 29-47, registered with `atexit`), and nothing else; a child process gets a TEMP of its own made by `tmp()`
+  (line 176), removed with it; the scenario checks that `tests/test_scenarios.py` runs in its own process make their
+  work folders with `tmp()` too. Measured, a full suite with a TEMP of its own: 6015 entries left on the code of
+  `v2.0.9-freeze`, 12 after the first commit of D39 (the scenario checks), 0 on v2.0.10.
+- The failure that comes and goes: three full runs in parallel on commit `b2b34ae` (the code of `v2.0.9-freeze`),
+  each with its own TEMP and verbose output kept, under the load of six measurements at once
+  (2026-10-01 16:34:50Z to 16:47:39Z): 339 tests, `OK`, three times - it did not reproduce. A second attempt, three
+  full runs in parallel on the working tree of v2.0.10 before its commit, under the same load (16:58:19Z to
+  17:14:16Z): 364 tests each, 362 passed and the same two failed in each run, both expected of that snapshot (its
+  manifest was not yet written, and it still counted 108 rules) - no intermittent failure. Read in the code, one
+  cause that is the pack's: the audit's caches were keyed by `id(rules)` (`dossier/s7_audit.py`, v2.0.9 lines
+  370-376 and 463); `rules_engine.load()` makes a new `Rules` for each run, and once one is freed its id may be
+  handed to the next, so a process that runs with two rule sets - the suite does, with copies whose gazetteer
+  holds more words - may be served the identification built from the other set: an audit that disagrees with the
+  extractor (a FAILED run, fail-closed) or the reverse, by the allocator's chance. Measured on the v2.0.9 code: 400
+  loads alternating two rule sets, 7 ids reused and 7 wrong answers, in each of three processes. Now the caches are
+  keyed by the content of the rules (`_rules_key`, a SHA-256 of the four files, computed once per object and
+  checked by a weak reference, lines 373-401; `own_names` line 488, `corpus_texts` line 535, whose key also lacked
+  the rules); the same probe: 69 ids reused, 0 wrong answers. Whether this is the failure of 2026-10-01 18:07 is
+  `[TO CONFIRM]`: its name was not kept. `tests/test_d39_scorer.py` `D39_AuditCacheFollowsTheRules` (3 tests, all
+  failing on the v2.0.9 code).
+
+#### 5. (e) The measurer's flags
+
+Nothing changed in the pack: the model name in `tests/test_shareable.py` and in this file is a refused value inside
+a negative test (a false positive of E10), and the README's run block is an indented code block.
+
+### Known limits of v2.0.10
+
+The complete list: those of v2.0.9, restated where v2.0.10 changes them, and those of v2.0.10. Each limit is marked
+with what it does to the entity, with two classes only: **blocks** or **keeps `[TO CONFIRM]`**. **No known limit
+may publish.** What the proof still rests on is section 4 of entry 2.0.9, unchanged, in the same two classes.
+
+Since v2.0.10 (D39):
+
+- the count form of the capital clause in any wording but `NAT-025`'s - "It is fully subscribed and fully paid in."
+  as a second sentence, the words across two lines, a nominal amount per quota (`quotas of EUR 10,00 each`),
+  another count verb (`consisting of`), `wholly`, `entirely`, `paid up`, a qualification after it, a part
+  introduced by `of which` -: the subscribed and the paid-in capital **keep `[TO CONFIRM]`**; when the line is one
+  no capital line rule explains and the document states holders - **blocks** (`DISC-006`, `OWN-015`);
+- E-0006 of hand-22, by class: a holder row with the identifier in square brackets (`- Name [P-015]: 60%`,
+  `- P-015 [Name]: 60%`, `- [P-015] Name: 60%`) - **blocks** (`OWN-015`);
+- E-0005 of hand-22, by class: a blank line inside a list of holders ends the list; the rows after it are not read
+  and the table does not sum to the whole - **blocks**;
+
+Since v2.0.9 (D38), unchanged unless said:
+
+- a free-text slot that the gazetteer does not identify word by word (`IDN-999`): a town, a street, a province, a
+  trade word, a first name or a surname that it does not hold, words added anywhere, a particle written otherwise
+  (`Via Del ...`), a name written surname first, a street named after a person, a Roman numeral, a real town of two
+  words - the line is read by no rule: every field the document may change **keeps `[TO CONFIRM]`** (`DISC-006`), no
+  value of the slot is read; when the line may state a holding - **blocks** (`OWN-015`);
+- a free-text slot that holds a numeral (`IDN-010`): digits, an Italian or English number word, a Roman numeral -
+  the line may state a quantity - **blocks** when it may state a holding (a holders' table or the capital in the
+  same document), else every field **keeps `[TO CONFIRM]`**. The block is by design, not a leftover (D39: E-0025
+  and E-0028 of hand-22);
+- a company's name of a header that is not identified (`NAM-005`), even when every document states it alike: every
+  field of that document **keeps `[TO CONFIRM]`**, no name of it is read; when the name may state a holding -
+  **blocks**;
+- a holders' row whose person is not identified by the gazetteer, or is not its identifier's own name of the
+  identity layer: the row is read by no rule - **blocks** (`OWN-015`); a directors' row - **keeps `[TO CONFIRM]`**.
+  The choice of section 4 item 7 of entry 2.0.9, `[TO CONFIRM]`;
+- a title that is not one of the titles the pack's own builders write, and every label of `CLS-250` (no label is a
+  recognised text), even when other documents state it alike (`TXT-020`, `TXT-999`): its line is read by no rule -
+  every field **keeps `[TO CONFIRM]`**; when it may state a holding - **blocks**;
+- E-0030 of hand-20, by class: holders' rows framed by vertical bars without a header row - **blocks**;
+- E-0062 of hand-20, by class: a document filed under one entity whose content names an entity with no folder of
+  its own: it is built for that entity, and the entity of its folder reads it as an unclassified document - every
+  field **keeps `[TO CONFIRM]`** from its date; its holders not read whole - **blocks**;
+- the name beside an identifier in a row of a list that is not the identifier's own known name, with or without a
+  word of the topic lists: the row is open - holders **block**, directors **keep `[TO CONFIRM]`**.
+
+Since v2.0.8 (D37), unchanged unless said:
+
+- an address that no second document of the entity states alike, token for token (`ADR-999`): the fields that
+  document may change (every field but the office), when it is not older than the latest event of a field, **keep
+  `[TO CONFIRM]`** (`DISC-006`); the office **keeps `[TO CONFIRM]`** when no current source of it is corroborated
+  (`DISC-038`); when the line may state a holding - **blocks** (`OWN-015`). A genuine difference of two whole
+  identified addresses is shown side by side as a DISCREPANCY (`DISC-020`), the other fields **keep
+  `[TO CONFIRM]`**. Since v2.0.9 an address is also read only when it is identified;
+- an address equal to another of the entity plus words (`ADR-010`): every field **keeps `[TO CONFIRM]`**, no address
+  of that line is read; when the line may state a holding - **blocks**;
+- a company's name in the header `Entity:` equal to another header of the entity plus words (`NAM-010`): every
+  field **keeps `[TO CONFIRM]`**, no name of that document is read; when the name may state a holding -
+  **blocks**. A header name that one document alone states (`NAM-999`): every other field of that document, when
+  it is not older than the latest event, and the name (`DISC-038`) **keep `[TO CONFIRM]`**;
+- a company's name, stated by one document only, that holds a person's name of the identity layer: such a name is
+  not identified (`NAM-005`) and every field **keeps `[TO CONFIRM]`**; when the run of the entity ends FAILED by
+  the leak check of the shareable layer (A6), nothing of it is published - **blocks** (fail-closed);
+- a title or a label equal to another plus words (`TXT-010`) - every field **keeps `[TO CONFIRM]`**; when it may
+  state a holding - **blocks**. A short sentence of one to eight words ending in a full stop right after a holders'
+  list (no blank line) - **blocks**;
+- E-0020 of hand-18, by class: holder rows that name the holder by a person's name alone, with no identifier, and a
+  holders' heading of another noun (`Members of the company`) - **blocks**;
+- E-0025 of hand-18, by class: a lettered item with the share before the holder, separated by a vertical bar -
+  **blocks**;
+- E-0026 of hand-18, by class: an ordinal word before the holders' heading (`Fourth. Holders:`) - **blocks**;
+- E-0012 of hand-18, by class: the capital stated in a clause of a shape the pack does not have (`The founders
+  bring in ...`) - every field the document may change, the capital among them, **keeps `[TO CONFIRM]`**.
+
+From v2.0.7 and earlier, unchanged unless said:
+
+- holders stated in a sentence rather than in a list under a heading, including a holder noun in a sentence of
+  a memorandum, a resolution or an appointment (hand-9 E-0003, E-0007; hand-14 E-0005, E-0007, E-0009): not
+  read, by the owner's risk decision D31 - **blocks**;
+- a row naming several holders with "each" (hand-14 E-0003) - **blocks**;
+- a qualifier meaning "current" in free words in the heading (hand-11 E-0002), and a participle of another class
+  than "registered" after a comma in the heading - **blocks**;
+- a table with a header row (hand-11 E-0011, hand-9 E-0003, hand-14 E-0014) - **blocks**;
+- per mille (`625‰`, hand-11 E-0014) - **blocks**;
+- nominal amounts per holder, with no share and no count - **blocks**;
+- a holders' heading with an explicit date (`Holders at 16 February 2026:`) and headings of other nouns
+  ("Allocation of the capital", "Capital allocation", "ownership structure", owners, beneficial owners, members) -
+  **blocks**;
+- a heading without a final `.` or `:` that is not the whole line or is not followed by an item line: not a
+  heading - holders **block**, directors **keep `[TO CONFIRM]`**;
+- two holders' headings in one document - **blocks**; two directors' headings - **keeps `[TO CONFIRM]`**;
+- a Total line that is not the last line of the table, that cannot be read, or that is in another unit than
+  the rows - **blocks** (a Total that differs from the exact sum blocks by `OWN-010`, by design);
+- a share before the holder written in words or as a count - **blocks**;
+- a share in words in the same line as a date in words - **blocks**;
+- counts without a total in the same document, with two totals, mixed with shares in one table, or in a
+  document of unrecognised type - **blocks**;
+- shares in words beyond whole per cent and simple fractions - **blocks**;
+- a label with nested or second parentheses - **blocks**;
+- a document whose header cannot be read, a document date in words among them (`OWN-015`) - **blocks**;
+- shares planted as illegible block by design (D26) - **blocks**;
+- a document of unrecognised type (a type label the rules do not list) not older than the latest event of a
+  field: every field (`DISC-005`, `every_field`) - **keeps `[TO CONFIRM]`**; when it holds a line that may state
+  a holding (`holders_evidence`), or a holders' table that is not read whole - **blocks** (`OWN-015`);
+- a document of a recognised type with a body line that no rule of its kind explains (`CLS-999`; since v2.0.8
+  also a line whose address, name, title or label is not corroborated, since v2.0.9 one whose free-text slot is
+  not identified): every field, when the document is not older than the latest event (`DISC-006`) - **keeps
+  `[TO CONFIRM]`**; when the line may state a holding - **blocks** (`OWN-015`);
+- a closed line that states a field of its kind where no rule of its kind read it (the office-transfer wording
+  "The seat of the company is moved", scenario S09, among them), or a field its kind does not read: that field,
+  when the document is not older than the latest event - **keeps `[TO CONFIRM]`**;
+- a holders' table in a document of a kind not read for the holders: read whole and summed, then the holders
+  **keep `[TO CONFIRM]`**; not read, or two of them - **blocks**;
+- a row of a list of a recognised document whose share is illegible or not typed - every field **keeps
+  `[TO CONFIRM]`**, and when the row may state a holding - **blocks**;
+- a line right after a list with no blank line that is neither a heading nor a full sentence of the form
+  `list_end_sentence` - a sentence that names an identifier, a share or a figure with a unit noun (hand-16 E-0010),
+  a wrapped row: a row of the list the grammar cannot read - holders **block**, directors **keep `[TO CONFIRM]`**;
+- a name slot that is not its identifier's or its entity's own known name, a name beside an identifier that is not
+  its own (`CLS-005`), or the entity's own name slot that differs from its `Entity:` header: the line is one no rule
+  explains - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding - **blocks**.
+  Since v2.0.9 a name is known only when the gazetteer identifies it;
+- a name beside an identifier whose own name the corpus does not know (not in the identity layer, no `Entity:`
+  header of its own; every person when the identity layer names nobody): the line is open - every field **keeps
+  `[TO CONFIRM]`**, and the holders **block** (`OWN-015`);
+- an address without a house number, or with a known name inside it that is not part of a whole gazetteer entry
+  (restated in v2.0.10, D3: a word of a whole gazetteer street entry is part of the street even when it is also a
+  known surname, and that address is read when it is identified and corroborated): the line is open and the office
+  is not read from it - every field **keeps `[TO CONFIRM]`** (`DISC-006`), and when the line may state a holding -
+  **blocks**;
+- a company name whose legal form differs from the legal form stated (`S.r.l.s.` against `S.r.l.` included, by
+  design) - the name is a discrepancy and the legal form **keeps `[TO CONFIRM]`** (`DISC-035`).
+
+Count of limits marked **may publish**: v2.0.4 1, v2.0.5 0, v2.0.6 0, v2.0.7 0 (but its section 4 left a residual
+risk outside the list, and run 18 found it), v2.0.8 0 (but its section 4 left a premise outside the two classes, and
+run 20 found it), v2.0.9 0 (run 22 found none publishing), v2.0.10 0, with section 4 of entry 2.0.9 in the same two
+classes and nothing outside them.
+
+### Tests and numbers
+
+- `tests/test_d39_scorer.py`, 15 tests in 3 classes: a build scored from a folder of 280 characters equals the short
+  one, by a given corpus and by a generated one (`--seed`); the rebuild walk reads a deep build whole and refuses an
+  empty walk; the measurement FAILS on an entity missing, a folder in place of its file or a truncated file, counts
+  that disagree, nothing scored, an entity of the gold missing from the run, and `main()` exits 3 with the reason on
+  stderr, also when the run raises; a clean build measures OK; the audit's caches follow the rules (d).
+- `tests/test_d39_capital_count.py`, 5 tests in 2 classes: the 78 siblings of (b), the rule-level reading of every
+  qualified clause, and E-0007 and E-0001 of hand-22 as the gold.
+- `tests/test_d39_limits.py`, 5 tests in 2 classes: the bracket rows block (three orders, two setups), a blank line
+  inside a list blocks, the declared blocks of hand-22 (E-0005, E-0006, E-0025, E-0028), and D3 both ways.
+- Of the 25 new tests, 17 fail on the code of `v2.0.9-freeze` (19 counting subtests); the 8 that pass there state
+  behaviour v2.0.10 keeps: the declarations of (c), the 0 wrongly published siblings, the forms that must not close.
+- `tests/test_rules.py` counts 109 rules (108 + `NAT-025`); `tests/test_d38_identification.py` line 405 docstring.
+- `tests/test_scenarios.py`: the scenario checks it runs in its own process make their work folders with `tmp()`
+  (`ScenariosCanFail._with_expected`), so that a full suite leaves nothing in its TEMP (section 4).
+- 364 tests: `OK`. Scenarios 10/10. Rebuild identical (README).
+- Measured by the builder on corpora already seen (`eval/history.json` run 23; NOT blind): 0 never-events on all thirty
+  results, every measurement `OK`, every command exit 0, and the sum of the eight `*_wrong_committed` fields 0 in each
+  (the evaluator's tool, 240 values); every count and metric equal to those of v2.0.9 but hand-22 (section 2); the
+  table of the README is unchanged.
+
 ## [2.0.9] - 2026-10-01 (freeze tag `v2.0.9-freeze`; not yet run blind)
 
 ### D38 - blind run of v2.0.8, run 20: eight never-events in two entities (the premise of corroboration), an own name read by topic words, three limits undeclared, long paths
