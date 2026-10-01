@@ -41,7 +41,8 @@ scorer counts every kind of the list. A field that cannot be decided is written 
 current sources disagree both values are shown with their sources. The blind run of `v2.0.0-freeze` found
 never-events anyway (finding T16, below); v2.0.1 is the fix. The blind run of `v2.0.3-freeze` found
 two (run 11, below); v2.0.4 is the fix, and v2.0.5 closes the one known limit of v2.0.4 that could publish
-(`CHANGELOG.md` 2.0.5); neither has been run blind.
+(`CHANGELOG.md` 2.0.5). v2.0.4 was never run blind; the blind run of `v2.0.5-freeze` (run 14, below) found
+no never-event, with two of its probes masked by a one-character miss.
 
 ## Re-run it
 
@@ -160,6 +161,26 @@ How to read them:
   1285 facts exact (711 before) and 290 of 925 on the out-of-pool corpus of run 5 (330 before), mostly from
   intermediate registry extracts superseded by a later source (`CHANGELOG.md` 2.0.5, section 3). That is not a
   blind result.
+- The blind run of `v2.0.5-freeze` (run 14, by the evaluator, not the author, seed 20261015, hand-written
+  corpus `eval/blind/hand-14/`, 15 entities, 40 documents) found **0 never-events** by section 1.5 of the
+  protocol and by `eval/score.py`: 0 in the plain corpus, 0 in the perturbed one, 0 in the hand-written one.
+  Entities blocked wrongly: 2 of 150 plain (the illegible share planted by the generator, decision D26), 3 of
+  150 perturbed (the same two, and a type label the pack does not recognise next to a line that may state a
+  holding), 5 of 15 hand-written (two holders in one row with "each", a holder noun in a sentence of a
+  memorandum and of an appointment, a numbered heading followed by a clause, a table with a header row).
+  Fields left `[TO CONFIRM]`: 0 of 1371, 647 of 1363, 63 of 72. The hand-written figure is mostly one
+  character: every deed of that corpus ends its first clause with `its legal form is S.r.l..`, which `CLS-110`
+  and `EXT-FORM-010` do not match, so the line may change every field (`CLS-999`, `DISC-006`); nothing was
+  published wrongly, and almost nothing was published. The same miss masks two probes of the residual risk of
+  section 4 of `CHANGELOG.md` 2.0.5: in E-0011 a person slot admitted `Hilde Simulanti Sole Proprietress
+  Henceforth` with no check on the extra words - the case that section asks for, found and not seen by the
+  pack - and the holders stayed `[TO CONFIRM]` only because of the deed; in E-0012 a name ending in `S.p.A.`
+  next to a legal form `S.r.l.` raised no discrepancy. The sentence "no case is known" of that section is no
+  longer true. In E-0013 a document of unrecognised type was judged able to change the directors only; every
+  field stayed `[TO CONFIRM]` by the scope `every_field` of `DISC-005`, not by the lists. The list of known
+  limits marks a document of unrecognised type as one that keeps `[TO CONFIRM]`; with a line that may state a
+  holding it blocks (E-0005, and E-0054 of the perturbed corpus) - more cautious than declared. These go into a
+  new version under a new tag; this tag is not moved.
 
 ## Two rebuilds, same bytes
 
