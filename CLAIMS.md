@@ -31,7 +31,7 @@ Related sentences of the profile covered by the same evidence:
 | "Cross-source discrepancy detection — stated capital, officers, and registered address compared across deed vs registry, divergence surfaced with provenance" | demonstrated on synthetic data | A2; capital in `scenarios/S01`; officers, address and holders only through the generated suites scored by `eval/score.py` |
 | "Provenance-per-fact indexing — every figure linked to its source document and that document's date" | demonstrated | A1 |
 | "Versioned dossier snapshots — a dated snapshot on each material change" | demonstrated | A5 |
-| "Deterministic document build" | demonstrated on Windows only | A4; identity between operating systems is not verified |
+| "Deterministic document build" | demonstrated on Windows only | A4; identity between operating systems is not verified. One Linux CI job (run 37013193685, ubuntu-24.04, 2026-10-02) printed the same four rebuild hashes on the code of `v2.0.10-freeze`: one observation, README "Two rebuilds, same bytes" |
 | "Will not round a figure to make a table look tidy, and will not let a cap table render until its percentages resolve to a hundred" | demonstrated | A3, `tests/test_numbers.py` |
 | "lets a human adjudicate — the discrepancy is the finding" | demonstrated | A2; the parameter `adjudication` is `none` in `rules/discrepancy.json` |
 
@@ -287,3 +287,14 @@ the test suite) is in `CHANGELOG.md` 2.0.10,
 measured by the builder on corpora already seen only (`eval/history.json` run 23, NOT blind). Row A2 stays
 downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10): a downgrade is lifted
 only by a blind run that passes, never by the builder.
+
+## 13. v2.0.11
+
+v2.0.11 changes documents and the time limit of the CI workflow only: no code, rule, schema, scenario, test or
+tool changed, so it runs the code of `v2.0.10-freeze`. No outcome of this file changes; the note of the row
+"Deterministic document build" (section 1) adds one Linux observation and keeps "demonstrated on Windows only".
+The blind run of `v2.0.10-freeze` (run 24, README) found no never-event, so nothing was downgraded for that tag
+(section 1.7 of `eval/BLIND_PROTOCOL.md` does not apply). Row A2 stays downgraded for `v2.0.3-freeze`,
+`v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10). The statements that the workflow had never been
+executed are replaced by what its runs on GitHub-hosted runners show (README, "Two rebuilds, same bytes";
+`CHANGELOG.md` 2.0.11).

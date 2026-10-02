@@ -2,6 +2,66 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.11] - 2026-10-02 (freeze tag `v2.0.11-freeze`; documentation and the CI time limit only)
+
+Documentation and one value of the CI workflow only. No code, rule, schema, corpus generator, scenario, test or
+tool changed: `python tools/manifest.py --check` answers OK against the `MANIFEST.sha256` of `v2.0.10-freeze`,
+which is unchanged, and `v2.0.10-freeze` stays where it is. The version string of the generator stays
+`dossier 2.0.10`, because it lives in a frozen file, so the rebuild hashes of the README do not change.
+`eval/history.json`, `eval/BLIND_PROTOCOL.md` and `eval/blind/` are unchanged; the blind run of
+`v2.0.10-freeze` (run 24) measured the same code.
+
+### 1. The workflow has run
+
+Published on 2026-10-02 as pull request #2 of this repository; the workflow runs on GitHub-hosted runners. The
+statements written before that - the comment at the top of `.github/workflows/ci.yml` (never executed, the branch
+not pushed) and the last paragraph of "Two rebuilds, same bytes" in the README - now state the runs. The lines of
+entry 2.0.0 on the workflow ("written, never executed"; "The CI workflow has never been executed") described that
+version and stay as written.
+
+- `ubuntu-latest`, run 37013193685 (push, commit `4c76f8f`, ubuntu-24.04, CPython 3.12.14): 364 tests OK in
+  446.2 s, scenarios 10/10 PASS, development evaluation with 0 never-events, `REBUILD OK`, and the four SHA-256
+  values of the README table (measured on Windows 11 on 2026-10-01) printed identical. One Linux runner agreeing
+  with one Windows machine: `CLAIMS.md` row "Deterministic document build" keeps "demonstrated on Windows only"
+  and records the observation; `CLAIMS.md` section 13 says what v2.0.11 changes.
+- `windows-latest`: cancelled at the time limit of 20 minutes in all six runs on the code of v2.0.10 (section 2),
+  so no Windows runner has reached the rebuild step on that code yet.
+
+### 2. The time limit of the Windows job: 20 -> 60 minutes
+
+From the step times GitHub records for each job, read on 2026-10-02 (`windows-latest`: Windows Server 2025,
+CPython 3.12.10). The runs of the tags were made on the tag commits before the history rewrite of 2 October 2026
+(trees unchanged). Test-suite times are whole seconds of the step, or the `Ran ... in` line where given with a
+decimal.
+
+| Code | Run | Test suite on Windows | Windows job | Ubuntu job |
+|---|---|---|---|---|
+| `v2.0.3-freeze` | 36996964701 | 90 s | 5.0 min, passed | 2.4 min, passed |
+| `v2.0.4-freeze` | 36996965487 | 114 s | 4.3 min, passed | 3.9 min, passed |
+| `v2.0.5-freeze` | 36996967478 | 264 s | 8.1 min, passed | 5.3 min, passed |
+| `v2.0.6-freeze` | 36996970012 | 235 s | 7.9 min, passed | 3.5 min, passed |
+| `v2.0.7-freeze` | 36996972750 | 583 s | 15.3 min, passed | 9.6 min, passed |
+| `v2.0.8-freeze` | 36996975407 | 852 s | cancelled at 20.1 min, in the rebuild step | 15.0 min, passed |
+| `v2.0.9-freeze` | 36996977933 | 994 s | cancelled at 20.1 min, in the rebuild step | 11.1 min, 1 test failed (`tests/test_d38_identification.py`) |
+| code of v2.0.10 | 36996964682, 36996984610, 37006469796, 37006476834, 37013193685, 37013199770 | 1056.7 s and 1157.8 s where it finished; still running at about 1190 s in four jobs | cancelled at 20.1 to 20.3 min | 10.0 to 18.6 min, passed |
+
+- **Where the time goes: the test suite.** The other steps of the Windows job took at most about 400 s on the
+  earlier versions: setup and install up to 25 s, about 20 to 31 s between the `OK` of the suite and the next
+  step, scenarios up to 12 s, development evaluation up to 130 s, rebuild up to 201 s.
+- **The four jobs cancelled inside the suite** were in `tests/test_d39_scorer.py` (three) and
+  `tests/test_scenarios.py` (one). By per-test times measured on Windows 11 on 2026-10-02 (364 tests OK in
+  843.2 s; used for proportions only, the machine was running other work), those tests start at 84 and 92 percent
+  of the suite, so the suite would have taken about 1300 to 1420 s on those runners. Five sibling tests
+  (`tests/test_d34_forms.py`, `tests/test_d36_forms.py`, `tests/test_d37_forms.py`, `tests/test_d37_slots.py`,
+  `tests/test_d38_identification.py`) take 576 s of the 843 s there.
+- **Estimate and limit.** On the code of v2.0.10 the Windows job needs about 21 to 30 minutes. `timeout-minutes`
+  is now 60, about twice the upper estimate. No test is disabled and Windows stays in the matrix. The first
+  Windows job that completes on this code is the measurement of this estimate: until then it is `[TO CONFIRM]`.
+- The `v2.0.9-freeze` failure on Ubuntu (`D38_OwnNameStreetWord`) is recorded here as found; it was not examined
+  in this version `[TO CONFIRM]`. The code of v2.0.10 passed on Ubuntu in all six runs.
+
+Still `[TO CONFIRM]`: the commit digests of the two actions and the runner image digests.
+
 ## [2.0.10] - 2026-10-01 (freeze tag `v2.0.10-freeze`; not yet run blind)
 
 ### D39 - blind run of v2.0.9, run 22: no never-event; a measurement that does not fail, the count form of the capital, a declaration not true as written and a block not declared, the test suite

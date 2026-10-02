@@ -453,8 +453,15 @@ from those of v2.0.1 only because the dossier named `dossier 2.0.2`: no document
 unrecognised type. The v2.0.1 hashes
 differed from those of v2.0.0 because the dossier named `dossier 2.0.1`, listed the new legal assumption and
 two entities of the development corpus became blocked.
-Verified on Windows only (Windows 11, Python 3.12.10). Identity between operating systems is not verified
-and not claimed. The CI workflow in this repository was written and has never been executed.
+Verified by the builder on Windows only (Windows 11, Python 3.12.10). Published on 2026-10-02 as pull request #2,
+the CI workflow runs on GitHub-hosted runners. On commit `4c76f8f` (the code of `v2.0.10-freeze`), the
+`ubuntu-latest` job of run 37013193685 (ubuntu-24.04, CPython 3.12.14) passed - 364 tests OK, scenarios 10/10
+PASS, the development evaluation with 0 never-events, `REBUILD OK` - and printed the same four SHA-256 values as
+the table above. That is one Linux runner agreeing with one Windows machine, not a claim of identity between
+operating systems. The six `windows-latest` jobs run on this code on 2026-10-02 were all cancelled by the
+workflow's time limit of 20 minutes before the rebuild step: four during the test suite, two after it had
+passed (364 tests OK in 1056.7 s and in 1157.8 s, runs 37006476834 and 37006469796). `v2.0.11` raises the limit
+(`CHANGELOG.md` 2.0.11).
 
 ## What is NOT demonstrated
 
