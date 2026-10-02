@@ -20,6 +20,92 @@ written. The README itself is outside `MANIFEST.sha256` on purpose; the test fil
   hashes of the README do not change. No tag is placed or moved: `v2.0.0-freeze` to `v2.0.11-freeze` stay where
   they are.
 
+## [2.0.12] - 2026-10-02 (freeze tag `v2.0.12-freeze`; how the test suite runs, and documents)
+
+How nine test files run their cases, and documents. No code, rule, schema, corpus generator, scenario or tool
+changed, and no test checks anything else than before: the same 364 tests, the same assertions on the same cases,
+read in the same order. The version string of the generator stays `dossier 2.0.10`, so the rebuild hashes of the
+README do not change. `MANIFEST.sha256` is rewritten, because the test files are in the frozen part of the pack:
+nine entries change (`tests/support.py` and the eight files of section 3), no file is added or removed.
+`eval/history.json`, `eval/BLIND_PROTOCOL.md` and `eval/blind/` are unchanged. Not run blind; no outcome changes.
+
+### 1. The first complete Windows runs
+
+On commit `44554c0` (`v2.0.11-freeze`, the code of v2.0.10), runs 37019779358 (push) and 37019787788 (pull
+request), read on 2026-10-02:
+
+| Job | Image, CPython | Test suite (`Ran ... in`) | Scenarios | Rebuild | Job |
+|---|---|---|---|---|---|
+| `windows-latest` | windows-2025-vs2026, 3.12.10 | 364 tests OK in 1266.1 s and 1310.4 s | 10/10 PASS | `REBUILD OK`, the four SHA-256 values of the README | 29.5 and 30.3 min |
+| `ubuntu-latest` | ubuntu-24.04, 3.12.14 | 364 tests OK in 861.1 s and 865.8 s | 10/10 PASS | `REBUILD OK`, the same four values | 18.4 and 18.5 min |
+
+This is the measurement that 2.0.11 section 2 left `[TO CONFIRM]`: the estimate of 21 to 30 minutes held at its
+upper end (30.3 minutes in one run, a little above it). The other steps of the Windows job took about 470 s in both
+runs (scenarios 12 and 20 s, development evaluation 149 and 143 s, rebuild 287 and 286 s). The Ubuntu suite took
+446.2 s on commit `4c76f8f` (run 37013193685) and 861.1 s on `44554c0` with the same code and tests: the hardware
+behind one runner label differs from run to run by up to about two times, so single runs compare versions roughly.
+On the same runs the Windows suite took about 1.5 times the Ubuntu one.
+
+### 2. Where the time of the suite goes
+
+Measured on Windows 11 (CPython 3.12.10, 24 logical CPUs), 2026-10-02, by the builder: each tag in a fresh
+checkout, each run with an empty temporary folder of its own, one run after the other, the time of every test
+recorded:
+
+| Code | Tests | Suite | Pipeline runs in the test process | Their share | Sweeps of siblings |
+|---|---|---|---|---|---|
+| `v2.0.3-freeze` | 243 | 64.0 s | 118 | 56 % | none |
+| `v2.0.7-freeze` | 300 | 352.8 s | 1545 | 87 % | 4 tests, 256.7 s |
+| `v2.0.11-freeze` | 364 | 790.6 s | 2983 | 87 % | 7 tests, 599.8 s |
+
+- **The number of runs, not their cost.** One run of the pipeline on a two-document input took 220 ms on v2.0.3
+  and 254 ms on v2.0.7 and v2.0.11 (the two DOCX layers 144 to 148 ms of it; the inline tests of the rules, run
+  before every run, 4 ms then 33 to 37 ms). A run costs 15 % more than on v2.0.3; the suite makes 25 times as many.
+- **The sweeps of siblings.** Since v2.0.5 a finding is probed by class: a test builds every combination of its
+  axes (wording x slot x place x sources, up to 624 cases) and runs the whole pipeline once per case - DOCX of both
+  layers, audit, snapshot store - because the property under test is what is published. Seven such tests took
+  599.8 s, 76 % of the v2.0.11 suite: `tests/test_d36_forms.py` 139.3 s (600 runs),
+  `tests/test_d37_forms.py` 120.7 s (420), `tests/test_d38_identification.py` 120.5 s (624),
+  `tests/test_d37_slots.py` 86.0 s (300), `tests/test_d34_forms.py` 74.3 s (379), `tests/test_d35_forms.py`
+  31.2 s (192), `tests/test_d30b_forms.py` 27.7 s (160). The rest of the suite, 64 tests more than v2.0.7, took
+  190.8 s (96.1 s on v2.0.7), 42.0 s of it in class and module set-up.
+- **Not the cause.** Child processes: 29 in every version, 21 to 25 s. Fixtures: the corpora and builds that many
+  tests share are already built once per process. The antivirus does not explain the CI times: the Windows runner
+  image turns real-time monitoring off and excludes its drives from scanning (runner-images,
+  `Configure-WindowsDefender.ps1`).
+
+### 3. The sweeps run their cases in worker processes
+
+The cases of a sweep are independent of one another. `tests/support.py` gains `sweep(fn, cases)`: one future per
+case, `fn` run in a pool of worker processes started clean (`spawn`, on every system), and the test reads each
+outcome inside that case's own `subTest`, with the same assertion as before; an exception raised by a case is raised
+where the test reads it, inside its `subTest`, as a call there would. A worker that dies breaks the pool: every case
+not yet finished fails with that error, and so does every later sweep; none passes. Workers: `EZIO_TEST_JOBS` when
+it is set, else the CPU count, at most 8; `EZIO_TEST_JOBS=1` runs every case in the test process at the moment the
+test reads it, as until v2.0.11. A worker removes the temporary folders it made when it ends, as the test process
+does. The tests that use it: the seven sweeps of section 2 and the 78 setups of `tests/test_d39_capital_count.py`,
+built in that class's set-up. The command is unchanged: `python -m unittest discover -s tests -t .`.
+
+### 4. Before and after, measured
+
+Same machine, same method as section 2 (per-test times, an empty temporary folder per run):
+
+| Code | Sweep workers | Suite | The seven sweeps | The rest |
+|---|---|---|---|---|
+| `v2.0.11-freeze` | none (one process) | 790.6 s | 599.8 s | 190.8 s |
+| v2.0.12 | 4 | 322.2 s | 146.0 s | 176.2 s |
+| v2.0.12 | 8 | 257.1 s | 83.9 s | 173.2 s |
+
+The CI command itself on the commit of `v2.0.12-freeze`, same machine, 364 tests OK every time, no temporary
+folder left behind: 263.0 s with the default (8 workers here), 316.2 s with `EZIO_TEST_JOBS=4`, 738.6 s with
+`EZIO_TEST_JOBS=1` (every case in the test process, as until v2.0.11).
+
+What it does not change: the rest of the suite stays in one process, and the CI job keeps its other steps (about
+470 s on Windows, section 1). GitHub documents 4 CPUs for the standard runners of a public repository; if a
+Windows runner scaled as this machine did with 4 workers, its suite would take about 515 to 535 s instead of 1266
+to 1310 s and the job about 17 minutes. That is an estimate: the first Windows run on this code is
+`[TO CONFIRM]`, and `timeout-minutes` stays 60 until it is read.
+
 ## [2.0.11] - 2026-10-02 (freeze tag `v2.0.11-freeze`; documentation and the CI time limit only)
 
 Documentation and one value of the CI workflow only. No code, rule, schema, corpus generator, scenario, test or

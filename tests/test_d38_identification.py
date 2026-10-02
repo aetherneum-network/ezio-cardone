@@ -209,10 +209,11 @@ N_CASES = len(WORDS) * len(SLOTS) * len(SOURCES)
 class D38_IdentificationSiblings(unittest.TestCase):
     def test_no_sibling_is_published_wrongly(self):
         n = 0
-        for key, docs, changes in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, docs, _ in cases()])
+        for (key, docs, changes), outcome in zip(cases(), outcomes):
             with self.subTest(case=" | ".join(key)):
                 n += 1
-                self.assertEqual(unsafe(*_run(docs), changes, key[4]), "")
+                self.assertEqual(unsafe(*outcome.result(), changes, key[4]), "")
         self.assertEqual(n, N_CASES)
 
 

@@ -290,10 +290,11 @@ def tally() -> dict:
 class D36_TypedSlotSiblings(unittest.TestCase):
     def test_every_sibling_is_safe(self):
         n = 0
-        for group, wording, docs, changes in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, _, docs, _ in cases()])
+        for (group, wording, docs, changes), outcome in zip(cases(), outcomes):
             with self.subTest(group=group, wording=wording):
                 n += 1
-                self.assertEqual(unsafe(*_run(docs), changes), "")
+                self.assertEqual(unsafe(*outcome.result(), changes), "")
         self.assertEqual(n, N_CASES)
 
 

@@ -220,10 +220,11 @@ def unsafe(status: str, view: dict, prov: dict | None, changes) -> str:
 class D35_TypedSlotSiblings(unittest.TestCase):
     def test_every_sibling_is_safe(self):
         n = 0
-        for cls, wording, docs, changes in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, _, docs, _ in cases()])
+        for (cls, wording, docs, changes), outcome in zip(cases(), outcomes):
             with self.subTest(cls=cls, wording=wording):
                 n += 1
-                self.assertEqual(unsafe(*_run(docs), changes), "")
+                self.assertEqual(unsafe(*outcome.result(), changes), "")
         self.assertEqual(n, (len(TRAILING) + len(NO_CLASS)) * (2 * 3 + 2 * 4 + 2) + 7 + 5 + 4)
 
 

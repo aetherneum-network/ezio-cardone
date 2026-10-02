@@ -94,6 +94,9 @@ never-event, and since v2.0.10 3 when it could not measure (the reason on stderr
 `CHANGELOG.md` 2.0.8 section 4 - an address written alike, words and all, in two documents is read as written
 (`tests/test_d36_forms.py`, `D36_ResidualWordList`) -, which passes since v2.0.9. In v2.0.7 the line was
 `OK (expected failures=1)` after 300 tests; until v2.0.6 it was `OK` after 286 tests.
+Since v2.0.12 the sweeps of siblings in the suite run their cases in worker processes: the variable
+`EZIO_TEST_JOBS` sets how many (by default the CPU count, at most 8), and `EZIO_TEST_JOBS=1` runs every
+case in the test process, as until v2.0.11 (`CHANGELOG.md` 2.0.12).
 
 ## The numbers, with their seed and date
 
@@ -461,7 +464,12 @@ the table above. That is one Linux runner agreeing with one Windows machine, not
 operating systems. The six `windows-latest` jobs run on this code on 2026-10-02 were all cancelled by the
 workflow's time limit of 20 minutes before the rebuild step: four during the test suite, two after it had
 passed (364 tests OK in 1056.7 s and in 1157.8 s, runs 37006476834 and 37006469796). `v2.0.11` raises the limit
-(`CHANGELOG.md` 2.0.11).
+(`CHANGELOG.md` 2.0.11). On commit `44554c0` (`v2.0.11-freeze`, the same code) the four jobs of runs 37019779358
+and 37019787788 passed - on `windows-latest` (windows-2025-vs2026, CPython 3.12.10) 364 tests OK in 1266.1 s
+and 1310.4 s, scenarios 10/10 PASS, `REBUILD OK` - and all four printed the same four SHA-256 values as the
+table above: two runner images agreeing with one Windows machine, still not a claim of identity between
+operating systems. `v2.0.12` changes how the test suite runs, nothing that the rebuild runs (`CHANGELOG.md`
+2.0.12).
 
 ## What is NOT demonstrated
 

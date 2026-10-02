@@ -13,6 +13,13 @@
 # four other jobs were still inside it at about 1190 s, at 84 to 92 percent of the suite by per-test times
 # measured on Windows 11, so about 1300 to 1420 s. With the other steps (up to about 400 s on earlier
 # versions) the Windows job needs about 21 to 30 minutes; 60 is about twice that. Ubuntu: 10 to 19 minutes.
+# On v2.0.11-freeze (the same code) the first complete Windows jobs, runs 37019779358 and 37019787788, took
+# 29.5 and 30.3 minutes, the suite 1266.1 s and 1310.4 s; the Ubuntu jobs 18.4 and 18.5 minutes.
+#
+# Since v2.0.12 the sweeps of siblings, 76 percent of the suite's time, run their cases in worker processes
+# (EZIO_TEST_JOBS, else the CPU count, at most 8; the standard runners of a public repository have 4 CPUs). The
+# command below is unchanged. timeout-minutes stays 60 until a Windows run on that code is read (CHANGELOG.md
+# 2.0.12).
 name: ci
 on:
   push:
