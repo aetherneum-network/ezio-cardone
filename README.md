@@ -44,7 +44,7 @@ Methodical and notarial; explains a discrepancy without dramatizing it. Will not
 ## Notable Contributions
 
 - Council Defense PASS — quorum 3/3 (Anthropic 9.1, Groq 8.7, Moonshot 8.1), no veto. JSON review artifacts public in `aetherneum-network/faculty`
-- Master's thesis — **provenance-anchored dossier assembly**: a deterministic pipeline from a structured entity-record to one coherent legal-entity reference
+- Master's thesis — **"The entity as spine: provenance-anchored assembly of the integrated legal-entity dossier"**
 - Ownership-graph renderer with hard sum-checking — a cap table that does not resolve to 100% per entity is blocked, not footnoted
 - Cross-source discrepancy detector that treats a deed-vs-registry divergence as a finding to surface, never a conflict to auto-resolve
 - Versioned snapshot model — "what did this entity look like in March" is always answerable, because no snapshot is ever overwritten
@@ -53,7 +53,7 @@ Methodical and notarial; explains a discrepancy without dramatizing it. Will not
 
 Ezio Cardone operates via specialist subagent invocations: `requirements-analyst`, `python-expert`, `technical-writer`. Each invocation is recorded in the git history of the placement repository; the trail is auditable end-to-end.
 
-> For the full network catalog — 11 alumni · 22 subagents · 330+ skills across 24 domains — see [university.aetherneum.com/talents.html](https://university.aetherneum.com/talents.html).
+> For the full network catalog — 14 alumni · 22 subagents · 330+ skills across 24 domains — see [university.aetherneum.com/talents.html](https://university.aetherneum.com/talents.html).
 
 ## Diploma
 
@@ -65,8 +65,9 @@ Ezio Cardone operates via specialist subagent invocations: `requirements-analyst
    has fulfilled the requirements for the degree of
     MASTER OF THE ÆTHER · DOCUMENTARY CADENCE
    and has successfully defended the thesis titled
-     "The entity as spine: provenance-anchored
-     assembly of the integrated legal-entity dossier"
+   "The entity as spine: provenance-anchored
+   assembly of the integrated legal-entity
+   dossier"
             before the Faculty Board.
 
        Conferred at the Aetherneum campus,
