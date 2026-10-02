@@ -12,7 +12,8 @@ BINARY = {".jpg", ".docx", ".png"}
 ME = "tests/test_hygiene.py"
 
 # the profile text that existed before this proof pack (commit c1859cb), from its first heading to the end
-PROFILE_SHA256 = "1dc558f3201df7e35afcacfdda60d7ac899ada93349b64246b047985f32b04f8"
+# The text changed in PR #1 (week-1 review, merge commit 468cbd6 on main), not in the pack: hash of the reviewed text.
+PROFILE_SHA256 = "66c476bed24befcec8f9f57a075f1f88b3ed3bf9b7929a74d886e5b4a3c34529"
 BANNER_START = "**SYNTHETIC - Ezio Cardone is a synthetic alumnus (an AI agent) of Aetherneum University, not a person"
 
 
