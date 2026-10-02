@@ -31,7 +31,7 @@ Related sentences of the profile covered by the same evidence:
 | "Cross-source discrepancy detection — stated capital, officers, and registered address compared across deed vs registry, divergence surfaced with provenance" | demonstrated on synthetic data | A2; capital in `scenarios/S01`; officers, address and holders only through the generated suites scored by `eval/score.py` |
 | "Provenance-per-fact indexing — every figure linked to its source document and that document's date" | demonstrated | A1 |
 | "Versioned dossier snapshots — a dated snapshot on each material change" | demonstrated | A5 |
-| "Deterministic document build" | demonstrated on Windows only | A4; identity between operating systems is not verified. One Linux CI job (run 37013193685, ubuntu-24.04, 2026-10-02) printed the same four rebuild hashes on the code of `v2.0.10-freeze`: one observation, README "Two rebuilds, same bytes". On the same code (`v2.0.11-freeze`, commit `44554c0`) two Linux and two Windows CI jobs (runs 37019779358 and 37019787788, 2026-10-02) printed the same values: more observations, not identity |
+| "Deterministic document build" | demonstrated on Windows only | A4; identity between operating systems is not verified. One Linux CI job (run 37013193685, ubuntu-24.04, 2026-10-02) printed the same four rebuild hashes on the code of `v2.0.10-freeze`: one observation, README "Two rebuilds, same bytes". On the same code (`v2.0.11-freeze`, commit `44554c0`) two Linux and two Windows CI jobs (runs 37019779358 and 37019787788, 2026-10-02) printed the same values: more observations, not identity. Six later runs on the same code (twelve jobs, 2026-10-02, `CHANGELOG.md` 2.0.13) printed them too |
 | "Will not round a figure to make a table look tidy, and will not let a cap table render until its percentages resolve to a hundred" | demonstrated | A3, `tests/test_numbers.py` |
 | "lets a human adjudicate — the discrepancy is the finding" | demonstrated | A2; the parameter `adjudication` is `none` in `rules/discrepancy.json` |
 
@@ -308,3 +308,13 @@ No outcome of this file changes; the note of the row "Deterministic document bui
 complete Windows CI runs and keeps "demonstrated on Windows only". Row A2 stays downgraded for `v2.0.3-freeze`,
 `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10). What changed, and the time of the suite before and
 after, are in `CHANGELOG.md` 2.0.12.
+
+## 15. v2.0.13
+
+v2.0.13 changes the CI workflow and documents only: the two actions are referenced by commit digest, and the
+checkout leaves no token on disk. No code, rule, schema, corpus generator, scenario, test or tool changed; the
+tests are those of v2.0.12 with the profile hash of pull request #3 (`CHANGELOG.md` "[Unreleased]"), so the
+code under test is that of `v2.0.10-freeze`. No outcome of this file changes; the note of the row
+"Deterministic document build" (section 1) adds the CI runs of 2026-10-02 on that code and keeps "demonstrated
+on Windows only". Row A2 stays downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections
+7, 8 and 10). The time of those runs, before and after v2.0.12, is in `CHANGELOG.md` 2.0.13.

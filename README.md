@@ -469,7 +469,8 @@ and 37019787788 passed - on `windows-latest` (windows-2025-vs2026, CPython 3.12.
 and 1310.4 s, scenarios 10/10 PASS, `REBUILD OK` - and all four printed the same four SHA-256 values as the
 table above: two runner images agreeing with one Windows machine, still not a claim of identity between
 operating systems. `v2.0.12` changes how the test suite runs, nothing that the rebuild runs (`CHANGELOG.md`
-2.0.12).
+2.0.12). On the same code six more runs of 2026-10-02, twelve jobs, printed the same four values
+(`CHANGELOG.md` 2.0.13).
 
 ## What is NOT demonstrated
 
