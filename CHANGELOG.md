@@ -2,6 +2,24 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [Unreleased] - 2026-10-02 (main after pull requests #1 and #2; no freeze tag; one test constant and the manifest)
+
+Pull request #1 (week-1 review of 2026-09-30, merge commit `468cbd6`) corrected the thesis title in the profile
+text of the README. Pull request #2 (merge commit `5bcf1e0`) brought in the pack, whose `PROFILE_SHA256` in
+`tests/test_hygiene.py` had been computed on the README before that review. On `main`, run 37033163587
+(2026-10-02): `python tools/manifest.py --check` answered OK, and on `ubuntu-latest` the suite ran 364 tests with one
+failure, `test_the_profile_text_is_untouched`; the `windows-latest` job was still running when this entry was
+written. The README itself is outside `MANIFEST.sha256` on purpose; the test file is inside it.
+
+- `tests/test_hygiene.py`: `PROFILE_SHA256` is the SHA-256 of the reviewed profile text (byte for byte the README
+  at commit `468cbd6`), with a comment that names pull request #1 as the source of the change. The pack did not
+  change the text; no other test changed.
+- `MANIFEST.sha256`: rewritten by `python tools/manifest.py --write`; the only line that changes is the one of
+  `tests/test_hygiene.py`.
+- Code, rules, schema, corpus generator, scenarios, records and the README text are unchanged, so the rebuild
+  hashes of the README do not change. No tag is placed or moved: `v2.0.0-freeze` to `v2.0.11-freeze` stay where
+  they are.
+
 ## [2.0.11] - 2026-10-02 (freeze tag `v2.0.11-freeze`; documentation and the CI time limit only)
 
 Documentation and one value of the CI workflow only. No code, rule, schema, corpus generator, scenario, test or
