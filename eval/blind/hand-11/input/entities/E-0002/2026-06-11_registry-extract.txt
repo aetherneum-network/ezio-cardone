@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-03
+Document type: Test registry extract
+Document date: 2026-06-10
+Edition: EXTRACT/1
+Entity: Cantiere Sognolungo S.p.A. (test registry no. TEST-REG-000002)
+
+Name: Cantiere Sognolungo S.p.A.
+Legal form: S.p.A.
+Registered office: Molo delle Chimere 18, Sognolungo (ZZ)
+Share capital: resolved EUR 200.000,00; subscribed and paid in EUR 200.000,00
+Registered shareholders:
+* Clara Immaginari (P-003): 60%
+* Dario Congetturi (P-004): 20%
+* Elsa Apocrifi (P-005): 20%
+
+Directors:
+* Clara Immaginari (P-003)

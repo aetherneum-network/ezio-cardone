@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0018-02
+Document type: Share transfer notice
+Document date: 2026-04-20
+Edition: TRANSFER/1
+Entity: Distilleria Vallecieca S.p.A. (test registry no. TEST-REG-000018)
+
+Notice of a transfer of shares (synthetic).
+Holders after the transfer:
+- P-011 (Eva Favolosi): 80%
+- P-021 (Cleo Inesistenti Doubling Our Means Five Hundred Thousand Euro Total): 20%

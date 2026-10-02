@@ -1,0 +1,14 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0007-01
+Document type: Deed of incorporation
+Document date: 2020-10-05
+Edition: DEED/1
+Entity: Lanificio Ipotetico S.p.A. (test registry no. TEST-REG-000007)
+
+1. Name and form. The company is named Lanificio Ipotetico S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Largo dei Presunti 6, Borgofinto (ZZ).
+3. Share capital. The share capital is EUR 500.000,00, fully subscribed and fully paid in.
+4. Capital allocation. The share capital is held by P-009 (Gina Presunti) as to 30% and by P-010 (Elmo Ipotetici) as to 70%.
+
+5. Directors.
+- P-009 (Gina Presunti)

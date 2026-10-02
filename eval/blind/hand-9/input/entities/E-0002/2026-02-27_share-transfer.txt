@@ -1,0 +1,12 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-02
+Document type: Share transfer notice
+Document date: 2026-02-27
+Edition: TRANSFER/1
+Entity: Cantiere Borgofinto S.p.A. (test registry no. TEST-REG-000002)
+
+Notice of a transfer of shares (synthetic).
+Stockholders following the transfer:
+- P-003 (Oreste Immaginari): 35%
+- P-004 (Vera Fantasia): 35%
+- P-005 (Tito Simulanti): 25%

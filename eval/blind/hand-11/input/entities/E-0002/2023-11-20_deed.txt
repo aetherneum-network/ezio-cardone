@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-01
+Document type: Deed of incorporation
+Document date: 2023-11-20
+Edition: DEED/1
+Entity: Cantiere Sognolungo S.p.A. (test registry no. TEST-REG-000002)
+
+1. Name and form. The company is named Cantiere Sognolungo S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Molo delle Chimere 18, Sognolungo (ZZ).
+3. Share capital. The share capital is EUR 200.000,00, fully subscribed and fully paid in.
+4. Shareholders
+* Clara Immaginari (P-003): four fifths
+* Dario Congetturi (P-004): one fifth
+
+5. Directors
+* Clara Immaginari (P-003)

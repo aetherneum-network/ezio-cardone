@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0016-03
+Document type: Lease addendum
+Document date: 2026-05-18
+Edition: ADDENDUM/1
+Entity: Latteria Sassoinvento S.r.l. (test registry no. TEST-REG-000016)
+
+Report of the premises (synthetic).
+From the first day of next month the company gives up the rooms it has used until now and takes those at Vicolo dei Fantocci 9, Pieve Supposta (ZZ); every notice is to be sent there.

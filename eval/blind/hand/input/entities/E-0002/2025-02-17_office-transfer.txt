@@ -1,0 +1,8 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-02
+Document type: Transfer of registered office
+Document date: 2025-02-17
+Edition: OFFICE/1
+Entity: Cooperativa Agricola Valinventata S.p.A. (test registry no. TEST-REG-000002)
+
+The seat of the company is moved from Piazza dei Modelli 9, Valinventata (ZZ) to Corso dei Prototipi 88, Campofinto (ZZ).

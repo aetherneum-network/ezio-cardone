@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0005-03
+Document type: Test registry extract
+Document date: 2025-07-07
+Edition: EXTRACT/1
+Entity: Stamperia Pianoprova S.r.l. (test registry no. TEST-REG-000005)
+
+Name: Stamperia Pianoprova S.r.l.
+Legal form: S.r.l.
+Registered office: Via dei Torchi 2, Pianoprova (ZZ)
+Share capital: resolved EUR 45.000,00; subscribed and paid in EUR 45.000,00
+Holders:
+- P-007 (Remo Virtuali): 70%
+- P-008 (Zita Teorici): 30%
+
+Directors:
+- P-008 (Zita Teorici)

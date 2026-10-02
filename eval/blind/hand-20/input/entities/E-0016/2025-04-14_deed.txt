@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0016-01
+Document type: Deed of incorporation
+Document date: 2025-04-14
+Edition: DEED/1
+Entity: Latteria Sassoinvento S.r.l. (test registry no. TEST-REG-000016)
+
+1. Name and form. The company is named Latteria Sassoinvento S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via delle Repliche 14, Sassoinvento (ZZ).
+3. Share capital. The share capital is EUR 28.000,00, fully subscribed and fully paid in.
+Article 4. Shareholders:
+* P-001 (Mara Apocrifi): 55 per cent
+* P-002 (Dino Posticci): 45 per cent
+
+Article 5. Directors:
+* P-002 (Dino Posticci)

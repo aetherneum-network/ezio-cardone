@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-03
+Document type: Test registry extract
+Document date: 2026-06-30
+Edition: EXTRACT/1
+Entity: Cantiere Borgofinto S.p.A. (test registry no. TEST-REG-000002)
+
+Name: Cantiere Borgofinto S.p.A.
+Legal form: S.p.A.
+Registered office: Corso del Simulacro 18, Borgofinto (ZZ)
+Share capital: resolved EUR 1 200 000,00; subscribed and paid in EUR 1 200 000,00
+Stockholders:
+- P-003 (Oreste Immaginari): 35%
+- P-004 (Vera Fantasia): 35%
+- P-005 (Tito Simulanti): 25%
+
+Directors:
+- P-003 (Oreste Immaginari)

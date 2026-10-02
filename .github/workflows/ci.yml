@@ -1,0 +1,53 @@
+# Offline CI of the proof pack. After the one install step from the hashed lockfile nothing touches the
+# network: the tests block sockets, no model and no API is called, and the job carries no credential.
+#
+# Status: published on 2026-10-02 as pull request #2 of this repository; the workflow runs on GitHub-hosted
+# runners and its results are on the pull request. On the code of v2.0.10-freeze the ubuntu-latest job of run
+# 37013193685 (ubuntu-24.04, CPython 3.12.14) passed - 364 tests OK in 446.2 s - and printed the same rebuild
+# hashes as the README, measured on Windows 11: one observation, not a claim of identity between operating
+# systems. The two actions are referenced by tag; their commit digests are [TO CONFIRM].
+#
+# timeout-minutes is 60 since v2.0.11 (it was 20). On the code of v2.0.10-freeze the six windows-latest jobs
+# of 2026-10-02 were all cancelled at 20 minutes, before the rebuild step. The test suite is the step that grew
+# (90 s on v2.0.3, 583 s on v2.0.7, 994 s on v2.0.9): it took 1056.7 s and 1157.8 s where it finished, and the
+# four other jobs were still inside it at about 1190 s, at 84 to 92 percent of the suite by per-test times
+# measured on Windows 11, so about 1300 to 1420 s. With the other steps (up to about 400 s on earlier
+# versions) the Windows job needs about 21 to 30 minutes; 60 is about twice that. Ubuntu: 10 to 19 minutes.
+name: ci
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install from the hashed lockfile (the only step that uses the network)
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Pack manifest, generated documents, synthetic corpus
+        run: |
+          python tools/manifest.py --check
+          python tools/assumptions.py --check
+          python scenarios/make_inputs.py --check
+          python -m corpus.generate --check
+      - name: Test suite (stdlib unittest, sockets blocked)
+        run: python -m unittest discover -s tests -t .
+      - name: Scenarios S01-S10 (one line each)
+        run: python scenarios/run_all.py --json reports/scenarios.json
+      - name: Evaluation on the development suite (internal consistency on synthetic data)
+        run: python -m eval.score --suite dev --json reports/eval-dev.json
+      - name: Hashes of one rebuilt dossier, to compare between the two operating systems
+        run: python tools/rebuild.py

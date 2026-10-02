@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0022-02
+Document type: Test registry extract
+Document date: 2026-03-20
+Edition: EXTRACT/1
+Entity: Falegnamerie Pianofittizio S.r.l. (test registry no. TEST-REG-000022)
+
+Name: Falegnamerie Pianofittizio S.r.l.
+Legal form: S.r.l.
+Registered office: Piazza della Finzione 33, Pianofittizio (ZZ)
+Share capital: resolved EUR 48.000,00; subscribed and paid in EUR 48.000,00
+Holders:
+- P-005 (Elsa Finzioni): 2/3
+- P-007 (Gilda Presunta): 1/3
+
+Directors:
+- P-005 (Elsa Finzioni)

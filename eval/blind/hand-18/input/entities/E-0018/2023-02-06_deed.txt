@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0018-01
+Document type: Deed of incorporation
+Document date: 2023-02-06
+Edition: DEED/1
+Entity: Pastifici Serraillusoria S.r.l. (test registry no. TEST-REG-000018)
+
+1. Name and form. The company is named Pastifici Serraillusoria S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Simulacro 20, Serraillusoria (ZZ).
+3. Share capital. The share capital is EUR 12.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-014 (Sara Chimerici): 50%
+- P-015 (Tullio Spettri): 50%
+
+5. Directors.
+- P-015 (Tullio Spettri)

@@ -1,0 +1,24 @@
+{
+  "directors": {
+    "source": [
+      "DOC-E0003-02",
+      "2026-03-02",
+      "APPOINTMENT/1"
+    ],
+    "status": "STATED",
+    "value": [
+      "P-006"
+    ]
+  },
+  "entity": "E-0003",
+  "exit_code": 0,
+  "filename_divergences": [
+    {
+      "aspect": "appointee",
+      "content_says": "P-006",
+      "doc_id": "DOC-E0003-02",
+      "filename_says": "P-005"
+    }
+  ],
+  "never_a_director": "P-005"
+}

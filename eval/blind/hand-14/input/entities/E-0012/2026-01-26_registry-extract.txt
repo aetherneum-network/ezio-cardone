@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0012-02
+Document type: Test registry extract
+Document date: 2026-01-26
+Edition: EXTRACT/1
+Entity: Fonderia Torre Esemplare S.p.A. (test registry no. TEST-REG-000012)
+
+Name: Fonderia Torre Esemplare S.p.A.
+Legal form: S.r.l.
+Registered office: Via dei Crogioli 6, Torre Esemplare (ZZ)
+Share capital: resolved EUR 60.000,00; subscribed and paid in EUR 60.000,00
+Holders:
+- P-003 (Tancredi Illusori): 55%
+- P-015 (Guido Parabolici): 45%
+
+Directors:
+- P-015 (Guido Parabolici)

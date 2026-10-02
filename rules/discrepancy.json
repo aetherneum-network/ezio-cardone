@@ -1,0 +1,736 @@
+{
+  "file": "discrepancy.json",
+  "version": "2.0.8",
+  "reading": "How the assertions of one field become one status. Ordered rules, first match wins, exceptions on top. The pack never decides which source prevails: when current sources disagree, every value is shown side by side with its source, date and edition. A value is shown as fact only when every current source could be read and they all agree; otherwise the field is [TO CONFIRM] and what could be read is listed as a statement, not as a fact. A tie is never broken by a guess: event documents of the same day are all current, because their order within the day is not known, and so are two documents that carry the same edition of the same series.",
+  "parameters": {
+    "event_supersedes_earlier_state": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "A later event document (deed, resolution, transfer, appointment, office transfer) makes every earlier value of the field historical. What an event document proves against a registry extract is a legal question: the pack only orders documents by date."
+    },
+    "later_edition_supersedes_same_series": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "Within one series of state documents (registry extracts, holders' ledger, the financial summary of one year) only the latest edition is a current witness; earlier editions are history."
+    },
+    "same_day_state_is_current": {
+      "value": true,
+      "status": "[TO CONFIRM with legal]",
+      "note": "A state document dated on the same day as the latest event is treated as current: if it differs, the difference is shown rather than assumed away."
+    },
+    "adjudication": {
+      "value": "none",
+      "status": "[TO CONFIRM with legal]",
+      "note": "No source is preferred. A human adjudicates."
+    },
+    "unread_document_blocks_fact": {
+      "note": "A document of the entity that could not be classified (unknown type, broken header) may change a field. If it is not older than the latest event document of a field - or has no valid date, or the field has no event document - the field is [TO CONFIRM]. Which fields it may change: parameter unread_document_scope. Added after the first stress run (eval/history.json, run 2).",
+      "status": "[TO CONFIRM with legal]",
+      "value": true
+    },
+    "unread_document_scope": {
+      "value": "every_field",
+      "allowed": ["fields_it_may_state", "every_field"],
+      "status": "[TO CONFIRM with legal]",
+      "note": "every_field (v2.0.0-v2.0.2, and again the default since v2.0.4, D30b): an unread document that is not older than the latest event document of a field may change every field, whatever its title or its lines say. fields_it_may_state (the default of v2.0.3 only; still allowed, OFF): a document whose only problem is its type may change only the fields its body may state (rules/extract.json unread_fields, recorded as fields_check), and the shareholders only if its holders' check is not 'no_table'; a holders' table read whole that equals the one current table does not make the shareholders [TO CONFIRM]. Its risk, shown by the blind run of v2.0.3 (eval/history.json run 11, hand entity E-0015): a sentence that changes a field without naming it (a capital raised by a contribution in kind that also changes the holders; a merger; a transfer worded without the word holder) keeps only the fields its topic words name, so the other field is published as fact; and a title word of FEV-920 (Notice, Memorandum, Letter...) can narrow the scope of a whole document. No test shows that this scope never publishes a field an unread document may change, so it stays off; switching it on is a risk decision, not a reading. Since v2.0.6 (D35, hand-14 E-0013): under every_field the fields check of an unread document records every field ('*') and names the scope; what its lines alone would name (rules/extract.json unread_fields, not applied under this scope) is kept as a note, never as the fields it may change."
+    },
+    "legal_form_in_name": {
+      "value": "(?:^|\\s)(?P<form>S\\.?\\s?r\\.?\\s?l\\.?(?:\\s?s\\.?)?|S\\.?\\s?a\\.?\\s?p\\.?\\s?a\\.?|S\\.?\\s?p\\.?\\s?a\\.?|S\\.?\\s?a\\.?\\s?s\\.?|S\\.?\\s?n\\.?\\s?c\\.?)[.\\s]*$",
+      "note": "Since v2.0.6 (D35, hand-14 E-0012): the legal form a company's name ends with (S.r.l., S.r.l.s., S.p.A., S.a.p.a., S.a.s., S.n.c., with or without dots, any case). Its letters, lower case, are compared with those of the legal form stated (a value that is nothing but a legal form). A name without a legal form at its end makes no claim and is not compared. Used by DISC-035 only."
+    },
+    "unreadable_current_source_blocks_fact": {
+      "note": "When one current source of a field could not be read, the value of the other current sources is not shown as fact: the unread source may disagree. Added after the first stress run (eval/history.json, run 2).",
+      "status": "[TO CONFIRM with legal]",
+      "value": true
+    }
+  },
+  "rules": [
+    {
+      "id": "DISC-005",
+      "when": "unread_document_may_change_field",
+      "status": "TO_CONFIRM",
+      "reason": "a document of the entity could not be read and may change this field",
+      "rationale": "Exception on top of everything: a document that was not classified is not evidence of absence. If it may change the field (parameter unread_document_scope) and is not older than the latest event document of the field, nothing is shown as fact for that field.",
+      "tests": [
+        {
+          "field": "share_capital.resolved",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "50000.00"}
+          ],
+          "expect": {"readable": ["50000.00"], "status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["share_capital.*"], "why": "t"}}]
+        },
+        {
+          "field": "shareholders",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": [{"holder": "P-001", "share": "1/1"}]}
+          ],
+          "expect": {"status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["shareholders"], "why": "t"},
+                      "holders_check": {"status": "read", "why": "", "edition": "X/1", "tables": [{"line": 9, "line_end": 11, "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}]}}]
+        },
+        {
+          "params": {"unread_document_scope": "every_field"},
+          "field": "fin.FY2025.revenue",
+          "assertions": [
+            {"date": "2026-03-01", "doc": "D1", "role": "state", "series": "FIN-FY2025", "value": "750000.00"}
+          ],
+          "expect": {"readable": ["750000.00"], "status": "TO_CONFIRM"},
+          "unread": [{"date": "2026-04-01", "doc_id": "D9", "fields_check": {"may_change": ["directors", "legal_form", "name", "registered_office", "share_capital.*", "shareholders"], "why": "t"}}]
+        },
+        {
+          "params": {"unread_document_scope": "every_field"},
+          "field": "shareholders",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}
+          ],
+          "expect": {"status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["shareholders"], "why": "t"},
+                      "holders_check": {"status": "read", "why": "", "edition": "X/1", "tables": [{"line": 9, "line_end": 11, "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}]}}]
+        },
+        {
+          "field": "name",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Alfa S.r.l."}
+          ],
+          "expect": {"status": "TO_CONFIRM"},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9"}]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "50000.00"
+            ],
+            "status": "TO_CONFIRM"
+          },
+          "unread": [
+            {
+              "date": "2025-06-01",
+              "doc_id": "D9"
+            }
+          ]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "50000.00"
+            ],
+            "status": "TO_CONFIRM"
+          },
+          "unread": [
+            {
+              "date": "2019-06-01",
+              "doc_id": "D9"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "DISC-006",
+      "when": "classified_document_may_change_field",
+      "status": "TO_CONFIRM",
+      "reason": "a document of a recognised type of the entity has text that no rule of its kind reads and may change this field",
+      "rationale": "Since v2.0.5 (D34). A document of a recognised type is read for the fields of its kind only. When a line of it is explained by no rule of rules/extract.json classified_lines, or states a field of its kind again where no rule read it, the document may change every field; a holders' table read whole in a document of a kind not read for holders may change the shareholders (classified_checks of the record). If the document is not older than the latest event document of the field - the criterion of DISC-005 - nothing is shown as fact for that field. No parameter turns this off.",
+      "tests": [
+        {
+          "field": "directors",
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": [
+                "P-001"
+              ]
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "RESOLUTION",
+              "fields_check": {
+                "may_change": [
+                  "*"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "no_table",
+                "why": "t"
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM",
+            "readable": [
+              [
+                "P-001"
+              ]
+            ]
+          }
+        },
+        {
+          "field": "registered_office",
+          "assertions": [
+            {
+              "date": "2025-06-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "OFFICE",
+              "value": "Via Nuova 1, Borgoprova (ZZ)"
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "OFFICE",
+              "fields_check": {
+                "may_change": [
+                  "*"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "no_table",
+                "why": "t"
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        },
+        {
+          "field": "shareholders",
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": [
+                {
+                  "holder": "P-001",
+                  "share": "1/1"
+                }
+              ]
+            }
+          ],
+          "classified": [
+            {
+              "doc_id": "D2",
+              "date": "2025-06-01",
+              "kind": "RESOLUTION",
+              "fields_check": {
+                "may_change": [
+                  "shareholders"
+                ],
+                "why": "t"
+              },
+              "holders_check": {
+                "status": "read",
+                "why": "",
+                "edition": "RESOLUTION/1",
+                "tables": [
+                  {
+                    "line": 9,
+                    "line_end": 10,
+                    "value": [
+                      {
+                        "holder": "P-001",
+                        "share": "1/1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-010",
+      "when": "no_current_assertion",
+      "status": "TO_CONFIRM",
+      "reason": "no current source for this field",
+      "rationale": "Nothing to show: the field is written [TO CONFIRM], never filled.",
+      "tests": [
+        {
+          "assertions": [],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-020",
+      "when": "two_or_more_current_values",
+      "status": "DISCREPANCY",
+      "rationale": "Exception above every single-value rule: current sources disagree. Every value is kept with its sources; none is chosen. This includes two event documents of the same day and two documents that carry the same edition of the same series: neither is taken as the later one.",
+      "tests": [
+        {"field": "name",
+         "assertions": [{"date": "2026-06-30", "doc": "D1", "role": "event", "series": "DEED", "value": "Fonderia Torre Esemplare S.r.l."},
+                        {"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare S.p.A."}],
+         "other_fields": {"legal_form": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l."}]},
+         "expect": {"status": "DISCREPANCY", "values": ["Fonderia Torre Esemplare S.p.A.", "Fonderia Torre Esemplare S.r.l."]}},
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "50000.00",
+              "80000.00"
+            ]
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "80000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D3",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "90000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "80000.00",
+              "90000.00"
+            ],
+            "historical": [
+              "50000.00"
+            ]
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-02-01",
+              "doc": "D1",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 2,
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 2,
+              "value": "80000.00"
+            },
+            {
+              "date": "2024-02-01",
+              "doc": "D0",
+              "role": "state",
+              "series": "EXTRACT",
+              "edition_no": 1,
+              "value": "10000.00"
+            }
+          ],
+          "expect": {
+            "status": "DISCREPANCY",
+            "values": [
+              "50000.00",
+              "80000.00"
+            ],
+            "historical": [
+              "10000.00"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-030",
+      "when": "current_source_unreadable",
+      "status": "TO_CONFIRM",
+      "reason": "a current source of this field could not be read",
+      "rationale": "The latest event document or a current witness is unreadable for this field. An older value is history and is never promoted back; the value of the other current sources is listed as a statement, not shown as fact, because the unread source may disagree.",
+      "tests": [
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": null
+            }
+          ],
+          "expect": {
+            "status": "TO_CONFIRM"
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": null
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "readable": [
+              "80000.00"
+            ],
+            "status": "TO_CONFIRM"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DISC-035",
+      "when": "legal_form_in_name_differs",
+      "fields": ["name", "legal_form"],
+      "status": "TO_CONFIRM",
+      "reason": "the legal form in the company's name differs from the legal form stated",
+      "rationale": "Since v2.0.6 (D35, the blind run of v2.0.5, hand-14 E-0012: an extract named the company '... S.p.A.' and stated 'Legal form: S.r.l.'). A name that ends with one legal form and a legal form field that states another cannot both be read as fact, and the pack never decides which one is right: both readings are listed with their sources (the reason names each one, document, edition, date and line; the readable values of the field stay listed), nothing is reconciled, and the name and the legal form are [TO CONFIRM]. Below DISC-020: a name or a legal form already in conflict stays a DISCREPANCY with every value side by side. A name without a legal form at its end makes no claim (parameter legal_form_in_name).",
+      "tests": [
+        {"field": "legal_form",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l.", "line": 7}],
+         "other_fields": {"name": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare S.p.A.", "line": 6}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["S.r.l."]}},
+        {"field": "name",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Officine Montefinto S.p.A."}],
+         "other_fields": {"legal_form": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "S.r.l."}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["Officine Montefinto S.p.A."]}},
+        {"field": "legal_form",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "S.p.A."},
+                        {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.p.A."}],
+         "other_fields": {"name": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Cantieri Valfittizia Srl"},
+                                   {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Cantieri Valfittizia S.p.A."}]},
+         "expect": {"status": "TO_CONFIRM", "readable": ["S.p.A."]}}
+      ]
+    },
+    {
+      "id": "DISC-038",
+      "when": "current_value_not_corroborated",
+      "fields": ["registered_office", "name"],
+      "status": "TO_CONFIRM",
+      "reason": "no second document of the entity states this value alike (rules/extract.json address_corroboration ADR-999, name_corroboration NAM-999)",
+      "rationale": "Since v2.0.8 (D37, the blind run of v2.0.7, eval/history.json run 18, hand-18 E-0015). An address is a fact only when it is corroborated: stated alike, token for token after the existing normalisation (spaces collapsed), by two different documents of the entity, or stated by an office transfer and repeated alike by a source dated after it (rules/extract.json address_corroboration ADR-020, carried on each assertion of the office as 'corroboration'). One current value that no current source corroborates is [TO CONFIRM]; what was read is listed as a statement, never as a fact. Below DISC-020: two whole different addresses (neither equal to the other plus words) stay a DISCREPANCY side by side (claim A2); an address equal to another plus words is never read (ADR-010), so it is never a value of a DISCREPANCY. Since v2.0.8 too, the company's name: the name of the header line 'Entity:' is decided by rules/extract.json name_corroboration (NAM-020 corroborated: another document of the entity states it alike, token for token, the legal form at its end set aside), carried on each assertion of the name; one current name that no current source corroborates is [TO CONFIRM], and two whole different names stay a DISCREPANCY side by side (DISC-020).",
+      "tests": [
+        {"field": "registered_office",
+         "assertions": [{"date": "2026-02-09", "doc": "D2", "role": "event", "series": "OFFICE", "value": "Piazza del Campione 3, Montefinto (ZZ)", "corroborated": false}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Piazza del Campione 3, Montefinto (ZZ)"]}},
+        {"field": "registered_office",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Via del Collaudo 7, Borgoprova (ZZ)", "corroborated": false},
+                        {"date": "2025-02-01", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Via del Collaudo 7, Borgoprova (ZZ)"}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Via del Collaudo 7, Borgoprova (ZZ)"]}},
+        {"field": "name",
+         "assertions": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Fornace Aurelia S.r.l.", "corroborated": false}],
+         "expect": {"status": "TO_CONFIRM", "readable": ["Fornace Aurelia S.r.l."]}}
+      ]
+    },
+    {
+      "id": "DISC-040",
+      "when": "one_current_value",
+      "status": "STATED",
+      "rationale": "Every readable current source gives the same value. It is shown once, with the latest source first and the others listed.",
+      "tests": [
+        {"field": "legal_form",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.r.l."}],
+         "other_fields": {"name": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare srl"}]},
+         "expect": {"status": "STATED", "value": "S.r.l."}},
+        {"field": "name",
+         "assertions": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "Fonderia Torre Esemplare", "corroborated": true}],
+         "other_fields": {"legal_form": [{"date": "2026-06-30", "doc": "D2", "role": "state", "series": "EXTRACT", "value": "S.p.A."}]},
+         "expect": {"status": "STATED", "value": "Fonderia Torre Esemplare"}},
+        {"field": "legal_form",
+         "assertions": [{"date": "2025-05-01", "doc": "D3", "role": "event", "series": "RESOLUTION", "value": "S.p.A."}],
+         "other_fields": {"name": [{"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": "Officine Montefinto S.r.l."},
+                                   {"date": "2025-05-01", "doc": "D3", "role": "event", "series": "RESOLUTION", "value": "Officine Montefinto S.p.A."}]},
+         "expect": {"status": "STATED", "value": "S.p.A."}},
+        {
+          "params": {"unread_document_scope": "fields_it_may_state"},
+          "field": "fin.FY2025.revenue",
+          "assertions": [
+            {"date": "2026-03-01", "doc": "D1", "role": "state", "series": "FIN-FY2025", "value": "750000.00"}
+          ],
+          "expect": {"status": "STATED", "value": "750000.00"},
+          "unread": [{"date": "2026-04-01", "doc_id": "D9", "fields_check": {"may_change": ["directors", "legal_form", "name", "registered_office", "share_capital.*", "shareholders"], "why": "t"}}]
+        },
+        {
+          "params": {"unread_document_scope": "fields_it_may_state"},
+          "field": "shareholders",
+          "assertions": [
+            {"date": "2024-01-10", "doc": "D1", "role": "event", "series": "DEED", "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}
+          ],
+          "expect": {"status": "STATED", "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+          "unread": [{"date": "2025-06-01", "doc_id": "D9", "fields_check": {"may_change": ["shareholders"], "why": "t"},
+                      "holders_check": {"status": "read", "why": "", "edition": "X/1", "tables": [{"line": 9, "line_end": 11, "value": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]}]}}]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "80000.00"
+            },
+            {
+              "date": "2024-06-01",
+              "doc": "D3",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-06-01",
+              "doc": "D4",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "historical": [
+              "50000.00",
+              "50000.00"
+            ],
+            "status": "STATED",
+            "value": "80000.00"
+          }
+        },
+        {
+          "assertions": [
+            {
+              "date": "2024-01-10",
+              "doc": "D1",
+              "role": "event",
+              "series": "DEED",
+              "value": "50000.00"
+            },
+            {
+              "date": "2025-02-01",
+              "doc": "D2",
+              "role": "state",
+              "series": "EXTRACT",
+              "value": "50000.00"
+            }
+          ],
+          "expect": {
+            "status": "STATED",
+            "value": "50000.00"
+          },
+          "unread": [
+            {
+              "date": "2023-06-01",
+              "doc_id": "D9"
+            }
+          ]
+        },
+        {
+          "assertions": [
+            {
+              "date": "2025-03-01",
+              "doc": "D2",
+              "role": "event",
+              "series": "RESOLUTION",
+              "value": "80000.00"
+            },
+            {
+              "date": "2025-03-01",
+              "doc": "D3",
+              "role": "event",
+              "series": "APPOINTMENT",
+              "value": "80000.00"
+            }
+          ],
+          "expect": {
+            "status": "STATED",
+            "value": "80000.00",
+            "sources": 2
+          }
+        }
+      ]
+    }
+  ],
+  "outgoing_scan": {
+    "reading": "Scanner for outgoing documents that still carry a superseded value. Ordered guards, first match wins, exceptions on top; the default flags the line.",
+    "parameters": {
+      "currency_markers": "(?:EUR|€|euro)",
+      "field_cues": {
+        "share_capital": "\\bcapital\\b"
+      },
+      "field_cue_exclusions": {
+        "share_capital": "\\bcapital (?:expenditures?|goods|gains?|markets?|account|city)\\b"
+      },
+      "entity_lookback_lines": 3
+    },
+    "rules": [
+      {
+        "action": "ignore",
+        "id": "SCAN-010",
+        "rationale": "A document written before the change carried the value that was current on its own date.",
+        "tests": [
+          {
+            "doc_date": "2025-11-03",
+            "text": "Fornace Aurelia S.r.l. - share capital EUR 50.000,00 fully paid in"
+          }
+        ],
+        "when": "document_dated_before_change"
+      },
+      {
+        "action": "ignore",
+        "id": "SCAN-020",
+        "rationale": "The same amount without the cue of the field (an invoice, a guarantee) is another figure. The cue inside another expression (capital expenditure, capital goods) is not a cue: added after the first run of scenario S04 flagged such a line.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Invoice to Fornace Aurelia S.r.l., total EUR 50.000,00"
+          },
+          {
+            "doc_date": "2026-03-01",
+            "text": "Capital expenditure plan of Fornace Aurelia S.r.l.: EUR 50.000,00 for the new kiln."
+          }
+        ],
+        "when": "no_field_cue_in_line"
+      },
+      {
+        "action": "ignore",
+        "id": "SCAN-030",
+        "pattern": "\\b(?:from|until|was|formerly|previously|before the increase)\\b[^.;]*$",
+        "rationale": "The line itself presents the amount as a past value.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Until the increase the share capital of Fornace Aurelia was EUR 50.000,00."
+          }
+        ],
+        "when": "historical_marker_before_amount"
+      },
+      {
+        "action": "ignore",
+        "id": "SCAN-040",
+        "rationale": "The nearest entity named is not the entity whose value was superseded.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Holding Aurelia Partecipazioni S.r.l. - share capital EUR 50.000,00"
+          }
+        ],
+        "when": "line_is_about_another_entity"
+      },
+      {
+        "action": "ignore",
+        "id": "SCAN-050",
+        "rationale": "No mention of the entity in the line or in the lines just above.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "The share capital amounts to EUR 50.000,00."
+          }
+        ],
+        "when": "line_is_not_about_the_entity"
+      },
+      {
+        "action": "flag",
+        "id": "SCAN-999",
+        "rationale": "Default: the superseded amount is presented as current for this entity.",
+        "tests": [
+          {
+            "doc_date": "2026-03-01",
+            "text": "Fornace Aurelia S.r.l. - share capital EUR 50.000,00 fully paid in"
+          },
+          {
+            "doc_date": "2026-03-01",
+            "text": "Re: Fornace Aurelia S.r.l.\n\nThe share capital is 50,000.00 EUR."
+          }
+        ],
+        "when": "always"
+      }
+    ]
+  }
+}

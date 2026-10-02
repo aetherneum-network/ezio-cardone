@@ -1,0 +1,1198 @@
+{
+  "file": "extract.json",
+  "version": "2.0.9",
+  "reading": "Ordered rules. For a document and a field, the first rule that applies wins; exceptions go on top. A rule that applies but cannot read its value abstains ([TO CONFIRM]); it never falls through to a looser rule. When a classification is wrong, fix the rule here and rebuild: never the output.",
+  "parameters": {
+    "synthetic_marker_required": true,
+    "header_keys": ["Document id", "Document type", "Document date", "Edition", "Entity", "Financial year"],
+    "entity_pattern": "^(?P<name>.+) \\(test registry no\\. TEST-REG-(?P<num>\\d{6})\\)$",
+    "edition_pattern": "^(?P<series>[A-Z][A-Z0-9-]*)/(?P<no>[1-9]\\d*)$",
+    "amount_separator": "(?:[.,'\\u2019\\u2018\\u02bc\\u2032\\u00b4`]|[^\\S\\n])",
+    "amount_token": "(?:\\[illegible\\]|[0-9#](?:[0-9#]|{amount_separator}(?=[0-9#]))*)",
+    "amount_token_note": "The token is the whole run of digits and of every character that can group digits (dot, comma, apostrophes and their look-alikes, any space) when it stands between two digits. It is never cut at a separator the reader does not know: before v2.0.1 it stopped at an apostrophe and EUR 150'000.00 was read as 150.00 (finding T16, blind run of 2026-09-30, eval/history.json run 5). Which groupings are read is decided by dossier/lib/numbers.py; any other abstains.",
+    "currency_prefix": "\\bEUR\\s+",
+    "magnitude_words": "thousands?|millions?|billions?|trillions?|k|m|bn|mn|mln|mio|mrd|tsd|mila|milion[ei]|miliard[oi]|lakhs?|crores?",
+    "amount_uncertain_after": "^(?:{amount_separator}+[0-9#]|[^\\s.,;:!?)\\]}\"'\\u2019\\u201d\\u00bb]|\\s*(?:{magnitude_words})\\.?(?![a-z]))",
+    "amount_uncertain_before": "(?<![a-z])(?:{magnitude_words})\\.?\\s*$",
+    "scale_statement": "\\b(?:in|of)\\s+(?:(?:EUR|euros?)\\s+)?(?:thousands?|millions?|billions?)\\b|\\b(?:thousands?|millions?|billions?)\\s+of\\s+(?:EUR|euros?)\\b|\\b(?:TEUR|KEUR|MEUR|TSD\\s*EUR)\\b|\\bEUR\\s*['\\u2019]000\\b|\\bEUR\\s*(?:k|m|mn|bn|mln|mio|mrd|thousands?|millions?)\\s*[)\\]:]",
+    "amount_guards_note": "An amount whose reading is not certain is left unread ([TO CONFIRM]), never shown as fact: when the figure goes on past the token (two separators, a character attached to it), when a magnitude word stands next to it (EUR 150 thousand, Mio. EUR 150), and for every amount of a document that states a scale (in thousands of EUR, TEUR, EUR '000). Added with v2.0.1 (finding T16).",
+    "holders_heading_nouns": "(?:share-?\\s?holders?|stock-?\\s?holders?|quota-?\\s?holders?|holders?|members?|partners?|shareholdings?(?:\\s+structure)?|quotaholdings?)",
+    "holders_heading_current": "(?:after|following)\\s+(?:the|this)\\s+(?:transfer|assignment)|(?:as\\s+)?(?:at|of|on)\\s+(?:the\\s+)?(?:document\\s+date|date\\s+of\\s+(?:the|this)\\s+document)|currently|now|at\\s+present",
+    "holders_heading_registered": "(?:(?:of|on)\\s+record|(?:as\\s+)?(?:registered|entered|recorded|inscribed)(?:\\s+in\\s+the\\s+(?:register|ledger|book)(?:\\s+of\\s+(?:{holders_heading_nouns}))?)?)",
+    "clause_number": "(?:\\d{1,3}(?:\\.\\d{1,3})*[.)]|\\(\\d{1,3}\\)|[ivx]{1,5}[.)]|(?:article|art\\.|clause|section|§)\\s*\\d{1,3}(?:\\.\\d{1,3})*\\s*[.):\\-–—]?)",
+    "holders_heading_body": "(?:{clause_number}\\s*)?(?:(?:{holders_heading_current}),?\\s+)?(?:the\\s+)?(?:(?:current|present|sole|registered)\\s+)?(?:{holders_heading_nouns})(?:\\s*,?\\s+{holders_heading_registered})?(?:\\s+(?:{holders_heading_current})|\\s*,\\s*(?:{holders_heading_current})|\\s*\\(\\s*(?:{holders_heading_current}|current|present)\\s*\\))?(?:\\s*\\((?:synthetic|fictitious)\\))?(?:\\s+(?:are|is))?",
+    "holders_heading": "^{holders_heading_body}\\s*[.:]$",
+    "holders_heading_bare": "^{holders_heading_body}\\s*$",
+    "directors_heading_body": "(?:{clause_number}\\s*)?directors(?:\\s+in\\s+office\\s+after\\s+this\\s+appointment)?",
+    "directors_heading": "^{directors_heading_body}\\s*[.:]$",
+    "directors_heading_bare": "^{directors_heading_body}\\s*$",
+    "list_end_sentence": "^(?!.*(?:P-\\d{3}|E-\\d{4}))(?!.*(?:%|\\bper\\s*-?\\s*cent\\b|\\bpercent\\b|\\bpct\\b|\\d\\s*/\\s*\\d|\\d\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas?|shares?)\\b))(?-i:[A-ZÀ-Þ])[^\\s]*(?:\\s+[^\\s]+){2,}(?<!\\d)[.!?][\"'’”)]*$",
+    "list_end_note": "Since v2.0.7 (D36, blind run of v2.0.6, hand-16 E-0008, E-0010, E-0019): a list (a holders' table, a directors' list) runs from its heading to the first blank line, or - new - to the first line that is a heading of a list (holders_heading, directors_heading, with or without the terminal mark, and no identifier in it) or a full sentence (list_end_sentence: it opens with a capital letter and no list marker, has at least three words, ends with '.', '!' or '?' after a letter, and holds no identifier, no share, no fraction and no number of quotas or shares). That line is not part of the list: it is classified on its own (classified_lines; CLS-999 and DISC-006 when no rule explains it; OWN-015 when it may state a holding). Any other line stays a row of the list: a row the grammar cannot read (a broken item, a share, an identifier, a wrapped row, a numbered line, a sentence that ends with a figure) leaves the whole list unread, as before.",
+    "heading_note_2_0_4": "Since v2.0.4 (D30b, forms found by the blind run of v2.0.3, eval/history.json run 11) a heading is read by class in two forms: with its terminal '.' or ':' (holders_heading, directors_heading), and without it (holders_heading_bare, directors_heading_bare) only when the heading is the whole line and the next line is an item of the same list ('4. Shareholders', 'Article 4. Stockholders', 'iv. Quotaholdings', '§ 4 Holders' followed by a holder line). The directors' heading takes the same clause numbers as the holders' heading ('(5) Directors:', '§ 5 Directors', 'Article 5. Directors', 'v. Directors'). Two directors' headings in one document abstain, as two holders' headings do. Still not a heading: a 'current' qualifier in free words ('Shareholders once the transfer has taken effect:') - the table stays unread and the entity blocked (known limit).",
+    "holders_heading_note_2_0_3": "Since v2.0.3 (D30, forms found by the blind run of v2.0.2, eval/history.json run 9) the grammar also reads, by class: the qualifier that says 'current' in parentheses or after a comma ('Holders (as at the document date):', 'Holders, now:'); the qualifier that says the holders are the registered ones at the document date ('of record', 'on record', 'registered', 'entered in the register (of members)'), alone or before a 'current' qualifier; the clause numbers '4.', '4)', '4.1.', '(4)', 'IV.', 'Article 4 -'; the nouns 'shareholdings', 'shareholding structure', 'quotaholdings'; the marker of the synthetic world '(synthetic)' at the end. Still not a heading: a qualifier with an explicit date ('Holders at 16 February 2026:'), a qualifier of another time ('before the transfer', 'former'), 'owners', 'beneficial owners', 'ownership structure', 'allocation of the capital', 'directors'.",
+    "holders_heading_note": "The heading of a holders' table is a grammar, not a list of phrasings: a holder noun (holders, shareholders, quotaholders, members, partners), optionally numbered, optionally with a qualifier that says the table is current (after the transfer, as at the document date, now), before or after the noun. A qualifier that is not known to mean 'current' (before the transfer, former, as at another date) is not a heading, and the document then abstains on the holders as before. Owners, beneficial owners and directors are not holder nouns. Two headings in one document abstain: which table is current is not ours to choose. Added with v2.0.2 (decision D26 of 2026-09-30: OWN-015 stays 'block'; reworded headings were the first cause of entities blocked wrongly on the stress suite). Since v2.0.6 (D35, hand-14 E-0007): the qualifier of the class 'registered' (of record, registered, entered, recorded or inscribed in the register, ledger or book) may follow the noun after a comma, as a participial clause ('(4) Shareholdings, entered in the register:'); it says the same as without the comma. A participle of another class after a comma is not a heading.",
+    "list_marker": "(?:[-*•–—·]|\\(?\\d{1,3}[.)]|\\(\\d{1,3}\\)|\\(?[a-z][.)]|\\([a-z]\\)|\\(?[ivx]{1,5}[.)]|\\([ivx]{1,5}\\))",
+    "item_separator": "(?::|\\t|\\||\\s[-–—]\\s|\\s*\\.{3,}\\s*|\\s)",
+    "item_total": "^\\s*(?:{list_marker}\\s+)?(?:the\\s+)?total\\s*{item_separator}\\s*(?P<share>[^\\s.:|\\t\\-–—].*?)\\s*$",
+    "share_token_first": "\\d{1,3}(?:[.,]\\d+)?\\s*(?:%|per\\s*-?\\s*cent|percent|pct)|\\d+\\s*/\\s*[1-9]\\d*",
+    "item_grammar_note_2_0_4": "Since v2.0.4 (D30b) the separator may also be a run of three or more dots (dot leaders, '- P-014 (Pia Mendaci) .......... 50%'); the share then never starts with a dot. A line 'Total' with a separator and a share (or a number of quotas or shares) is read only as the LAST line of a holders' table (item_total): the rows are the table, and the Total is recorded as stated_total; a Total that differs from the exact sum of the rows makes the table not sum to the whole, and OWN-010 blocks. A share may stand before the holder ('- 60% P-002 (Bruno Simulanti)', EXT-HOLD-010 item_matches_share_first) when it is a per cent with its sign or word, or a fraction n/d (share_token_first); a share in words or a number of quotas before the holder is not read (the table stays unread, OWN-015).",
+    "item_holder": "(?:(?P<id>P-\\d{3}|E-\\d{4})(?:\\s*\\((?P<label>[^()]*)\\))?|(?P<label_first>(?:(?!P-\\d{3}|E-\\d{4})[^()|:\\t])+?)\\s*\\((?P<id_last>P-\\d{3}|E-\\d{4})\\))",
+    "item_person": "(?:(?P<id>P-\\d{3})(?:\\s*\\((?P<label>[^()]*)\\))?|(?P<label_first>(?:(?!P-\\d{3}|E-\\d{4})[^()|:\\t])+?)\\s*\\((?P<id_last>P-\\d{3})\\))",
+    "item_grammar_note": "Since v2.0.3 (D30) a holder line is read by class, not by one literal form: an optional list marker (dash, bullet, '1.', '1)', '(1)', 'a)', '(a)', 'i)', '(i)'); the identifier first with its name in parentheses, or the name first with the identifier in parentheses; a separator (colon, tab, pipe, a dash between spaces, or a space); the share. The share is read by dossier/lib/numbers.py parse_share (per cent with '%', 'per cent', 'percent' or 'pct', a fraction n/d, a whole number of per cent in words, a simple fraction in words); a number of quotas or shares is read only when the same document states the total number once (parameter count_total), and every holder of the table is then counted. Anything else on the line - a second identifier in the name, nested parentheses, a share in another form, a table that mixes counts and shares - leaves the whole table unread, as before.",
+    "month_names": "(?:january|february|march|april|may|june|july|august|september|october|november|december)",
+    "day_ordinals": "(?:(?:(?:twenty|thirty)[\\s-]?)?(?:first|second|third|fourth|fifth|sixth|seventh|eighth|ninth)|tenth|eleventh|twelfth|thirteenth|fourteenth|fifteenth|sixteenth|seventeenth|eighteenth|nineteenth|twentieth|thirtieth|\\d{1,2}(?:st|nd|rd|th))",
+    "count_total": [
+      "\\b(?:divided|split)\\s+into\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?:consists|consisting|composed|made\\s+up|represented)\\s+(?:of|by)\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?:a\\s+)?total\\s+(?:number\\s+)?of\\s+(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered)\\s+)?(?:quotas|shares)\\b",
+      "\\b(?P<total>\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered)\\s+)?(?:quotas|shares)\\s+in\\s+(?:total|all)\\b"
+    ],
+    "count_total_note": "A number of quotas or shares is a share of the entity only through the total. The total is read from the same document, and only when these patterns find one value (the same value found twice is one value); no total, or two different totals, and the counts are not read: the table is [TO CONFIRM] and OWN-015 blocks. The counts of a table are divided by that total and summed like any other share, so counts that do not add up to the total make a table that does not sum (OWN-010). Added with v2.0.3 (D30).",
+    "title_nouns": "(?:minutes|notice|entries|entry|register|ledger|statement|certificate|memorandum|summary|record|report|letter|declaration)",
+    "closing_sentence": "^(?:nothing\\s+(?:else|more)|no\\s+other\\s+(?:fact|matter|data|information))\\s+is\\s+(?:certified|stated|recorded|declared|attested)\\s*\\.?$",
+    "slot_word": "(?-i:(?:(?:d|dell|nell|sull|all|dall|sant|l)['’])?[A-ZÀ-Þ][A-Za-zß-ÿ]*(?:['’][A-Za-zß-ÿ]+)?)",
+    "slot_particle": "(?-i:del|della|dello|dei|degli|delle|di|da|dal|dalla|dai|al|alla|ai|e|ed|in|sul|sulla|lo|la|le|il|i|gli|san|santa|santo|de)",
+    "slot_street": "{slot_word}(?:[ -](?:{slot_word}|{slot_particle})){0,5}",
+    "slot_town": "{slot_word}(?:[ -](?:{slot_word}|{slot_particle})){0,3}",
+    "slot_house_number": "\\d{1,4}(?:\\s?/\\s?[A-Za-z0-9]{1,3}|[A-Za-z])?",
+    "slot_province": "\\((?-i:[A-Z]{2})\\)",
+    "slot_address": "{slot_street} {slot_house_number}, {slot_town} {slot_province}(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?",
+    "slot_company_form": "(?-i:S\\.r\\.l\\.|S\\.p\\.A\\.|S\\.a\\.s\\.|S\\.n\\.c\\.)",
+    "slot_company": "{slot_word}(?: (?:{slot_word}|{slot_particle})){0,7} {slot_company_form}",
+    "slot_person": "{slot_word}\\.?(?:[ -](?:{slot_word}\\.?|{slot_particle})){0,4}",
+    "slot_label": "(?:{slot_company}|{slot_person})",
+    "slot_number_words": "(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million)(?:(?:[ -]|\\s+and\\s+)(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))*",
+    "slot_amount": "(?:(?:EUR|euros?)\\s+{amount_token}|€\\s?{amount_token}|{amount_token}\\s*(?:EUR|euros?|€)|{slot_number_words}\\s+euros?)",
+    "slot_count": "(?:\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)",
+    "slot_capital_item": "(?:(?:resolved|authori[sz]ed|nominal|issued|subscribed(?:\\s+and\\s+paid[\\s-](?:in|up))?|paid[\\s-](?:in|up)|of\\s+which)\\s+)?{slot_amount}",
+    "slot_share_unread": "(?:[\\W\\d_]|per\\s*-?\\s*cent|percent|pct|quotas?|shares?)*",
+    "slot_subscribed_paid": "(?:fully|wholly|entirely)\\s+subscribed\\s+and\\s+(?:(?:fully|wholly)\\s+)?paid[\\s-](?:in|up)",
+    "slot_label_words": "[^\\W\\d_]+(?:['’][^\\W\\d_]*)?(?:[ -][^\\W\\d_]+(?:['’][^\\W\\d_]*)?){0,7}",
+    "slot_note_2_0_5": "Since v2.0.5 (D34): the slots of rules/extract.json classified_lines. The share of a line of a list (rule CLS-020) is typed too: a share or a number of quotas or shares that is read, or a figure that is not read (slot_share_unread: no letter but those of per cent, quotas or shares); a share in any other words leaves the line open. A slot is typed: an amount (slot_amount: EUR or € before the figure, euro after it, or a number in words before euro), a number of quotas or shares (slot_count), a company name (capitalised words and Italian particles, at most eight, then S.r.l., S.p.A., S.a.s. or S.n.c.), a person's name (at most five capitalised words, particles or initials), an address (a street of at most six words, a house number, a town of at most four words, a province of two capitals in parentheses, optionally ' - interno', ' - scala' or ' - piano' and a mark). A capitalised word holds letters and apostrophes only: no figure, no identifier (P-001, E-0001), no punctuation. The free words of a slot (groups named w_...) go through the same test as an unread document (the topic rules of unread_fields and holders_evidence) and may name only the fields of their rule. title_nouns and closing_sentence are shared by FEV-920, FEV-930 and the rules CLS-900, CLS-910. slot_subscribed_paid names the clause 'fully subscribed and fully paid in' and its closed variants; slot_label_words is the label of CLS-250 (at most eight words of letters, no figure).",
+    "slot_name_groups": ["w_name", "w_office", "w_previous", "w_person", "w_person_first"],
+    "slot_not_name_word": "^(?:(?:director|directress|directrix|administrator|administratrix|manager|manageress|managing|chair|chairman|chairmen|chairwoman|chairwomen|chairperson|president|secretary|secretaries|treasurer|liquidator|receiver|trustee|nominee|attorney|prox(?:y|ies)|agent|auditor|officer|executive|executor|delegate|deput(?:y|ies)|vice|ceo|cfo|coo|founder|signator(?:y|ies)|representative|guardian|curator|heir|heiress|successor|beneficiar(?:y|ies)|usufructuar(?:y|ies)|legatee|assignee|assignor|transferee|transferor|subscriber|allottee|member|partner|holder|shareholder|stockholder|quotaholder|owner|proprietor|proprietress|proprietary|possessor|controller|controlling|employee|staff|board|chief|head|boss|principal)s?|sole|solely|only|alone|single|singly|unique|exclusive|entire|whole|full|all|every|everything|everyone|any|anything|none|nothing|nobody|both|each|joint|together|majority|minority|outright|absolute|complete|total|half|third|quarter|percent|per|cent|henceforth|hereafter|hereinafter|thereafter|thenceforth|forthwith|forward|forwards|onward|onwards|now|today|tomorrow|yesterday|hitherto|since|until|till|ever|never|again|still|already|soon|later|earlier|before|after|effective|interim|acting|temporary|emeritus|retired|resigned|deceased|late|outgoing|incoming|elect|designate|appointed|elected|removed|dismissed|new|old|former|current|present|future|permanent|pro|tempore|hoc|the|an|of|for|from|to|by|with|without|as|at|on|upon|into|onto|over|under|who|whom|whose|which|that|this|these|those|he|she|it|they|him|her|his|hers|its|their|theirs|them|himself|herself|itself|themselves|is|are|was|were|be|been|being|becomes?|became|has|have|had|will|shall|would|should|may|might|must|can|could|also|too|and|or|but|nor|not|no|yes|so|then|than|there|here|where|when|while|whereas|hereby|herein|thereby|therein|whereby|soci[oaie]|unic[oaie]|unici|titolar[ei]|proprietari[oaie]?|amministrat(?:ore|rice|ori|rici)|president[ei]|consiglier[eai]|liquidat(?:ore|rice|ori)|procurat(?:ore|rice|ori)|rappresentant[ei]|legale|ered[ei]|usufruttuari[oaie]?|intestatari[oaie]?|quotist[ai]|azionist[ai]|direttor[ei]|direttrice|gerente|ora|innanzi|poi|sol[oa]|soltanto|unicamente|tutt[oaie]|inter[oa]|totalitari[oa]|maggioranza|minoranza|uscente|entrante|nominat[oaie]|dimissionari[oa]|defunt[oa]|qual[ei]|che|[^\\W\\d_]{2,}ly|[^\\W\\d_]*forth|[^\\W\\d_]*after|[^\\W\\d_]+wards?|[^\\W\\d_]+ship|[^\\W\\d_]+hood|[^\\W\\d_]+ness|[^\\W\\d_]+ess|[^\\W\\d_]+trix|[^\\W\\d_]+tion|[^\\W\\d_]+sion|[^\\W\\d_]+ment|[^\\W\\d_]+ity|[^\\W\\d_]+ous|[^\\W\\d_]{2,}ed|[^\\W\\d_]{2,}ing|[^\\W\\d_]{2,}s|sold|bought|took|taken|gave|given|left|led|ran|won|lost|sent|kept|paid|made|got|gotten|went|gone|came|began|begun|chose|chosen|wrote|written|did|done|swore|sworn|sought|brought|told|[^\\W\\d_]{3,}ee|replace|acquire|purchase|assume|take|make|give|retire|serve|padron[ei]|padrona|gestor[ei]|dirigent[ei]|responsabil[ei]|reggent[ei]|tutor[ei]|curat(?:ore|rice|ori)|commissari[oa]|sindac[oi]|revisor[ei]|acquirent[ei]|cessionari[oa]|cedent[ei]|subentrant[ei]|vicepresident[ei]|vicedirett(?:ore|rice|ori)|subentra(?:no)?|acquista(?:no)?|cede|cedono|vende|vendono|compra(?:no)?|nomina(?:no|t[oaie])?|sostituisce|sostituiscono|detiene|detengono|possiede|possiedono|sottoscrive|sottoscrivono|rileva(?:no)?|dimette|dimesso)$",
+    "slot_address_groups": ["w_office", "w_previous"],
+    "slot_address_part": "^(?P<street>{slot_street}) {slot_house_number}, (?P<town>{slot_town}) {slot_province}(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?$",
+    "slot_address_word": "^(?:[^\\W\\d_]*[aeiouàáèéìíòóùú]|{slot_particle}|d|dell|nell|sull|all|dall|sant|l|san|gran|castel|col|mar|pian|fior|val|bel|mont|pont|(?-i:[IVXLCDM]{1,6}))$",
+    "slot_address_note": "Since v2.0.7 (D36): the street and the town of an address (slot_address_part) are made of words of the form of an Italian place name: each run of letters ends in a vowel, or is a particle (slot_particle, or an elided one: d', dell', nell', sull', all', dall', sant', l'), a truncated form of a place name (San, Gran, Castel, Col, Mar, Pian, Fior, Val, Bel, Mont, Pont) or a Roman numeral (Via XX Settembre). A word of any other form (every English word that ends in a consonant: a verb in -s, -ed, -ing, a noun of role) makes the address one that holds more than an address: the line is open (CLS-999, DISC-006) and the office is not read from it (value_slot). Counted by the builder with this function on the recorded corpora (the suites, seeds 20261011 to 20261016 plain and perturbed, the out-of-pool corpus of run 5, the hand corpora of runs 7, 9, 11, 14 and 16, the scenarios): 8845 of 8848 addresses pass; the 3 that do not are one address without a house number (hand-11 E-0009, 'Piazza Senza Numero'), which is no longer read as an address - a known limit that keeps every field [TO CONFIRM] (CHANGELOG 2.0.7); in hand-11 its fields were [TO CONFIRM] already (DISC-005). A word of this form that states something (an Italian or English word ending in a vowel that is none of the classes of slot_not_name_word) is not caught: [TO CONFIRM], CHANGELOG 2.0.7 section 4.",
+    "slot_note_2_0_7": "Since v2.0.7 (D36, the blind run of v2.0.6, eval/history.json run 16: the typed-slot probes of hand-16, and their siblings by class in tests/test_d36_forms.py). (1) An address is a street, a house number, a town and the province in parentheses (optionally ' - interno', ' - scala' or ' - piano' and a mark), then nothing but the end of the line or the sentence's own full stop: the house number is no longer optional, so that no word stands in its place, and the readers of the registered office (EXT-OFFICE-010, -020, -030) read only such an address (value_slot: each address read is judged as the slot w_office of classified_lines; one that fails, and the office is not read from the line). (2) slot_not_name_word adds the endings of English verb forms that no Italian name has (-ing, -s; -ed was there) and the commonest irregular past forms (sold, bought, took, left, paid...): a capitalised verb inside a street or a town is a statement, not a name. (3) Equality where the corpus knows the value: the name beside an identifier closes its line only when it is that identifier's own known name (CLS-005: an identifier whose own name is known nowhere in the corpus cannot be checked, and its line is open), and a value that is its identifier's or its entity's own known name is not tested by slot_not_name_word (so 'Holding' or 'Trading' in a company's own name is not a verb) [corrected in v2.0.9, D38: first written 'is a name whatever its words', which did not hold - the topic words (slot_topics) were still applied to it, and a street word such as 'Borgo' in an own name opened its line (hand-20 E-0007, E-0020); since v2.0.9 an own name is decided by equality with its header and by identification, slot_note_2_0_9]; a known person's or company's name inside an address (the groups of slot_address_groups) leaves the line open. What still rests on a word list: a street or a town of words that are none of these classes ([TO CONFIRM], CHANGELOG 2.0.7 section 4).",
+    "slot_own_name_groups": ["w_name"],
+    "slot_own_name_note": "Since v2.0.6 (D35): a slot that holds the entity's own name (the deed's 'is named', the extract's 'Name:', a label line with a company name) closes its line only when it is the name of the document's own header 'Entity:', spaces collapsed and the legal form at its end set aside (rules/discrepancy.json legal_form_in_name: a legal form that differs is DISC-035's, not a word of the name). Any other word makes it differ: the line falls to the next rule, and to CLS-999. A document whose header names no entity has no own name to compare: its slots are judged by slot_not_name_word only.",
+    "slot_note_2_0_6": "Since v2.0.6 (D35, probes E-0011 and E-0012 of the blind run of v2.0.5, eval/history.json run 14): a slot that holds a name - a person, a company, a street or a town (the groups of slot_name_groups, and the name beside an identifier in a list line) - holds only words that can be part of a name. Every word of it (a run of letters) is tested, case ignored, against slot_not_name_word, by class: role and office nouns, nouns and adjectives of holding and ownership (sole, owner, proprietress, holder, member, majority...), adverbs of time and manner (henceforth, now, until, since...), English function words (articles, pronouns, auxiliaries, prepositions, conjunctions), the Italian words of role, holding and time, and the endings of English words that no Italian name has (-ly, -forth, -after, -ward(s), -ship, -hood, -ness, -ess, -trix, -tion, -sion, -ment, -ity, -ous, -ed). One such word and the slot names every field: no rule closes the line, which falls to CLS-999 (the document may change every field, DISC-006; the line is checked for holdings, OWN-015). The person slot of 2.0.5 admitted 'Hilde Simulanti Sole Proprietress Henceforth' (five capitalised words) with no check; a capitalised word that is none of these classes still passes this test, so the name beside an identifier is also compared with its own value where one is known (CLS-005).",
+    "slot_text_groups": ["w_title", "w_label"],
+    "text_recognised": {"w_title": ["Minutes of the holders' meeting (synthetic)", "Notice of a transfer of shares (synthetic)"], "w_label": []},
+    "slot_note_2_0_8": "Since v2.0.8 (D37): the free-text slots that decide a field or close a line are decided by corroboration and equality, never by the form or the list of their words: an address (address_corroboration), the company's name of the header 'Entity:' (name_corroboration), the title of CLS-900 and the label of CLS-250 (text_corroboration, groups slot_text_groups). text_recognised: the titles and labels that the pack's own builders write (corpus/templates.py, scenarios/make_inputs.py), which count as corroborated as a document type label does (doc_kinds): by equality, whole text, nothing normalised but spaces. The builders write no label that CLS-250 closes (their headings are closed as lists, CLS-020).",
+    "gazetteer_town": ["Montefinto", "Valfittizia", "Borgoprova", "Collesintesi", "Roccaesempio", "Pietrafinta", "Campomodello", "Pontecollaudo", "Villasimulata", "Portoinventato", "Selvaprototipo", "Fontesegnaposto", "Castelfittizio", "Pratofinto", "Rivaprova", "Poggioesempio", "Torremodello", "Lagosintetico", "Serrafinta", "Casalprova", "Monteprototipo", "Valcollaudo", "Aurelia", "Collelungo", "Monteverde"],
+    "gazetteer_province": ["ZZ"],
+    "gazetteer_street_type": ["Via", "Viale", "Piazza", "Corso", "Vicolo", "Largo"],
+    "gazetteer_street_name": ["del Collaudo", "del Campione", "della Prova", "dei Modelli", "Fittizio", "degli Esempi", "Simulato", "dei Prototipi", "del Segnaposto", "Inventata"],
+    "gazetteer_trade": ["Officine", "Cantieri", "Molini", "Vetrerie", "Cartiere", "Conserve", "Laterizi", "Falegnamerie", "Distillerie", "Fonderie", "Tipografie", "Frantoi", "Saline", "Filande", "Ceramiche", "Immobiliare", "Finanziaria", "Fornaci", "Fornace", "Tessiture"],
+    "gazetteer_first_name": ["Aldo", "Bice", "Carlo", "Dora", "Elio", "Franca", "Gino", "Ida", "Livio", "Mara", "Nino", "Olga", "Piero", "Rita", "Sergio", "Tina", "Ugo", "Vera", "Walter", "Zita", "Lia", "Remo", "Nora", "Dino", "Fulvia"],
+    "gazetteer_surname": ["Finti", "Provetti", "Sintetici", "Esempi", "Fittizi", "Immaginari", "Modelli", "Segnaposto", "Collaudi", "Simulati", "Inventati", "Prototipi", "Campioni", "Fantasmi", "Fasulli", "Ipotetici", "Campione", "Posticci"],
+    "gazetteer_street": "<street_type> <street_name>",
+    "identification_source": {
+      "value": "pack_gazetteer",
+      "allowed": ["pack_gazetteer"],
+      "status": "[TO CONFIRM with legal]",
+      "note": "A town, a province, a street, a company's name (its legal form set aside) and a person's name are taken as written only when every word is identified by the gazetteer of the pack (rules/extract.json gazetteer_*, the closed list of the synthetic world) and holds no numeral (free_text_identification); anything else keeps every field the document may change [TO CONFIRM], and blocks when it may state a holding. On real documents the list would be an official one - the register of municipalities and provinces, the street register of each municipality, the name registered with the business register for a company, the register of persons for a person: which list identifies which slot, and whether a value no list holds may ever be taken as written, is a legal question. Added in v2.0.9 (D38, eval/history.json run 20)."
+    },
+    "identify_address": "^<street> {slot_house_number}, <town> \\(<province>\\)(?: - (?:interno|scala|piano) (?-i:[A-Z0-9]{1,3}))?$",
+    "identify_company": "^(?:<trade> <town>|(?-i:Holding) <town> (?-i:Partecipazioni))$",
+    "identify_person": "^<first_name> <surname>$",
+    "gazetteer_note": "Since v2.0.9 (D38, the blind run of v2.0.8, eval/history.json run 20: hand-20 E-0009 wrote 'Monte Spurio Dotazione Novantamila' as the town of its office alike in the deed and the extract, E-0010 'Birrificio Pieve Supposta Dotazione Novantamila S.r.l.' as its name alike in every document; corroborated, both published the capital those words speak of). The gazetteer is the closed list of the synthetic world: the places, the street types and street names, the trade words and the first names and surnames that the generator draws from (corpus/world.py TOPONYMS, STREETS, SECTORS, FIRST, LAST) and that the pack's own builders write (scenarios/make_inputs.py: the places Aurelia, Collelungo and Monteverde and the trade words Fornace and Tessiture of its four companies, the first name Fulvia and the surnames Campione and Posticci of its persons); the province is the invented (ZZ). Each entry is matched whole, case and particles included, nothing normalised but spaces (<x> in identify_address, identify_company, identify_person and gazetteer_street is one entry of gazetteer_x; {x} is a slot parameter). The patterns state how the entries combine: an address is a street (a street type and a street name), a house number of the slot grammar, a town and the province, and optionally ' - interno', ' - scala' or ' - piano' and a mark; a company's name, its legal form at the end set aside (rules/discrepancy.json legal_form_in_name: the legal form is DISC-035's), is a trade word and a town, or 'Holding', a town and 'Partecipazioni'; a person's name is a first name and a surname. For real use the gazetteer is the official list of the municipalities and provinces, the street register of each municipality, the name registered with the business register for a company and with the register of persons for a person: [TO CONFIRM with legal] (docs/ASSUMPTIONS.md).",
+    "numeral_word_it": "(?:zero|un[oa]?|due|tr[eé]|quattro|cinque|sei|sette|otto|nove|dieci|undici|dodici|tredici|quattordici|quindici|sedici|diciassette|diciotto|diciannove|venti?|trenta?|quaranta?|cinquanta?|sessanta?|settanta?|ottanta?|novanta?|cento|mille|mila|milion[ei]|miliard[oi]|mezz[oa]|metà|terz[oi]|quart[oi]|decim[oi]|centesim[oi]|millesim[oi])+",
+    "numeral_word_en": "(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|half|halves|quarters?|thirds?|dozens?)(?:-(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundreds?|thousands?|millions?|billions?|half|quarters?|thirds?))*",
+    "numeral_token": "^(?:.*\\d.*|{numeral_word_it}|{numeral_word_en}|(?-i:(?=[MDCLXVI]{2,}$)M{0,3}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})))$",
+    "numeral_note": "Since v2.0.9 (D38): a word of a free-text slot is a numeral when it holds a digit, is an Italian number word (its whole made of the parts of numeral_word_it: tremila, novantamila, duecento, ventuno, metà, terzi...), an English number word (numeral_word_en, hyphenated compounds included) or a Roman numeral of two letters or more (XX). The words of a slot are its runs of letters and digits (an apostrophe or a hyphen inside a run keeps it whole); of an address only the street and the town are tested (the house number and the mark of ' - interno' are typed by the slot grammar, the province is two letters). A numeral in a slot means the slot may state a quantity (free_text_identification IDN-010).",
+    "identification_slot_classes": {"w_office": "address", "w_previous": "address", "w_name": "company", "w_person": "person", "w_person_first": "person", "w_title": "title", "w_label": "label"},
+    "slot_note_2_0_9": "Since v2.0.9 (D38): every free-text slot is decided by positive identification of every word, not by the agreement of the documents, nor by a list of suspicious words, nor by form (rules/extract.json free_text_identification, the gazetteer above): a slot of identification_slot_classes closes its line only when free_text_identification decides it 'identified' (an address also needs no name known to the corpus inside it); the topic words (slot_topics) are no longer applied to such a slot, so the entity's own name is decided by equality with its header and identification, never by a topic list (D38 (b): 'Borgo' in an own name). The names known to the corpus (CLS-005) are the identified ones: a person's name of the identity layer that IDN-040 identifies, a company's name of an Entity: header that IDN-030 identifies. Corroboration (address_corroboration, name_corroboration) stays on top of identification; a title or a label closes its line only when it is a recognised text (text_corroboration TXT-005), no longer because another document states it alike (TXT-020).",
+    "filename_pattern":"^(?P<date>\\d{4}-\\d{2}-\\d{2})_(?P<slug>[a-z-]+)(?:_(?P<detail>[A-Za-z0-9-]+))?\\.txt$",
+    "filename_slugs": {
+      "deed": "DEED",
+      "capital-resolution": "RESOLUTION",
+      "share-transfer": "TRANSFER",
+      "appointment": "APPOINTMENT",
+      "office-transfer": "OFFICE",
+      "registry-extract": "EXTRACT",
+      "holders-ledger": "LEDGER",
+      "financial-summary": "FIN"
+    }
+  },
+  "roles": {
+    "DEED": "event",
+    "RESOLUTION": "event",
+    "TRANSFER": "event",
+    "APPOINTMENT": "event",
+    "OFFICE": "event",
+    "EXTRACT": "state",
+    "LEDGER": "state",
+    "FIN": "state"
+  },
+  "expected_fields": {
+    "DEED": ["name", "legal_form", "registered_office", "share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in", "shareholders", "directors"],
+    "EXTRACT": ["name", "legal_form", "registered_office", "share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in", "shareholders", "directors"],
+    "RESOLUTION": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+    "TRANSFER": ["shareholders"],
+    "APPOINTMENT": ["directors"],
+    "OFFICE": ["registered_office"],
+    "LEDGER": ["shareholders"],
+    "FIN": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]
+  },
+  "doc_kinds": [
+    {
+      "id": "KIND-010",
+      "kind": "FIN",
+      "type_matches": "^financial statements summary$",
+      "rationale": "A financial summary is keyed by financial year, not by document date: it goes first so that no later rule can take it for a state document of the entity.",
+      "tests": [{"type": "Financial statements summary", "expect": "FIN"}]
+    },
+    {
+      "id": "KIND-020",
+      "kind": "DEED",
+      "type_matches": "^deed of incorporation$",
+      "rationale": "The founding instrument: the first event of every field.",
+      "tests": [{"type": "Deed of incorporation", "expect": "DEED"}]
+    },
+    {
+      "id": "KIND-030",
+      "kind": "RESOLUTION",
+      "type_matches": "^resolution on share capital$",
+      "rationale": "An event that changes the share capital only.",
+      "tests": [{"type": "Resolution on share capital", "expect": "RESOLUTION"}]
+    },
+    {
+      "id": "KIND-040",
+      "kind": "TRANSFER",
+      "type_matches": "^share transfer notice$",
+      "rationale": "An event that changes the holders only.",
+      "tests": [{"type": "Share transfer notice", "expect": "TRANSFER"}]
+    },
+    {
+      "id": "KIND-050",
+      "kind": "APPOINTMENT",
+      "type_matches": "^appointment of directors$",
+      "rationale": "An event that changes the directors only.",
+      "tests": [{"type": "Appointment of directors", "expect": "APPOINTMENT"}]
+    },
+    {
+      "id": "KIND-060",
+      "kind": "OFFICE",
+      "type_matches": "^transfer of registered office$",
+      "rationale": "An event that changes the registered office only.",
+      "tests": [{"type": "Transfer of registered office", "expect": "OFFICE"}]
+    },
+    {
+      "id": "KIND-070",
+      "kind": "EXTRACT",
+      "type_matches": "^test registry extract$",
+      "rationale": "A state document of the invented test registry.",
+      "tests": [{"type": "Test registry extract", "expect": "EXTRACT"}]
+    },
+    {
+      "id": "KIND-080",
+      "kind": "LEDGER",
+      "type_matches": "^holders' ledger$",
+      "rationale": "A state document that lists the holders.",
+      "tests": [{"type": "Holders' ledger", "expect": "LEDGER"}]
+    },
+    {
+      "id": "KIND-999",
+      "kind": "UNKNOWN",
+      "type_matches": ".*",
+      "rationale": "Default: a document whose kind is not recognised is never read as one of the kinds above.",
+      "tests": [{"type": "Minutes of something else", "expect": "UNKNOWN"}]
+    }
+  ],
+  "field_rules": [
+    {
+      "id": "EXT-NAME-010",
+      "field": "name",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "The company is named (?P<value>.+?); its legal form is ",
+      "rationale": "Deed clause on name and form.",
+      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "Officine Montefinto S.r.l."}]
+    },
+    {
+      "id": "EXT-NAME-020",
+      "field": "name",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Name: (?P<value>.+)$",
+      "rationale": "Registry extract line 'Name:'. The whole text after the label is the name: nothing is trimmed or normalised, so a different spelling in the deed shows as a discrepancy.",
+      "tests": [{"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": "Officine Montefinto S.r.l."}]
+    },
+    {
+      "id": "EXT-FORM-010",
+      "field": "legal_form",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "; its legal form is (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+      "rationale": "Deed clause on name and form. Only the two forms used by the synthetic world are accepted. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by CLS-110 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+      "tests": [{"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": "S.r.l."},
+                {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.r.l.; its legal form is S.r.l..", "expect": "S.r.l."},
+                {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Esemplare S.p.A.; its legal form is S.p.A..", "expect": "S.p.A."}]
+    },
+    {
+      "id": "EXT-FORM-020",
+      "field": "legal_form",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Legal form: (?P<value>S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+      "rationale": "Registry extract line 'Legal form:'. Only the two forms the test registry knows are accepted; any other wording is left unread rather than mapped to the nearest form. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by CLS-150 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+      "tests": [{"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": "S.p.A."},
+                {"kind": "EXTRACT", "text": "Legal form: S.r.l..", "expect": "S.r.l."}]
+    },
+    {
+      "id": "EXT-OFFICE-010",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["OFFICE"],
+      "line_matches": "The registered office is transferred from (?P<previous>{slot_address}) to (?P<value>{slot_address})\\.$",
+      "value_slot": "w_office",
+      "rationale": "Exception on top: in a transfer the first address is the previous one (historical) and only the second is the office after the event. Since v2.0.7 (D36): both are addresses of the slot grammar (slot_address), the line ends with the sentence's own full stop, and each is judged as the slot w_office of classified_lines (value_slot); otherwise the office is not read from the line (the document may change it, DISC-006), and words after an address never reach the published files.",
+      "tests": [{"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": "Piazza del Campione 3, Montefinto (ZZ)", "expect_previous": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-OFFICE-020",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["DEED"],
+      "line_matches": "The registered office is at (?P<value>{slot_address})\\.$",
+      "value_slot": "w_office",
+      "rationale": "Deed clause on the registered office. Since v2.0.7 (D36): an address of the slot grammar (slot_address) and the sentence's own full stop, judged as the slot w_office of classified_lines (value_slot); otherwise the office is not read from the line.",
+      "tests": [{"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).", "expect": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-OFFICE-030",
+      "field": "registered_office",
+      "extractor": "text",
+      "nature": "text",
+      "kinds": ["EXTRACT"],
+      "line_matches": "^Registered office: (?P<value>{slot_address})$",
+      "value_slot": "w_office",
+      "rationale": "Registry extract line 'Registered office:'. The address is taken as written, so an address spelled otherwise in another current source shows as a discrepancy. Since v2.0.7 (D36): an address of the slot grammar (slot_address) and nothing after it, judged as the slot w_office of classified_lines (value_slot); otherwise the office is not read from the line.",
+      "tests": [{"kind": "EXTRACT", "text": "Registered office: Via del Collaudo 7, Borgoprova (ZZ)", "expect": "Via del Collaudo 7, Borgoprova (ZZ)"}]
+    },
+    {
+      "id": "EXT-CAP-010",
+      "field": "share_capital",
+      "extractor": "capital",
+      "kinds": ["DEED", "RESOLUTION", "EXTRACT"],
+      "line_matches": "share capital",
+      "rationale": "The capital clause is the line that names the share capital. The nature of each amount in it (resolved, subscribed, paid in, historical) is decided by rules/figure_nature.json before anything is counted.",
+      "tests": [
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "expect": {"resolved": "50000.00", "subscribed": "50000.00", "paid_in": "50000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 8#.###,00; subscribed EUR 80.000,00; paid in EUR 80.000,00", "expect": {"resolved": null, "subscribed": "80000.00", "paid_in": "80000.00"}},
+        {"kind": "RESOLUTION", "text": "The meeting resolved to increase the share capital from EUR 200'000.00 to EUR 280'000.00; after the increase the subscribed capital is EUR 260'000.00 and the paid-in capital is EUR 220'000.00.", "expect": {"resolved": "280000.00", "subscribed": "260000.00", "paid_in": "220000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 120’000,00; subscribed EUR 100\u00a0000.00; paid in EUR 75\u202f000,00", "expect": {"resolved": "120000.00", "subscribed": "100000.00", "paid_in": "75000.00"}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150‘000,00; subscribed EUR 150·000,00; paid in EUR 150  000,00", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
+        {"kind": "EXTRACT", "text": "Share capital: resolved EUR 150 thousand; subscribed EUR 100.000,00; paid in EUR 100.000,00", "expect": {"resolved": null, "subscribed": "100000.00", "paid_in": "100000.00"}},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is Mio. EUR 1, fully subscribed and fully paid in.", "expect": {"resolved": null, "subscribed": null, "paid_in": null}},
+        {"kind": "DEED", "text": "Amounts in thousands of EUR.\n3. Share capital. The share capital is EUR 50,00, fully subscribed and fully paid in.", "expect": {"resolved": null, "subscribed": null, "paid_in": null}}
+      ]
+    },
+    {
+      "id": "EXT-HOLD-010",
+      "field": "shareholders",
+      "extractor": "holders",
+      "nature": "share",
+      "kinds": ["DEED", "EXTRACT", "LEDGER", "TRANSFER"],
+      "line_matches": "{holders_heading}",
+      "line_matches_bare": "{holders_heading_bare}",
+      "item_matches": "^\\s*(?:{list_marker}\\s+)?{item_holder}\\s*{item_separator}\\s*(?P<share>[^\\s.:|\\t\\-–—].*?)\\s*$",
+      "item_matches_share_first": "^\\s*(?:{list_marker}\\s+)?(?P<share>{share_token_first})\\s*{item_separator}\\s*{item_holder}\\s*$",
+      "total_matches": "{item_total}",
+      "rationale": "The holders are a table: it is read whole or not at all. One line that cannot be read makes the whole table [TO CONFIRM], because a table with a missing holder is a wrong table. The heading is the grammar of the parameter holders_heading (since v2.0.2); two headings in one document make the table [TO CONFIRM]. The line is the grammar of the parameters list_marker, item_holder and item_separator (since v2.0.3, see item_grammar_note).",
+      "tests": [
+        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "expect": [{"holder": "E-0002", "share": "2/5"}, {"holder": "P-001", "share": "3/5"}]},
+        {"kind": "DEED", "text": "4. Shareholders\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "(4) Shareholdings, entered in the register:\n(1) P-001 (Aldo Finti): 3/5\n(2) P-002 (Bice Provetti): 2/5", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "4. Members, as recorded in the book of members:\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "Article 4. Stockholders\n(a) P-001 (Aldo Finti) | 55 percent\n(b) P-002 (Bice Provetti) | 45 percent", "expect": [{"holder": "P-001", "share": "11/20"}, {"holder": "P-002", "share": "9/20"}]},
+        {"kind": "DEED", "text": "§ 4 Holders\n- Aldo Finti (P-001): 1/2\n- Bice Provetti (P-002): 1/2", "expect": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+        {"kind": "DEED", "text": "4. Holders\n\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": null, "expect_no_list": true},
+        {"kind": "DEED", "text": "4. Holders\nThe holders are listed in the annex.", "expect": null, "expect_no_list": true},
+        {"kind": "DEED", "text": "4. Holders\n- P-001 (Aldo Finti) .......... 60%\n- P-002 (Bice Provetti) ........ 40%\n  Total .......................... 100%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}], "expect_stated_total": "1/1"},
+        {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti) .... 60%\n- P-002 (Bice Provetti) .... 30%\nTotal .... 100%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "3/10"}], "expect_stated_total": "1/1"},
+        {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti): 60%\nTotal: 100%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%\nTotal: all of it", "expect": null},
+        {"kind": "DEED", "text": "§ 4 Holders\n- 60% P-001 (Aldo Finti)\n- 40% P-002 (Bice Provetti)", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "4. Holders.\n- 1/2 Aldo Finti (P-001)\n- 1/2 - P-002 (Bice Provetti)", "expect": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+        {"kind": "DEED", "text": "4. Holders.\n- one half P-001 (Aldo Finti)\n- one half P-002 (Bice Provetti)", "expect": null},
+        {"kind": "DEED", "text": "4. Holders.\n- 300 quotas P-001 (Aldo Finti)\n- 200 quotas P-002 (Bice Provetti)", "expect": null},
+        {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Members at the document date:\n- P-001 (Aldo Finti): 60%\n- P-002 (Bice Provetti): 40%", "expect": [{"holder": "P-001", "share": "3/5"}, {"holder": "P-002", "share": "2/5"}]},
+        {"kind": "DEED", "text": "4. Shareholders.\n- P-001 (Aldo Finti): 1/2\n- P-002 (Bice Provetti): 1/2", "expect": [{"holder": "P-001", "share": "1/2"}, {"holder": "P-002", "share": "1/2"}]},
+        {"kind": "TRANSFER", "text": "Holders before the transfer:\n- P-001 (Aldo Finti): 100%\n\nFollowing the transfer, the members are:\n- P-001 (Aldo Finti): 70%\n- P-003 (Carla Esempi): 30%", "expect": [{"holder": "P-001", "share": "7/10"}, {"holder": "P-003", "share": "3/10"}]},
+        {"kind": "EXTRACT", "text": "Holders:\n- P-001 (Aldo Finti): 100%\n\nMembers:\n- P-002 (Bice Provetti): 100%", "expect": null},
+        {"kind": "EXTRACT", "text": "Partners (as at the document date):\n(a) P-001 (Aldo Finti) – 45 per cent\n(b) P-002 (Bice Provetti) – 55 per cent", "expect": [{"holder": "P-001", "share": "9/20"}, {"holder": "P-002", "share": "11/20"}]},
+        {"kind": "EXTRACT", "text": "Stockholders of record:\n1. Aldo Finti (P-001) | two fifths\n2. Bice Provetti (P-002) | three fifths", "expect": [{"holder": "P-001", "share": "2/5"}, {"holder": "P-002", "share": "3/5"}]},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 40.000,00, divided into 400 quotas.\nIV. Quotaholders.\n• Aldo Finti (P-001): 100 quotas\n• Bice Provetti (P-002): 300 quotas", "expect": [{"holder": "P-001", "share": "1/4"}, {"holder": "P-002", "share": "3/4"}]},
+        {"kind": "DEED", "text": "4. Quotaholders.\n- Aldo Finti (P-001): 100 quotas\n- Bice Provetti (P-002): 300 quotas", "expect": null},
+        {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 40.000,00, divided into 400 quotas.\n4. Quotaholders.\n- P-001 (Aldo Finti): 100 quotas\n- P-002 (Bice Provetti): 75%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- P-001 (Aldo Finti) (in liquidation): 60%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- Usufruct of P-002 for Aldo Finti (P-001): 60%\n- P-002 (Bice Provetti): 40%", "expect": null},
+        {"kind": "LEDGER", "text": "Holders:\n- P-001 (Aldo Finti): thirty point five per cent\n- P-002 (Bice Provetti): 69,5%", "expect": null}
+      ]
+    },
+    {
+      "id": "EXT-DIR-010",
+      "field": "directors",
+      "extractor": "directors",
+      "nature": "person",
+      "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+      "line_matches": "{directors_heading}",
+      "line_matches_bare": "{directors_heading_bare}",
+      "item_matches": "^\\s*(?:{list_marker}\\s+)?{item_person}\\s*$",
+      "rationale": "The directors are a list of person identifiers, read whole or not at all. Since v2.0.3 (D30) the line is the grammar of list_marker and item_person: the identifier first or the name first, with any list marker. Since v2.0.4 (D30b) the heading is the grammar of directors_heading (clause numbers as for the holders) or, when it is the whole line and the next line is a director, directors_heading_bare; two directors' headings in one document make the list [TO CONFIRM].",
+      "tests": [
+        {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)", "expect": ["P-034"]},
+        {"kind": "DEED", "text": "5. Directors.\n- Lia Fittizi (P-034)\n2) P-035 (Ugo Prova)", "expect": ["P-034", "P-035"]},
+        {"kind": "DEED", "text": "5. Directors.\n- Lia Fittizi (P-034), chair", "expect": null},
+        {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- someone not identified", "expect": null},
+        {"kind": "DEED", "text": "(5) Directors:\na) P-034 (Lia Fittizi)", "expect": ["P-034"]},
+        {"kind": "DEED", "text": "§ 5 Directors\n- P-034 (Lia Fittizi)", "expect": ["P-034"]},
+        {"kind": "DEED", "text": "Article 5. Directors\n(a) P-034 (Lia Fittizi)\n(b) P-035 (Ugo Prova)", "expect": ["P-034", "P-035"]},
+        {"kind": "DEED", "text": "v. Directors\n1. Lia Fittizi (P-034)", "expect": ["P-034"]},
+        {"kind": "DEED", "text": "5. Directors\nTo be appointed by the meeting.", "expect": null, "expect_no_list": true},
+        {"kind": "DEED", "text": "5. Directors.\n- P-034 (Lia Fittizi)\n\n6. Directors.\n- P-035 (Ugo Prova)", "expect": null}
+      ]
+    },
+    {
+      "id": "EXT-FIN-010",
+      "field": "fin.FY{fy}.net_equity",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Net equity: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line; the field is keyed by the financial year of the header.",
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 123.456,00", "expect": "123456.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Net equity: EUR 150'000.00", "expect": "150000.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Figures in EUR thousands.\nNet equity: EUR 150,00", "expect": null}
+      ]
+    },
+    {
+      "id": "EXT-FIN-020",
+      "field": "fin.FY{fy}.total_assets",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Total assets: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line 'Total assets:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1.000.000,00", "expect": "1000000.00"},
+        {"kind": "FIN", "fy": "2024", "text": "Total assets: EUR 1\u2009000\u2009000,00", "expect": "1000000.00"}
+      ]
+    },
+    {
+      "id": "EXT-FIN-030",
+      "field": "fin.FY{fy}.revenue",
+      "extractor": "amount",
+      "nature": "financial",
+      "kinds": ["FIN"],
+      "line_matches": "^Revenue: EUR\\s+(?P<amt>{amount_token})$",
+      "rationale": "Financial summary line 'Revenue:'. One amount in a recognised form, bound to the financial year of the header; an amount in another form is left unread.",
+      "tests": [
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR [illegible]", "expect": null},
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR 1’9#9’000.00", "expect": null},
+        {"kind": "FIN", "fy": "2024", "text": "Revenue: EUR 1’234’567.89", "expect": "1234567.89"}
+      ]
+    }
+  ],
+  "holders_evidence": {
+    "reading": "A document whose type is not recognised is not read for facts (DISC-005 keeps every field it may change [TO CONFIRM]). Its body is still checked for holders' tables, so that it does not block the entity for nothing (OWN-015): every table under a holders' heading (parameter holders_heading) is read with the item grammar of EXT-HOLD-010 and summed; every other body line goes through these rules, first match wins, after the phrases of neutral_phrases are removed. One line decided as evidence, one table not read whole, two tables, or a header that cannot be read, and the document stays 'not read': it blocks the entity as before. The rules err on the side of evidence: a line wrongly taken as evidence costs coverage, a line wrongly passed could hide a table that does not sum. Added with v2.0.2 (decision D26 of 2026-09-30).",
+    "parameters": {
+      "neutral_phrases": "\\b(?:{holders_heading_nouns})(?:['\\u2019]s?)?\\s+(?:general\\s+)?meetings?\\b|\\bmeetings?\\s+of\\s+(?:the\\s+)?(?:{holders_heading_nouns})\\b|\\bgeneral\\s+meetings?\\b|\\b(?:{holders_heading_nouns})(?:['\\u2019]s?)?\\s+equity\\b|\\bthe\\s+(?:{day_ordinals})\\s+(?:day\\s+)?of\\s+(?:{month_names})\\b|\\b(?:{month_names})\\s+(?:the\\s+)?(?:{day_ordinals})\\b|\\bthird[\\s-]+part(?:y|ies)\\b|\\b(?:its|their|his|her|our|your|my|one['\\u2019]s|[^\\W\\d_]+['\\u2019]s?)\\s+own\\b(?!\\s+(?:the|a|an|all|every|any|some|no|\\d))"
+    },
+    "rules": [
+      {
+        "id": "HEV-010",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "%|‰|\\bper\\s*-?\\s*cent\\b|\\bpercent(?:age)?s?\\b|\\bpct\\b|(?<![\\d/])\\d+\\s*/\\s*[1-9]\\d*(?![\\d/])|\\b(?:half|halves|thirds?|quarters?|fifths?|sixths?|sevenths?|eighths?|ninths?|tenths?|hundredths?|thousandths?)\\b",
+        "rationale": "A share in any written form: per cent sign or word, per mille, a fraction n/d (a date d/m/y is not a fraction), a fraction in words.",
+        "tests": [
+          {"text": "- Aldo Finti (P-001): 59,99 per cent", "expect": "HEV-010"},
+          {"text": "On the third of July Mr Ugo Apparenti acquired a third of the company.", "expect": "HEV-010"},
+          {"text": "In May a third of the quotas passed to Ms Lia Inesistente.", "expect": "HEV-010"},
+          {"text": "Two thirds of June's shares went to P-003.", "expect": "HEV-010"},
+          {"text": "Bice Provetti holds one third of the capital.", "expect": "HEV-010"}
+        ]
+      },
+      {
+        "id": "HEV-020",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\bE-\\d{4}\\b",
+        "rationale": "An entity identifier in the body names an entity that may hold shares; the header names the entity itself without its identifier.",
+        "tests": [
+          {"text": "- E-0002 (Holding Aurelia Partecipazioni S.r.l.)", "expect": "HEV-020"}
+        ]
+      },
+      {
+        "id": "HEV-030",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\b(?:{holders_heading_nouns}|owners?|subscribers?|allottees?|transferees?|assignees?|transferors?|assignors?)\\b",
+        "rationale": "A holder noun outside a table that was read: a heading in a form the grammar does not read, or a sentence about who holds the shares.",
+        "tests": [
+          {"text": "The members before the transfer were:", "expect": "HEV-030"},
+          {"text": "Owners of the company", "expect": "HEV-030"}
+        ]
+      },
+      {
+        "id": "HEV-040",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\b(?:holds?|held|owns?|owned|belongs?\\s+to|belonged\\s+to|stakes?|quotas?|participations?|(?:equity\\s+)?interests?\\s+in)\\b",
+        "rationale": "A word of holding: a sentence that says who holds, owns or has a stake. Since v2.0.7 (D36, hand-16 E-0006 and E-0011 of run 16): a possessive and the adjective own (its own, their own, the company's own means) is a neutral phrase (parameters.neutral_phrases), not a word of holding; the verb own with a subject and an object still is, and so is a word of holding that follows the phrase (a possessive, own, then quotas).",
+        "tests": [
+          {"text": "The whole capital is held by Aldo Finti.", "expect": "HEV-040"},
+          {"text": "Aldo Finti and Bice Provetti own the company.", "expect": "HEV-040"},
+          {"text": "They own all of it.", "expect": "HEV-040"},
+          {"text": "Aldo Finti's own quotas pass to Bice Provetti.", "expect": "HEV-040"}
+        ]
+      },
+      {
+        "id": "HEV-050",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "(?:\\d|\\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million))\\s+(?:\\w+\\s+)?(?:shares?|stocks?|units?|votes?)\\b",
+        "rationale": "A number of shares, quotas or votes: a holding stated as a count, which is not a fraction the reader can sum.",
+        "tests": [
+          {"text": "Aldo Finti: 600 ordinary shares", "expect": "HEV-050"}
+        ]
+      },
+      {
+        "id": "HEV-060",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "\\bP-\\d{3}\\b.*(?<![-\\d])\\d|(?<![-\\d])\\d.*\\bP-\\d{3}\\b",
+        "rationale": "A person identifier with a figure on the same line (the digits of an identifier do not count): a holder line in a form the item grammar does not read.",
+        "tests": [
+          {"text": "P-001 (Aldo Finti) 600", "expect": "HEV-060"}
+        ]
+      },
+      {
+        "id": "HEV-070",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "^\\s*[-*•–—·]\\s.*(?<![-\\d])\\d|[|\\t].*(?<![-\\d])\\d|(?<![-\\d])\\d.*[|\\t]",
+        "rationale": "A list item or a table row with a figure: a holders' table without a heading, or with a heading in another form.",
+        "tests": [
+          {"text": "- Aldo Finti: 600", "expect": "HEV-070"},
+          {"text": "Aldo Finti | 600", "expect": "HEV-070"}
+        ]
+      },
+      {
+        "id": "HEV-080",
+        "when": "pattern_found",
+        "outcome": "evidence",
+        "pattern": "^(?!.*(?:EUR|€|euros?)\\s*[-−+]?[\\d#.,'’    ]+[.;]?\\s*$).*(?<![-\\d])\\d[\\d.,'’]*\\s*[.;]?\\s*$",
+        "rationale": "A line that ends with a bare figure (not an amount in EUR): a name followed by its holding. Since v2.0.7 (D36, seed 20261016 perturbed, E-0114 of run 16): an amount in EUR whose figure is illegible (a # in it) is an amount that cannot be read, not a bare figure: its field is [TO CONFIRM] by its own rule, and the line is not a line of holding.",
+        "tests": [
+          {"text": "Aldo Finti 600", "expect": "HEV-080"}
+        ]
+      },
+      {
+        "id": "HEV-999",
+        "when": "always",
+        "outcome": "none",
+        "rationale": "Default: nothing on the line speaks of a holding (a directors' list, an address, an amount in EUR, a meeting of the holders).",
+        "tests": [
+          {"text": "Minutes of the holders' meeting (synthetic).", "expect": "HEV-999"},
+          {"text": "Mr Fabio Presunti stepped back on the third of July; Ms Gilda Fantomatici answers for it towards third parties.", "expect": "HEV-999"},
+          {"text": "Signed on the twenty-fifth day of March by the director.", "expect": "HEV-999"},
+          {"text": "Signed on July the fifth.", "expect": "HEV-999"},
+          {"text": "- P-006 (Elio Collaudi)", "expect": "HEV-999"},
+          {"text": "Total assets: EUR 8.663.187,25", "expect": "HEV-999"},
+          {"text": "Net equity: EUR 1#.###,00", "expect": "HEV-999"},
+          {"text": "Total assets: € 2#0.000", "expect": "HEV-999"},
+          {"text": "The company pays for it out of its own means.", "expect": "HEV-999"},
+          {"text": "The company's own endowment, set aside by the meeting, is now EUR 90.000,00.", "expect": "HEV-999"},
+          {"text": "Net result: EUR -12.000,00", "expect": "HEV-999"},
+          {"text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": "HEV-999"},
+          {"text": "The registered office is transferred from Corso dei Modelli 52, Valcollaudo (ZZ) to Largo Simulato 20, Serrafinta (ZZ).", "expect": "HEV-999"}
+        ]
+      }
+    ]
+  },
+  "unread_fields": {
+    "reading": "Which fields a document whose type is not recognised may change (DISC-005, parameter unread_document_scope of rules/discrepancy.json). Checked only when the type is the header's only problem; a document with any other header problem may change every field. Every body line outside a holders' table read whole goes through these rules. The rules marked 'topic' are all tried: a line may speak of several fields, and every field it may speak of is kept. Only when no topic rule applies are the others tried, in order, first match wins: a figure, an identifier, an amount or a label that no topic explains makes the document one that may change every field; a holders' heading, a title marked as invented and a closing sentence saying the document states nothing more state no field; any other line may change every field (default FEV-999). The shareholders are decided by the holders' check (holders_evidence): a table read whole may change them, 'no_table' does not. The rules err on the side of evidence: a word wrongly taken as a topic costs coverage (the field stays [TO CONFIRM]), a line wrongly passed could let a fact be shown that the unread document contradicts. Added with v2.0.3 (D30: on the perturbed corpus of seed 20261013 a document of unrecognised type left every field of its entity [TO CONFIRM], including fields it does not speak of).",
+    "rules": [
+      {
+        "id": "FEV-010",
+        "when": "topic",
+        "fields": ["*"],
+        "pattern": "\\b(?:annul\\w*|revok\\w*|revoc\\w*|void\\w*|null|nullity|cancel\\w*|rescind\\w*|rescission|withdraw\\w*|supersed\\w*|replac\\w*|amend\\w*|correct\\w*|rectif\\w*|errat\\w*|dissol\\w*|liquidat\\w*|merg\\w*|demerg\\w*|split\\w*|conver\\w*|transform\\w*|instead|invalid\\w*|ineffective|restat\\w*|previous|prior|earlier|former)\\b",
+        "rationale": "On top: a word of cancellation, correction, restructuring or a reference to an earlier document may change any field, even one it does not name (\"the resolution of March is annulled\"). A plain word of change (\"change of the board\", \"new seat\") is not here: it goes with the topic it names.",
+        "tests": [
+          {"text": "The previous resolution is annulled.", "expect": ["*"]},
+          {"text": "Erratum: the date of the resolution of 3 March is corrected.", "expect": ["*"]}
+        ]
+      },
+      {
+        "id": "FEV-020",
+        "when": "topic",
+        "fields": ["name", "legal_form"],
+        "pattern": "\\b(?:names?|named|renam\\w*|denominat\\w*|designat\\w*|called|styled|known\\s+as|trad(?:e|ing)\\s+(?:name|as)|firm|forms?|limited|liability|joint[\\s-]stock|corporation|incorporat\\w*)\\b|(?<![a-z])s\\.?\\s?r\\.?\\s?l\\b|(?<![a-z])s\\.?\\s?p\\.?\\s?a\\b",
+        "rationale": "The name and the legal form: a word that names the company or its form, or a legal-form abbreviation.",
+        "tests": [
+          {"text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["legal_form", "name"]},
+          {"text": "The test registry certifies that the entity named above is entered in the test registry (synthetic).", "expect": ["legal_form", "name"]}
+        ]
+      },
+      {
+        "id": "FEV-030",
+        "when": "topic",
+        "fields": ["registered_office"],
+        "pattern": "(?<!\\bin\\s)\\b(?:offices?)\\b|\\b(?:seat|address\\w*|domicil\\w*|headquarter\\w*|premises|located|situated|relocat\\w*|moved?|transferred|via|viale|piazza|piazzale|corso|largo|strada|vicolo|borgo|street|road|avenue|square|lane)\\b|\\(ZZ\\)",
+        "rationale": "The registered office: a word of office, seat or address, a street word, or the invented province of the synthetic world. \"in office\" (directors in office) is not a word of the registered office.",
+        "tests": [
+          {"text": "The seat of the company is moved from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"]},
+          {"text": "The registered office of the company is at Corso dei Modelli 52.", "expect": ["registered_office"]},
+          {"text": "The office of the company is in the capital city.", "expect": ["registered_office", "share_capital.*"]}
+        ]
+      },
+      {
+        "id": "FEV-040",
+        "when": "topic",
+        "fields": ["share_capital.*"],
+        "pattern": "\\b(?:capital|subscri\\w*|paid[\\s-]*(?:in|up)|contribut\\w*|increas\\w*|reduc\\w*|rais\\w*|issu\\w*|allot\\w*|nominal|par\\s+value)\\b",
+        "rationale": "The share capital: a word of capital, subscription, payment, increase, reduction or issue.",
+        "tests": [
+          {"text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": ["share_capital.*"]},
+          {"text": "The meeting resolved to increase the share capital from EUR 200.000,00 to EUR 250.000,00.", "expect": ["share_capital.*"]}
+        ]
+      },
+      {
+        "id": "FEV-050",
+        "when": "topic",
+        "fields": ["directors"],
+        "pattern": "\\b(?:directors?|board|appoint\\w*|manag\\w*|administrat\\w*|officers?|chair\\w*|president|ceo|resign\\w*|dismiss\\w*|representative|signator\\w*|P-\\d{3})\\b",
+        "rationale": "The directors: a word of office holding, appointment or resignation, or a person identifier outside a holders' table read whole.",
+        "tests": [
+          {"text": "- P-034 (Lia Fittizi)", "expect": ["directors"]},
+          {"text": "The board now consists of:", "expect": ["directors"]},
+          {"text": "Minutes - change of the board.", "expect": ["directors"]},
+          {"text": "Directors in office after this appointment:", "expect": ["directors"]}
+        ]
+      },
+      {
+        "id": "FEV-060",
+        "when": "topic",
+        "fields": ["fin.*"],
+        "pattern": "\\b(?:equity|assets?|revenues?|turnover|sales|profits?|loss(?:es)?|results?|income|earnings|ebitda|ebit|liabilit\\w*|debts?|cash|accounts|financial|balance|statements?|fiscal|year)\\b",
+        "rationale": "The financial summary: a word of the accounts.",
+        "tests": [
+          {"text": "Equity (net): EUR 80.000,00", "expect": ["fin.*"]},
+          {"text": "Turnover: 750 000,00 euro", "expect": ["fin.*"]}
+        ]
+      },
+      {
+        "id": "FEV-900",
+        "when": "no_topic_and_pattern_found",
+        "fields": ["*"],
+        "pattern": "\\d|\\bE-\\d{4}\\b|\\bEUR\\b|€|\\beuros?\\b|^[^:]{1,80}:\\s*\\S",
+        "rationale": "A figure, an entity identifier, an amount or a label with a value that no topic explains: it may state any field.",
+        "tests": [
+          {"text": "Reference: ABC-17", "expect": ["*"]},
+          {"text": "Value 1.250,00", "expect": ["*"]}
+        ]
+      },
+      {
+        "id": "FEV-910",
+        "when": "no_topic_and_pattern_found",
+        "fields": [],
+        "pattern": "{holders_heading}",
+        "rationale": "A holders' heading, the whole line: the holders are decided by the holders' check (holders_evidence), and the heading states no other field.",
+        "tests": [
+          {"text": "Holders as at the document date:", "expect": []},
+          {"text": "After the transfer the members are:", "expect": []},
+          {"text": "Shareholders following the transfer:", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-920",
+        "when": "no_topic_and_pattern_found",
+        "fields": [],
+        "pattern": "^(?:the\\s+)?{title_nouns}\\b[^.:;!?]{0,100}\\((?:synthetic|fictitious)\\)\\s*[.:]?$",
+        "rationale": "A title, the whole line: a title noun, one phrase with no sentence in it, marked as invented. It names the document and states no field.",
+        "tests": [
+          {"text": "Entries of the ledger as at the document date (synthetic).", "expect": []},
+          {"text": "Minutes of the holders' meeting (synthetic).", "expect": []},
+          {"text": "Notice of a transfer of shares (synthetic).", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-930",
+        "when": "no_topic_and_pattern_found",
+        "fields": [],
+        "pattern": "{closing_sentence}",
+        "rationale": "A closing sentence, the whole line, saying that the document states nothing more: it states no field.",
+        "tests": [
+          {"text": "Nothing else is certified.", "expect": []}
+        ]
+      },
+      {
+        "id": "FEV-999",
+        "when": "always",
+        "fields": ["*"],
+        "rationale": "Default: a line that no rule above explains may state any field - for example a person named without identifier who 'now runs the company', or a holding told in a sentence. A word list never closes; what it does not know keeps every field [TO CONFIRM].",
+        "tests": [
+          {"text": "Ugo Apparenti now runs the company.", "expect": ["*"]},
+          {"text": "Lia Inesistente sold everything to Ugo Apparenti.", "expect": ["*"]},
+          {"text": "Minutes of the holders' meeting (synthetic). Ugo Apparenti takes over from Lia Inesistente.", "expect": ["*"]}
+        ]
+      }
+    ]
+  },
+  "classified_lines": {
+    "reading": "Since v2.0.5 (D34, the limit 'may publish' of v2.0.4): every non-empty body line of a document whose type is recognised is decided by these rules, first match wins. A document of a recognised type is read for the fields of its kind only; these rules say which of its lines state those fields and nothing else. A line is explained when it has no letter or digit, when it is a line of a list read under a heading of its kind (or of a holders' table in a document of any kind), when the whole line is a shape of its kind whose typed slots (parameters slot_...) name no other field by the test of an unread document, or when it is a title or a closing sentence. Any other line (default CLS-999) makes the document one that may change every field of its entity: stage 3 keeps every field [TO CONFIRM] when the document is not older than the latest event of the field (DISC-006, the criterion of DISC-005), and the line is checked for holdings as a line of an unread document is (holders_evidence: a holding outside a table read whole and OWN-015 blocks). A closed line states nothing but the fields of its rule: when a rule of the kind read one of them from another line (a second clause, a second list), the line was not read and the document may change that field (DISC-006 keeps it [TO CONFIRM] under the same date criterion). A holders' table in a document of a kind that is not read for holders (resolution, appointment, office transfer, financial summary) is read whole and summed (OWN-010), or OWN-015 blocks; read whole, it may change the shareholders. The rules err on the side of the open line: a shape not listed here costs coverage (every field [TO CONFIRM]), a shape too wide could let an older value be shown as fact.",
+    "rules": [
+      {
+        "id": "CLS-005",
+        "when": "label_not_its_own",
+        "fields": ["*"],
+        "rationale": "Since v2.0.6 (D35, probe E-0011 of run 14), an exception on top: the name beside an identifier is a slot whose own value is known - for a person, the name the identity layer gives for the identifier (identity/persons.json of the input, when present); for a company, a name that the entity's own documents give in their header (Entity:). A line where the name beside a known identifier is not that name (spaces collapsed, nothing else normalised) holds more than its own value: no rule closes it, the document may change every field (DISC-006) and the line is checked for holdings (OWN-015). An identifier whose name is not known is judged by the slot test alone (slot_not_name_word). Since v2.0.7 (D36, the typed-slot probes of run 16): equality only. An identifier the corpus knows nothing of (no name in the identity layer, no Entity: header of its own) cannot be checked, so a label beside it is open in the same way, whatever its words (v2.0.6 published 148 of 176 such siblings, tests/test_d36_forms.py); a label equal to its own known name is closed without the word list. The corpus always knows the names in its own headers, so the rule is off only where nothing at all is known (an inline test without 'known').",
+        "tests": [
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-016 (Hilde Simulanti Sole Proprietress Henceforth)", "line": 2, "known": {"P-016": ["Hilde Simulanti"]}, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-016 (Hilde Simulanti Gentile)", "line": 2, "known": {"P-016": ["Hilde Simulanti"]}, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- Aldo Finti Rossi (P-001): 100%", "line": 2, "known": {"P-001": ["Aldo Finti"]}, "expect": ["*"]},
+          {"kind": "LEDGER", "text": "Holders as at the document date:\n- E-0002 (Holding Aurelia Partecipazioni Unica S.r.l.): 100%", "line": 2, "known": {"E-0002": ["Holding Aurelia Partecipazioni S.r.l."]}, "expect": ["*"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-099 (Ugo Nessuno)", "line": 2, "known": {"P-001": ["Aldo Finti"]}, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- Ugo Nessuno Leader (P-099): 100%", "line": 2, "known": {"P-001": ["Aldo Finti"]}, "expect": ["*"]},
+          {"kind": "LEDGER", "text": "Holders as at the document date:\n- E-0099 (Fornace Ignota S.r.l.): 100%", "line": 2, "known": {"E-0001": ["Fornace Aurelia S.r.l."]}, "expect": ["*"]}
+        ]
+      },
+      {
+        "id": "CLS-010",
+        "when": "no_letter_or_digit",
+        "fields": [],
+        "rationale": "A line without a letter or a digit (a banner, a rule of dashes or stars) states nothing.",
+        "tests": [
+          {"kind": "DEED", "text": "* * *", "expect": []},
+          {"kind": "RESOLUTION", "text": "--------", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-020",
+        "when": "list_line",
+        "fields": [],
+        "rationale": "A line of a list under a heading of a list rule (EXT-HOLD-010 in a document of every kind, EXT-DIR-010 in the kinds of its rule): the heading, an item line of the rule's grammar whose name is a person's or a company's name (slot_label) naming nothing else and whose share is typed (a share or a number of quotas or shares that is read, or a figure without words: slot_share_unread), or the last line 'Total' of a holders' table with a typed share. It states the field of the list. A holders' table in a document of a kind that is not read for holders may change the shareholders: it is read whole and summed, or OWN-015 blocks.",
+        "tests": [
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti): 60%\n- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 40%", "line": 3, "known": {"P-001": ["Aldo Finti"], "E-0002": ["Holding Aurelia Partecipazioni S.r.l."]}, "expect": ["shareholders"]},
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti) .... 60%\n- P-002 (Bice Provetti) .... 40%\nTotal .... 100%", "line": 4, "expect": ["shareholders"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)", "line": 2, "expect": ["directors"], "expect_may_change": []},
+          {"kind": "RESOLUTION", "text": "Holders:\n- P-001 (Aldo Finti): 100%", "line": 2, "expect": ["shareholders"], "expect_may_change": ["shareholders"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- P-001 (Aldo Finti): 6#%\n- P-002 (Bice Provetti): 40%", "line": 2, "expect": ["shareholders"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-110",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["name", "legal_form"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:name\\s+and\\s+form\\.\\s+)?(?:the\\s+company\\s+is\\s+named|the\\s+name\\s+of\\s+the\\s+company\\s+is)\\s+(?P<w_name>{slot_company});\\s+(?:its\\s+legal\\s+form\\s+is|it\\s+takes\\s+the\\s+legal\\s+form\\s+of)\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+        "rationale": "Deed clause on name and form, the whole line: a company name, one of the two legal forms. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by EXT-FORM-010 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+        "tests": [
+          {"kind": "DEED", "text": "1. Name and form. The company is named Fonderie Torremodello S.r.l.; its legal form is S.r.l..", "expect": ["name", "legal_form"], "expect_may_change": []},
+          {"kind": "DEED", "entity": "Officine Montefinto S.r.l.", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
+          {"kind": "DEED", "text": "1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.", "expect": ["name", "legal_form"], "expect_may_change": []},
+          {"kind": "DEED", "text": "1. Name and form. The name of the company is Cartiere Villasimulata S.r.l.; it takes the legal form of S.r.l.", "expect": ["name", "legal_form"]}
+        ]
+      },
+      {
+        "id": "CLS-120",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:registered\\s+office\\.\\s+)?(?:the\\s+registered\\s+office\\s+is\\s+at|the\\s+company\\s+has\\s+its\\s+seat\\s+at|the\\s+company\\s+is\\s+domiciled\\s+at)\\s+(?P<w_office>{slot_address})\\.$",
+        "rationale": "Deed clause on the registered office, the whole line: one address. A second office clause that no rule read: the document may change the registered office (DISC-006).",
+        "tests": [
+          {"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).", "expect": ["registered_office"], "expect_may_change": []},
+          {"kind": "DEED", "text": "The company has its seat at Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"], "expect_may_change": ["registered_office"]},
+          {"kind": "DEED", "text": "2. Registered office. The registered office is at Via del Collaudo 7, Borgoprova (ZZ).\nThe registered office is at Piazza del Campione 3, Montefinto (ZZ).", "line": 2, "expect": ["registered_office"], "expect_may_change": ["registered_office"]},
+          {"kind": "DEED", "text": "2. Registered office. The company is domiciled at Piazza Inventata 78, Montefinto (ZZ).", "expect": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-130",
+        "when": "shape",
+        "kinds": ["DEED"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^(?:{clause_number}\\s*)?(?:share\\s+capital\\.\\s+)?the\\s+share\\s+capital\\s+is\\s+{slot_amount}(?:(?:,?\\s+|\\.\\s+it\\s+is\\s+)(?:{slot_subscribed_paid}|(?:divided|split)\\s+into\\s+{slot_count}\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)(?:\\s+of\\s+{slot_amount}\\s+each)?)){0,2}\\.$",
+        "rationale": "Deed clause on the share capital, the whole line: one amount, then in either order, in the same sentence or in a second one that begins 'It is', how much of it is subscribed and paid in and the number of quotas or shares (with the nominal amount of each).",
+        "tests": [
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is € 40.000, divided into 400 quotas.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "The share capital is fifty thousand euro, entirely subscribed and paid up.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 50.000,00, divided into 500 quotas of EUR 100,00 each, fully subscribed and fully paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is 100.000,00 EUR, wholly subscribed and wholly paid in.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 90.000,00, fully subscribed and fully paid in. It is split into 900 quotas.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-140",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["name"],
+        "slots_may_name": ["name", "legal_form"],
+        "pattern": "^name:\\s+(?P<w_name>{slot_company})$",
+        "rationale": "Registry extract line 'Name:': a company name, whose legal form is part of the name.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Name: Officine Montefinto S.r.l.", "expect": ["name"], "expect_may_change": []},
+          {"kind": "EXTRACT", "entity": "Fonderie Torremodello S.r.l.", "text": "Name: Fonderie Torremodello S.p.A.", "expect": ["name"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-150",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["legal_form"],
+        "pattern": "^legal\\s+form:\\s+(?:S\\.r\\.l\\.|S\\.p\\.A\\.)\\.?$",
+        "rationale": "Registry extract line 'Legal form:': one of the two legal forms. Since v2.0.6 (D35, the blind run of v2.0.5: every deed of hand-14 ends the clause with 'its legal form is S.r.l..'): a full stop after the abbreviation's own last dot is the sentence's punctuation, read by EXT-FORM-020 and this rule together; the value is the abbreviation without it. Two or more dots after it are not read.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Legal form: S.p.A.", "expect": ["legal_form"]},
+          {"kind": "EXTRACT", "text": "Legal form: S.r.l..", "expect": ["legal_form"], "expect_may_change": []}
+        ]
+      },
+      {
+        "id": "CLS-160",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:registered\\s+office|seat):\\s+(?P<w_office>{slot_address})$",
+        "rationale": "Registry extract line 'Registered office:' or 'Seat:': one address.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Seat: Via del Collaudo 7, Borgoprova (ZZ) - interno 2", "expect": ["registered_office"], "expect_may_change": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-170",
+        "when": "shape",
+        "kinds": ["EXTRACT"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^share\\s+capital:\\s+{slot_capital_item}(?:(?:;\\s+|,\\s+|\\s+and\\s+){slot_capital_item}){0,3}$",
+        "rationale": "Registry extract line 'Share capital:': up to four amounts, each with or without its nature (resolved, authorised, subscribed, paid in, paid up, of which).",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Share capital: authorised EUR 120,000.00; subscribed EUR 100,000.00; paid up EUR 75,000.00", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": []},
+          {"kind": "EXTRACT", "text": "Share capital: EUR 500.000,00, of which EUR 400.000,00 and EUR 250.000,00", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "EXTRACT", "text": "Share capital: resolved 80 000,00 euro; subscribed and paid in 80 000,00 euro", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]}
+        ]
+      },
+      {
+        "id": "CLS-180",
+        "when": "shape",
+        "kinds": ["RESOLUTION"],
+        "fields": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"],
+        "pattern": "^the\\s+meeting\\s+resolved\\s+(?:to\\s+(?:increase|raise)\\s+the\\s+share\\s+capital|that\\s+the\\s+share\\s+capital\\s+(?:go\\s+up|be\\s+(?:increased|raised)))\\s+from\\s+{slot_amount}\\s+to\\s+{slot_amount}(?:\\.\\s+(?:the\\s+(?:whole\\s+)?increase\\s+has\\s+been\\s+(?:(?:fully|wholly)\\s+)?subscribed\\s+and\\s+(?:(?:fully|wholly)\\s+)?paid\\s+in|the\\s+new\\s+shares\\s+were\\s+all\\s+taken\\s+up\\s+and\\s+paid\\s+for)|;\\s+after\\s+the\\s+increase\\s+the\\s+(?:subscribed\\s+capital|capital\\s+subscribed|capital\\s+taken\\s+up)\\s+(?:is|amounts\\s+to)\\s+{slot_amount}\\s+and\\s+the\\s+(?:paid-in\\s+capital|capital\\s+paid\\s+in)\\s+(?:is|amounts\\s+to)\\s+{slot_amount}|,\\s+with\\s+{slot_amount}\\s+and\\s+{slot_amount})?\\.$",
+        "rationale": "Capital resolution, the whole line: the capital raised from one amount to another, and how much of it is subscribed and paid in. Nothing about who takes the new quotas: a sentence that names a subscriber is not this shape.",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "The meeting resolved to raise the share capital from € 280.000 to € 290.000. The new shares were all taken up and paid for.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"], "expect_may_change": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"]},
+          {"kind": "RESOLUTION", "text": "The meeting resolved to increase the share capital from EUR 200'000.00 to EUR 280'000.00; after the increase the capital taken up is EUR 260'000.00 and the paid-in capital is EUR 220'000.00.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]},
+          {"kind": "RESOLUTION", "text": "The meeting resolved that the share capital go up from EUR 120.000,00 to EUR 170.000,00; after the increase the capital subscribed amounts to EUR 157.500,00 and the capital paid in amounts to EUR 150.000,00.", "expect": ["share_capital.resolved", "share_capital.subscribed", "share_capital.paid_in"]}
+        ]
+      },
+      {
+        "id": "CLS-190",
+        "when": "shape",
+        "kinds": ["OFFICE"],
+        "fields": ["registered_office"],
+        "pattern": "^(?:the\\s+registered\\s+(?:office|address)\\s+(?:is\\s+transferred|is\\s+moved|changes)|the\\s+seat\\s+of\\s+the\\s+company\\s+is\\s+moved)\\s+from\\s+(?P<w_previous>{slot_address})\\s+to\\s+(?P<w_office>{slot_address})\\.$",
+        "rationale": "Transfer of registered office, the whole line: from one address to another. Since v2.0.7 (D36): the wording 'The seat of the company is moved from ... to ...' is closed by this rule and read by no field rule of kind OFFICE, so the office it states stays [TO CONFIRM] (DISC-006). It stays unread by design: it is the unknown wording of scenario S09, whose rule added on top reads it and moves that field only; the first test says both outcomes (expect_may_change_unless_read).",
+        "tests": [
+          {"kind": "OFFICE", "text": "The seat of the company is moved from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"], "expect_may_change_unless_read": ["registered_office"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["registered_office"], "expect_may_change": []},
+          {"kind": "OFFICE", "text": "The registered address changes from Corso dei Modelli 66, Rivaprova (ZZ) to Via della Prova 32, Monteprototipo (ZZ).", "expect": ["registered_office"], "expect_may_change": ["registered_office"]}
+        ]
+      },
+      {
+        "id": "CLS-200",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.net_equity"],
+        "pattern": "^(?:net\\s+equity|equity\\s+\\(net\\)):\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the net equity: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Equity (net): EUR 80.000,00", "expect": ["fin.FY{fy}.net_equity"]}
+        ]
+      },
+      {
+        "id": "CLS-210",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.total_assets"],
+        "pattern": "^total\\s+assets:\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the total assets: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Total assets: 1 000 000,00 euro", "expect": ["fin.FY{fy}.total_assets"]}
+        ]
+      },
+      {
+        "id": "CLS-220",
+        "when": "shape",
+        "kinds": ["FIN"],
+        "fields": ["fin.FY{fy}.revenue"],
+        "pattern": "^(?:revenue|turnover):\\s+{slot_amount}$",
+        "rationale": "Financial summary line on the revenue: one amount.",
+        "tests": [
+          {"kind": "FIN", "fy": "2024", "text": "Turnover: seven hundred and fifty thousand euro", "expect": ["fin.FY{fy}.revenue"]}
+        ]
+      },
+      {
+        "id": "CLS-230",
+        "when": "shape",
+        "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+        "fields": ["directors"],
+        "pattern": "^(?:(?:{clause_number}\\s*)?board\\s*[.:]?|the\\s+board\\s+now\\s+consists\\s+of\\s*:)$",
+        "rationale": "A heading of the directors that EXT-DIR-010 does not read ('Board:', 'The board now consists of:'): it states the directors only. The directors stay [TO CONFIRM] by EXPECTED-FIELD; the line does not open the document.",
+        "tests": [
+          {"kind": "APPOINTMENT", "text": "The board now consists of:\n- P-034 (Lia Fittizi)", "expect": ["directors"], "expect_may_change": ["directors"]},
+          {"kind": "DEED", "text": "5. Board.", "expect": ["directors"]}
+        ]
+      },
+      {
+        "id": "CLS-240",
+        "when": "shape",
+        "kinds": ["DEED", "EXTRACT", "APPOINTMENT"],
+        "fields": ["directors"],
+        "slots_may_name": ["name", "legal_form", "directors"],
+        "pattern": "^(?:{list_marker}\\s+)?(?:P-\\d{3}(?:\\s*\\((?P<w_person>{slot_person})\\))?|(?P<w_person_first>{slot_person})\\s*\\(P-\\d{3}\\))$",
+        "rationale": "A director line outside a list that EXT-DIR-010 read: a person identifier with a person's name. It states the directors only; when the directors are read from another list, the line was not read: the document may change the directors (DISC-006).",
+        "tests": [
+          {"kind": "DEED", "text": "5. Board.\n- Lia Fittizi (P-034)", "line": 2, "expect": ["directors"], "expect_may_change": ["directors"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-034 (Lia Fittizi)\n\n- P-035 (Ugo Provetti)", "line": 4, "expect": ["directors"], "expect_may_change": ["directors"]}
+        ]
+      },
+      {
+        "id": "CLS-250",
+        "when": "label",
+        "fields": [],
+        "pattern": "^(?:{clause_number}\\s*)?(?P<w_label>{slot_label_words})(?:\\s*[.:]|:\\s+(?:(?P<v_amounts>{slot_capital_item}(?:(?:;\\s+|,\\s+|\\s+and\\s+){slot_capital_item}){0,3})|(?P<w_office>{slot_address})|(?P<w_name>{slot_company})|(?P<v_form>S\\.r\\.l\\.|S\\.p\\.A\\.)))$",
+        "slots_may_name": "kind",
+        "value_topics": {"v_amounts": ["share_capital.*", "fin.*"], "w_office": ["registered_office"], "w_name": ["name", "legal_form"], "v_form": ["legal_form"], "": ["shareholders", "directors"]},
+        "rationale": "A label and a typed value, the whole line (since v2.0.5): a label of at most eight words that names fields of the kind only (the test of an unread document), then one to four amounts, an address, a company name, a legal form, or nothing (the heading of a list). The line states the fields of the kind that both the label and the type of the value name (value_topics; a heading: the holders or the directors), and nothing else; a label that names none of them does not close the line. The free words of the value may name only those fields. No rule read the line: the document may change those fields (DISC-006).",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Form of the company: S.r.l.", "expect": ["legal_form"], "expect_may_change": ["legal_form"]},
+          {"kind": "EXTRACT", "text": "Registered address: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["registered_office"]},
+          {"kind": "FIN", "fy": "2023", "text": "Sales revenue: EUR 6.586.603,78", "expect": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]},
+          {"kind": "FIN", "fy": "2023", "text": "Balance sheet total: 8.487.975,78 EUR", "expect": ["fin.FY{fy}.net_equity", "fin.FY{fy}.total_assets", "fin.FY{fy}.revenue"]},
+          {"kind": "EXTRACT", "text": "Administrators:", "expect": ["directors"]},
+          {"kind": "DEED", "text": "5. Administrative body.", "expect": ["directors"]},
+          {"kind": "APPOINTMENT", "text": "Directors serving once this appointment takes effect:", "expect": ["directors"]},
+          {"kind": "EXTRACT", "text": "Subscribed capital: EUR 60.000,00", "expect": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"], "expect_may_change": ["share_capital.paid_in", "share_capital.resolved", "share_capital.subscribed"]}
+        ]
+      },
+      {
+        "id": "CLS-900",
+        "when": "shape",
+        "fields": [],
+        "slots_may_name": "kind",
+        "pattern": "^(?P<w_title>(?:the\\s+)?{title_nouns}\\b[^.:;!?\\d]{0,100}\\((?:synthetic|fictitious)\\))\\s*[.:]?$",
+        "rationale": "A title, the whole line: a title noun of FEV-920, one phrase with no sentence and no figure in it, marked as invented. Its words may name only the fields of the kind of the document ('Minutes - capital increase' in a resolution); a title that names another field ('... and new seat') is not a title here.",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "Minutes of the holders' meeting (synthetic).", "expect": []},
+          {"kind": "TRANSFER", "text": "Notice of a transfer of shares (synthetic).", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-910",
+        "when": "shape",
+        "fields": [],
+        "pattern": "{closing_sentence}",
+        "rationale": "A closing sentence of FEV-930, the whole line: the document states nothing more.",
+        "tests": [
+          {"kind": "EXTRACT", "text": "Nothing else is certified.", "expect": []}
+        ]
+      },
+      {
+        "id": "CLS-999",
+        "when": "always",
+        "fields": ["*"],
+        "rationale": "Default: a line that no rule above explains may state any field, as a line of an unread document does. The document may change every field of its entity (DISC-006), and the line is checked for holdings (holders_evidence, OWN-015).",
+        "tests": [
+          {"kind": "RESOLUTION", "text": "The new quotas are subscribed by P-009 (Ugo Apparenti).", "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "APPOINTMENT", "text": "Minutes - change of the board (synthetic).", "expect": ["*"]},
+          {"kind": "EXTRACT", "entity": "Fonderia Torre Esemplare S.r.l.", "text": "Name: Fonderia Torre Esemplare S.p.A.", "expect": ["*"]},
+          {"kind": "DEED", "text": "5. Board.\n- Ugo Prova (P-035)", "line": 2, "expect": ["*"]},
+          {"kind": "TRANSFER", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ).", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Piazza del Campione 3, Montefinto (ZZ). P-009 (Ugo Apparenti) is appointed director.", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Borgo Director Ugo (ZZ).", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Ugo Apparenti Takes Over Now (ZZ).", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Minutes of the meeting appointing P-009 as director (synthetic).", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Minutes of the meeting that also changes the board (synthetic).", "expect": ["*"]},
+          {"kind": "APPOINTMENT", "text": "The meeting also resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00.", "expect": ["*"]},
+          {"kind": "DEED", "text": "3. Share capital. The share capital is EUR 150 thousand, fully subscribed and fully paid in.", "expect": ["*"]},
+          {"kind": "DEED", "text": "4. Holders.\n- P-001 (Aldo Finti, who also becomes director): 100%", "line": 2, "expect": ["*"]},
+          {"kind": "TRANSFER", "text": "Holders after the transfer:\n- P-001 (Aldo Finti): 60% and the seat moves to Montefinto\n- P-002 (Bice Provetti): 40%", "line": 2, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "OFFICE", "text": "Directors:", "expect": ["*"]},
+          {"kind": "RESOLUTION", "text": "Holders after the increase:", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Remarks: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Registered address: Fornace Aurelia S.r.l.", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Registered address: Via Nuova 1, Borgo Director Ugo (ZZ)", "expect": ["*"]},
+          {"kind": "TRANSFER", "text": "Registered office: Piazza Inventata 95, Valfittizia (ZZ)", "expect": ["*"]},
+          {"kind": "APPOINTMENT", "text": "Directors in office after this appointment:\n- P-016 (Hilde Simulanti Sole Proprietress Henceforth)", "line": 2, "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "DEED", "text": "5. Board.\n- Hilde Simulanti Solely (P-016)", "line": 2, "expect": ["*"]},
+          {"kind": "LEDGER", "text": "Holders as at the document date:\n- P-001 (Aldo Finti Unico Socio): 100%", "line": 2, "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Name: Fonderia Torre Esemplare Henceforth S.p.A.", "expect": ["*"]},
+          {"kind": "EXTRACT", "entity": "Fonderia Torre Esemplare S.r.l.", "text": "Name: Fonderia Torre Esemplare Padrona S.r.l.", "expect": ["*"], "expect_may_change": ["*"]},
+          {"kind": "DEED", "entity": "Officine Montefinto S.r.l.", "text": "1. Name and form. The company is named Officine Montefinto Vecchie S.r.l.; its legal form is S.r.l.", "expect": ["*"]},
+          {"kind": "DEED", "text": "1. Name and form. The company is named Fonderia Torre Owner S.r.l.; its legal form is S.r.l.", "expect": ["*"]},
+          {"kind": "EXTRACT", "text": "Seat: Via dei Tralci 14, Costa Apocrifa Now (ZZ)", "expect": ["*"]},
+          {"kind": "OFFICE", "text": "The registered office is transferred from Via del Collaudo 7, Borgoprova (ZZ) to Via Nuova 1, Montefinto Henceforth (ZZ).", "expect": ["*"]}
+        ]
+      }
+    ]
+  },
+  "free_text_identification": {
+    "reading": "Since v2.0.9 (D38, the blind run of v2.0.8, eval/history.json run 20: hand-20 E-0009 and E-0010 wrote words that state a capital inside a town and inside a company's name, alike in every document; corroboration took the agreement of the documents for a fact, and the capital was published). A free-text slot is decided by POSITIVE identification of every one of its words, whether the documents agree or not: each word is accounted for by the gazetteer of the synthetic world (parameters gazetteer_*, combined by identify_address, identify_company, identify_person) or by the pack's own recognised texts (text_recognised), whole, nothing normalised but spaces. No list of suspicious words and no form decides: a word that the gazetteer does not hold is unaccounted for, whatever it says. The class of each slot is parameter identification_slot_classes; a company's name of a header 'Entity:' is of class company, a person's name of the identity layer of class person. The rules are ordered, first match wins, the exception on top. A slot decided 'quantity' or 'unidentified' does not close its line: the line is one that no rule explains (CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event of a field); 'quantity' also means the line may state a holding (OWN-015 blocks). A header name not identified is decided by name_corroboration NAM-005; a name of the identity layer or of a header that is not identified is not a name known to the corpus (CLS-005).",
+    "rules": [
+      {
+        "id": "IDN-010",
+        "when": "numeral",
+        "outcome": "quantity",
+        "rationale": "Exception on top (principle (iii) of D38): a numeral (parameter numeral_token: digits, Italian and English number words, a Roman numeral) in the free words of a slot - for an address, in its street or its town: its house number and the mark of ' - interno' are typed by the slot grammar - means that the slot may state a quantity: an amount, a number of quotas, a share. Not identified, and the line may state a holding: OWN-015 blocks. No entry of the gazetteer holds a numeral.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Montefinto Dotazione Novantamila (ZZ)", "expect": "IDN-010"},
+          {"class": "address", "text": "Via XX Settembre 4, Borgoprova (ZZ)", "expect": "IDN-010"},
+          {"class": "company", "text": "Officine Montefinto Tremila S.r.l.", "expect": "IDN-010"},
+          {"class": "company", "text": "Fornace Aurelia Ninety-Five S.r.l.", "expect": "IDN-010"},
+          {"class": "person", "text": "Aldo Finti Trenta", "expect": "IDN-010"},
+          {"class": "title", "text": "Minutes of the 2 holders' meetings (synthetic)", "expect": "IDN-010"},
+          {"class": "label", "text": "Quota Sessanta", "expect": "IDN-010"}
+        ]
+      },
+      {
+        "id": "IDN-020",
+        "when": "identified",
+        "classes": ["address"],
+        "outcome": "identified",
+        "rationale": "Principles (i) and (ii) of D38: the street is a street type and a street name of the gazetteer, the house number is of the slot grammar, the town and the province are entries of the gazetteer, and an optional ' - interno', ' - scala' or ' - piano' and a mark (parameter identify_address). Every word is accounted for: the slot names the office and nothing else.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova (ZZ)", "expect": "IDN-020"},
+          {"class": "address", "text": "Piazza Inventata 3, Valcollaudo (ZZ) - interno 2", "expect": "IDN-020"},
+          {"class": "address", "text": "Corso della Prova 12/B, Montefinto (ZZ)", "expect": "IDN-020"}
+        ]
+      },
+      {
+        "id": "IDN-030",
+        "when": "identified",
+        "classes": ["company"],
+        "outcome": "identified",
+        "rationale": "Principle (iv) of D38: a company's name is accepted only when it is a name the register of the synthetic world can hold (parameter identify_company: a trade word and a town, or 'Holding', a town and 'Partecipazioni'), the legal form at its end set aside (rules/discrepancy.json legal_form_in_name; a legal form that differs from the one stated is DISC-035's). Any other word, before the legal form, inside it or after it, is unaccounted for.",
+        "tests": [
+          {"class": "company", "text": "Officine Montefinto S.r.l.", "expect": "IDN-030"},
+          {"class": "company", "text": "Holding Borgoprova Partecipazioni S.p.A.", "expect": "IDN-030"},
+          {"class": "company", "text": "Fornace Aurelia S.r.l.s.", "expect": "IDN-030"}
+        ]
+      },
+      {
+        "id": "IDN-040",
+        "when": "identified",
+        "classes": ["person"],
+        "outcome": "identified",
+        "rationale": "Principle (iv) of D38 applied to persons: a person's name is a first name and a surname of the gazetteer (parameter identify_person). A name of the identity layer that is not identified is not a name known to the corpus, and a name beside an identifier closes its line only when it is that identifier's own known name (CLS-005).",
+        "tests": [
+          {"class": "person", "text": "Aldo Finti", "expect": "IDN-040"},
+          {"class": "person", "text": "Fulvia Posticci", "expect": "IDN-040"}
+        ]
+      },
+      {
+        "id": "IDN-050",
+        "when": "identified",
+        "classes": ["title", "label"],
+        "outcome": "identified",
+        "rationale": "A title of CLS-900 or a label of CLS-250 is identified only when it is one of the texts the pack's own builders write (parameter text_recognised, by group), whole, nothing normalised but spaces. That another document states it alike no longer identifies it (text_corroboration TXT-020).",
+        "tests": [
+          {"class": "title", "text": "Minutes of the holders' meeting (synthetic)", "expect": "IDN-050"},
+          {"class": "title", "text": "Notice of a transfer of shares (synthetic)", "expect": "IDN-050"}
+        ]
+      },
+      {
+        "id": "IDN-999",
+        "when": "always",
+        "outcome": "unidentified",
+        "rationale": "Default: a word of the slot is not accounted for - a place, a street, a trade word or a name that the gazetteer does not hold, words added before, inside or after it, a particle written otherwise ('Via Del Collaudo'), a name written surname first. The slot does not close its line: every field [TO CONFIRM] (DISC-006); when the line may state a holding (holders_evidence), OWN-015 blocks.",
+        "tests": [
+          {"class": "address", "text": "Via del Collaudo 7, Monte Spurio Dotazione (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via Del Collaudo 7, Borgoprova (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova Ora (ZZ)", "expect": "IDN-999"},
+          {"class": "address", "text": "Via del Collaudo 7, Borgoprova (MI)", "expect": "IDN-999"},
+          {"class": "company", "text": "Conceria Borgo Illusorio S.r.l.", "expect": "IDN-999"},
+          {"class": "company", "text": "Officine Soci Cambiati Montefinto S.r.l.", "expect": "IDN-999"},
+          {"class": "company", "text": "Officine Montefinto S.r.l. Quote Cedute", "expect": "IDN-999"},
+          {"class": "person", "text": "Finti Aldo", "expect": "IDN-999"},
+          {"class": "person", "text": "Aldo Finti Amministra", "expect": "IDN-999"},
+          {"class": "title", "text": "Minutes of the board (synthetic)", "expect": "IDN-999"},
+          {"class": "label", "text": "Registered address", "expect": "IDN-999"}
+        ]
+      }
+    ]
+  },
+  "address_corroboration": {
+    "reading": "Since v2.0.8 (D37, the blind run of v2.0.7, eval/history.json run 18: in hand-18 E-0015 a registry extract gave as registered office the deed's address with three words added inside the town; every word had the form of a place name, the line closed, the office was shown as a DISCREPANCY and the capital those words spoke of was published). An address is decided by corroboration and equality, never by the form of its words. Applied per entity, after every document of the entity is read. A MENTION is an address in a slot of the registered office (parameter slot_address_groups: w_office, w_previous) of a line that a rule of classified_lines closes (CLS-120, CLS-160, CLS-190, CLS-250). A PARTNER is any address of the slot grammar (slot_address) in any body line of a document of the entity that was read (a mention is a partner too): it is compared, it never corroborates. The tokens of an address are its text with spaces collapsed (the existing normalisation), cut at spaces and before each comma; nothing else is normalised (case, accents, punctuation count). The rules are ordered, first match wins, the exception on top. Each assertion of the registered office carries the outcome of its mention ('corroboration': the rule and the mentions or partners it rests on); DISC-038 (rules/discrepancy.json) keeps the office [TO CONFIRM] when no current source of it is corroborated, and the fields check of the document (classified_checks) carries what the line may change.",
+    "rules": [
+      {
+        "id": "ADR-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: the tokens of another address of the entity (a mention or a partner, in another document or in another slot of the same document) all stand in this one, in the same order, with tokens added - in the street, in the town, after them, before them or between them. One address equal to another plus words is not two addresses: its line is one that no rule explains (as CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event document of the field, and the line is checked for holdings, OWN-015 blocks when it may state one), and no address of the line is read (the office and the previous office are refused, so the words never reach a value, a DISCREPANCY or the published files). It is not a DISCREPANCY.",
+        "tests": [
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova Quote Cedute Ieri (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Amministra Ora del Collaudo 7, Borgoprova (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_previous", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova Capitale Dimezzato (ZZ)"}],
+           "mention": 1, "expect": "ADR-010"},
+          {"mentions": [{"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza Grande 2, Montefinto (ZZ) - interno 4"}],
+           "partners": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "address": "Piazza Grande 2, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-010"}
+        ]
+      },
+      {
+        "id": "ADR-020",
+        "when": "corroborated",
+        "outcome": "fact",
+        "rationale": "A second document of the entity states the same address, token for token: the address may be shown as fact (DISC-040). The new address of an office transfer (the slot w_office of a document of kind OFFICE) is corroborated only by a mention in a document dated after the transfer, a source that repeats it later; a mention is never corroborated by the new address of a transfer dated on or after it. The same words in two documents are taken for the same address (the premise of equality): an address that two documents state alike, added words and all, is read (CHANGELOG 2.0.8, section 4).",
+        "tests": [
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"}],
+           "mention": 0, "expect": "ADR-020"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D4", "date": "2026-03-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-020"},
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D4", "date": "2026-03-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 1, "expect": "ADR-020"}
+        ]
+      },
+      {
+        "id": "ADR-999",
+        "when": "always",
+        "outcome": "not_corroborated",
+        "rationale": "Default: an address that no second document states alike. Its words cannot be checked against anything, and words of the form of a place name can state another field (tests/test_d37_forms.py): the document may change every field but the registered office (fields_check 'except'; DISC-006 keeps them [TO CONFIRM] under the date criterion of DISC-005), its line is checked for holdings (OWN-015), and the office it states is not a fact (DISC-038 keeps it [TO CONFIRM] when no current source of it is corroborated; two whole different addresses stay a DISCREPANCY side by side, DISC-020, claim A2).",
+        "tests": [
+          {"mentions": [{"doc": "D3", "date": "2026-02-09", "kind": "OFFICE", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Piazza del Campione 3, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-999"},
+          {"mentions": [{"doc": "D1", "date": "2024-03-10", "kind": "DEED", "group": "w_office", "address": "Via del Collaudo 7, Borgoprova (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto Ugo Nessuno Presiede (ZZ)"}],
+           "mention": 1, "expect": "ADR-999"},
+          {"mentions": [{"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto (ZZ)"},
+                        {"doc": "D2", "date": "2025-02-01", "kind": "EXTRACT", "group": "w_office", "address": "Via Nuova 1, Montefinto (ZZ)"}],
+           "mention": 0, "expect": "ADR-999"}
+        ]
+      }
+    ]
+  },
+  "name_corroboration": {
+    "reading": "Since v2.0.8 (D37: the principle of address_corroboration applied to the company's name, the other free-text slot that decides a field). The name of the header line 'Entity:' of a document is free text: no form and no word list tells a name from a name with words added. It is decided per entity, after every document of the entity is read, by corroboration and equality. The tokens of a name are its text without the legal form at its end (rules/discrepancy.json legal_form_in_name: a legal form that differs is DISC-035's), spaces collapsed, cut at spaces and before each comma; nothing else is normalised (case, accents, punctuation count). The rules are ordered, first match wins, the exception on top. A slot of the entity's own name (EXT-NAME-010, EXT-NAME-020) gives a value only when its tokens are those of its own header (otherwise it is not read: its words never reach a value); each value carries the outcome of its header ('corroboration'), and DISC-038 (rules/discrepancy.json) keeps the name [TO CONFIRM] when no current source of it is corroborated. The fields check of the document (classified_checks) carries what the header may change. The names known to the corpus (CLS-005) leave out a header name that is another header name of the same entity plus words.",
+    "rules": [
+      {
+        "id": "NAM-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: every token of the header name of another document of the entity stands in this one, in the same order, with tokens added (before, after or between its words, or after the legal form). One name equal to another plus words is not two names: the document is one that no rule explains (as CLS-999: DISC-006 keeps every field [TO CONFIRM] when the document is not older than the latest event document of the field; its header name is checked for holdings, OWN-015 blocks when it may state one), and no name of the document is read (its words never reach a value, a DISCREPANCY or the published files). It is not a DISCREPANCY.",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia Capitale Raddoppiato S.r.l."}], "header": 1, "expect": "NAM-010"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Soci Cambiati Fornace Aurelia S.r.l."}, {"doc": "D3", "name": "Soci Cambiati Fornace Aurelia S.r.l."}], "header": 2, "expect": "NAM-010"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l. Quote Cedute"}], "header": 1, "expect": "NAM-010"}
+        ]
+      },
+      {
+        "id": "NAM-005",
+        "when": "not_identified",
+        "outcome": "unexplained",
+        "rationale": "Since v2.0.9 (D38, hand-20 E-0010: 'Birrificio Pieve Supposta Dotazione Novantamila S.r.l.' in the header and the name slot of every document, corroborated by NAM-020, and the capital those words speak of published): a header name that free_text_identification does not decide 'identified' (IDN-030) has words that nothing accounts for, however many documents state it alike. The document is one that no rule explains, as with NAM-010: DISC-006 keeps every field [TO CONFIRM] when it is not older than the latest event document of a field; no name of that document is read; the name is checked for holdings (holders_evidence), and a numeral in it (IDN-010) means it may state a holding: OWN-015 blocks. Below NAM-010 only so that a name equal to another plus words keeps that more precise reason; both have the same outcome.",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Birrificio Pieve Supposta Dotazione Novantamila S.r.l."}, {"doc": "D2", "name": "Birrificio Pieve Supposta Dotazione Novantamila S.r.l."}], "header": 0, "expect": "NAM-005"},
+          {"headers": [{"doc": "D1", "name": "Conceria Borgo Illusorio S.r.l."}], "header": 0, "expect": "NAM-005"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Boreale S.r.l."}], "header": 1, "expect": "NAM-005"}
+        ]
+      },
+      {
+        "id": "NAM-020",
+        "when": "corroborated",
+        "outcome": "fact",
+        "rationale": "Another document of the entity states the header name alike, token for token (the legal form at its end set aside). The name is a fact as far as its words go; every line of the document is decided as before (classified_lines).",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-020"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.p.A."}], "header": 1, "expect": "NAM-020"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Aurelia S.r.l."}, {"doc": "D3", "name": "Fornace Aurelia Ugo Presiede S.r.l."}], "header": 0, "expect": "NAM-020"}
+        ]
+      },
+      {
+        "id": "NAM-999",
+        "when": "always",
+        "outcome": "not_corroborated",
+        "rationale": "Default: no other document of the entity states the header name alike (one document only, or two names neither of which is the other plus words: a genuine difference). Its words cannot be checked: the document may change every field but the name (fields_check 'except'; DISC-006 keeps them [TO CONFIRM] under the date criterion of DISC-005), and the name it states is not a fact (DISC-038 keeps it [TO CONFIRM] when no current source of it is corroborated; two whole different names stay a DISCREPANCY side by side, DISC-020).",
+        "tests": [
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-999"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D2", "name": "Fornace Boreale S.r.l."}], "header": 0, "expect": "NAM-999"},
+          {"headers": [{"doc": "D1", "name": "Fornace Aurelia S.r.l."}, {"doc": "D1", "name": "Fornace Aurelia S.r.l."}], "header": 0, "expect": "NAM-999"}
+        ]
+      }
+    ]
+  },
+  "text_corroboration": {
+    "reading": "Since v2.0.8 (D37: the principle of address_corroboration applied to the free text that closes a line without deciding a field: the title of CLS-900 and the label of CLS-250, the groups of slot_text_groups). Until v2.0.7 their words were checked by topic words (slot_topics), a word list: words of another language or of no list passed, and a title or a label could carry a change of a field that no rule saw. A title or a label closes its line only when it is corroborated. Decided over the whole input, after every document is parsed: a TEXT is the group of slot_text_groups in any body line, of any document that carries the SYNTHETIC marker, that the pattern of CLS-900 or CLS-250 matches (whether the line closes or not); its tokens are its text with spaces collapsed, cut at spaces and before each comma; nothing else is normalised. A title or a label is the form of the corpus, not a statement about one entity: it is corroborated by another document of the input that states it alike, or by being a text the pack's own builders write (parameter text_recognised). The rules are ordered, first match wins, the exception on top. A line that a rule of classified_lines closes with a title or a label that is not corroborated is a line that no rule explains (as CLS-999: DISC-006 every field, OWN-015 when it may state a holding).",
+    "rules": [
+      {
+        "id": "TXT-005",
+        "when": "recognised",
+        "outcome": "fact",
+        "rationale": "Since v2.0.9 (D38): the text is one of text_recognised (the titles the pack's own builders write), whole, nothing normalised but spaces: identified (free_text_identification IDN-050), the line is decided by its rule as before. Until v2.0.8 this case was part of TXT-020.",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-005"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Notice of a transfer of shares (synthetic)"}, {"doc": "D2", "group": "w_title", "text": "Notice of a transfer of shares (synthetic)"}], "text": 0, "expect": "TXT-005"}
+        ]
+      },
+      {
+        "id": "TXT-010",
+        "when": "plus_words",
+        "outcome": "unexplained",
+        "rationale": "Exception on top: every token of another text of the same group (in another line of the input, or in text_recognised) stands in this one, in the same order, with tokens added. A title or a label equal to another plus words is not the form of the corpus: its line is read by no rule (CLS-999), even when a second document states it alike.",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Notice of a transfer of shares Capitale Raddoppiato (synthetic)"}], "text": 0, "expect": "TXT-010"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Office"}, {"doc": "D2", "group": "w_label", "text": "Office Quote Cedute"}, {"doc": "D3", "group": "w_label", "text": "Office Quote Cedute"}], "text": 1, "expect": "TXT-010"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes of the Soci Cambiati holders' meeting (synthetic)"}], "text": 0, "expect": "TXT-010"}
+        ]
+      },
+      {
+        "id": "TXT-020",
+        "when": "corroborated",
+        "outcome": "unexplained",
+        "rationale": "Another document of the input states the same text of the same group, token for token, and it is not a recognised text. Since v2.0.9 (D38) this no longer makes it a fact: the agreement of the documents accounts for none of its words (the premise of corroboration, closed by free_text_identification), so its line is read by no rule (CLS-999), as TXT-999. Until v2.0.8 the outcome was 'fact', and a recognised text was decided here (now TXT-005).",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Registered address"}, {"doc": "D2", "group": "w_label", "text": "Registered address"}], "text": 0, "expect": "TXT-020"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Form of the company"}, {"doc": "D2", "group": "w_label", "text": "Form of the company"}, {"doc": "D3", "group": "w_title", "text": "Form of the company"}], "text": 1, "expect": "TXT-020"}
+        ]
+      },
+      {
+        "id": "TXT-999",
+        "when": "always",
+        "outcome": "unexplained",
+        "rationale": "Default: no other document of the input states the title or the label alike, and it is not a recognised text. Its words cannot be checked, and a title or a label names no field on its own: its line is read by no rule (CLS-999).",
+        "tests": [
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Holders of quotas"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_title", "text": "Minutes - change of the board (synthetic)"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Registered address"}, {"doc": "D1", "group": "w_label", "text": "Registered address"}], "text": 0, "expect": "TXT-999"},
+          {"texts": [{"doc": "D1", "group": "w_label", "text": "Seat"}, {"doc": "D2", "group": "w_title", "text": "Seat"}], "text": 0, "expect": "TXT-999"}
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0005-01
+Document type: Deed of incorporation
+Document date: 2021-09-14
+Edition: DEED/1
+Entity: Conceria Pontefinto S.p.A. (test registry no. TEST-REG-000005)
+
+1. Name and form. The company is named Conceria Pontefinto S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Ponte dei Sogni 2, Pontefinto (ZZ).
+3. Share capital. The share capital is EUR 500.000,00, fully subscribed and fully paid in. It is split into 5.000 shares.
+4. Shareholders
+- P-012 (Nora Illusori): 3.000 shares
+- P-013 (Oscar Parvenza): 1.500 shares
+
+5. Directors
+- P-012 (Nora Illusori)

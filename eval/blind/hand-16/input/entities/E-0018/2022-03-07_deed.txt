@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0018-01
+Document type: Deed of incorporation
+Document date: 2022-03-07
+Edition: DEED/1
+Entity: Distilleria Vallecieca S.p.A. (test registry no. TEST-REG-000018)
+
+1. Name and form. The company is named Distilleria Vallecieca S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Piazza Ruggine 1, Vallecieca (ZZ).
+3. Share capital. The share capital is EUR 250.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-011 (Eva Favolosi): 80%
+- P-012 (Dan Allegorici): 20%
+
+5. Directors.
+- P-011 (Eva Favolosi)

@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0019-01
+Document type: Deed of incorporation
+Document date: 2025-01-27
+Edition: DEED/1
+Entity: Ceramiche Pian delle Ombre S.r.l. (test registry no. TEST-REG-000019)
+
+1. Name and form. The company is named Ceramiche Pian delle Ombre S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Corso delle Chimere 5, Pian delle Ombre (ZZ).
+3. Share capital. The share capital is EUR 20.000,00, fully subscribed and fully paid in.
+4. Quotaholders:
+- P-011 (Bruno Fallaci): 3/5
+- P-012 (Enzo Parvenze): 2/5
+
+5. Directors:
+- P-011 (Bruno Fallaci)

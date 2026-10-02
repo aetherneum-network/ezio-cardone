@@ -1,0 +1,8 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0025-03
+Document type: Transfer of registered office
+Document date: 2026-07-07
+Edition: OFFICE/1
+Entity: Finanziaria Pietrafinta S.p.A. (test registry no. TEST-REG-000025)
+
+The registered office is transferred from Largo Simulato 4, Pietrafinta (ZZ) to Viale degli Esempi Dotazione Portata A Trecentomila 40, Pietrafinta (ZZ).

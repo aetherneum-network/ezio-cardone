@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-03
+Document type: Appointment of directors
+Document date: 2026-05-18
+Edition: APPOINTMENT/1
+Entity: Cartiera Bosconarrato S.p.A. (test registry no. TEST-REG-000008)
+
+Minutes of the holders' meeting (synthetic).
+Directors in office after this appointment:
+- P-009 (Zoe Illusori)
+The company's letters are received at Vicolo Argilla 3, Vallecieca (ZZ), where the board also meets.

@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0039-01
+Document type: Deed of incorporation
+Document date: 2025-04-28
+Edition: DEED/1
+Entity: Distillerie Rivaprova S.r.l. (test registry no. TEST-REG-000039)
+
+1. Name and form. The company is named Distillerie Rivaprova S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Piazza del Campione 6, Rivaprova (ZZ).
+3. Share capital. The share capital is EUR 33.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-002 (Bice Provetti)	seventy per cent
+- P-006 (Franca Esempi)	thirty per cent
+
+5. Directors.
+- P-006 (Franca Esempi)

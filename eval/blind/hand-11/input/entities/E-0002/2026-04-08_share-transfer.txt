@@ -1,0 +1,12 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-02
+Document type: Share transfer notice
+Document date: 2026-04-08
+Edition: TRANSFER/1
+Entity: Cantiere Sognolungo S.p.A. (test registry no. TEST-REG-000002)
+
+Notice of a transfer of shares (synthetic).
+Shareholders once the transfer has taken effect:
+* Clara Immaginari (P-003): three fifths
+* Dario Congetturi (P-004): one fifth
+* Elsa Apocrifi (P-005): one fifth

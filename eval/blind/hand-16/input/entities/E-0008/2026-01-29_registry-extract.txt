@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0008-02
+Document type: Test registry extract
+Document date: 2026-01-29
+Edition: EXTRACT/1
+Entity: Cartiera Bosconarrato S.p.A. (test registry no. TEST-REG-000008)
+
+Name: Cartiera Bosconarrato S.p.A.
+Legal form: S.p.A.
+Registered office: Viale Basalto 40, Bosconarrato (ZZ)
+Share capital: resolved EUR 120.000,00; subscribed and paid in EUR 120.000,00
+Holders:
+- P-010 (Max Chimerici): 70%
+- P-011 (Eva Favolosi): 30%
+
+Directors:
+- P-010 (Max Chimerici)

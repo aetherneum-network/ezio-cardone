@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0016-02
+Document type: Test registry extract
+Document date: 2024-01-09
+Edition: EXTRACT/1
+Entity: Finanziaria Pratofinto S.p.A. (test registry no. TEST-REG-000016)
+
+Name: Finanziaria Pratofinto S.p.A.
+Legal form: S.p.A.
+Registered office: Viale degli Esempi 40, Pratofinto (ZZ)
+Share capital: resolved EUR 200.000,00; subscribed and paid in EUR 200.000,00
+Holders:
+- P-039 (Sergio Finti): 80%
+- P-040 (Tina Provetti): 20%
+
+Directors:
+- P-039 (Sergio Finti)
+- P-040 (Tina Provetti)

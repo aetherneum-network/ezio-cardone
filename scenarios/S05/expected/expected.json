@@ -1,0 +1,84 @@
+{
+  "answers": {
+    "2026-01-15": null,
+    "2026-01-31": {
+      "as_of": "2026-01-31",
+      "directors": [
+        "P-001"
+      ],
+      "shareholders": [
+        {
+          "holder": "P-001",
+          "share": "3/5"
+        },
+        {
+          "holder": "P-002",
+          "share": "2/5"
+        }
+      ]
+    },
+    "2026-03-31": {
+      "as_of": "2026-03-31",
+      "directors": [
+        "P-001"
+      ],
+      "shareholders": [
+        {
+          "holder": "P-001",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-002",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-003",
+          "share": "1/5"
+        }
+      ]
+    },
+    "2026-04-30": {
+      "as_of": "2026-03-31",
+      "directors": [
+        "P-001"
+      ],
+      "shareholders": [
+        {
+          "holder": "P-001",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-002",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-003",
+          "share": "1/5"
+        }
+      ]
+    },
+    "2026-06-30": {
+      "as_of": "2026-06-30",
+      "directors": [
+        "P-002",
+        "P-003"
+      ],
+      "shareholders": [
+        {
+          "holder": "P-001",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-002",
+          "share": "2/5"
+        },
+        {
+          "holder": "P-003",
+          "share": "1/5"
+        }
+      ]
+    }
+  },
+  "entity": "E-0002",
+  "snapshots": 3
+}

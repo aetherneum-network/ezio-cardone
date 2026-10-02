@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "entity_record.schema.json",
+  "title": "Entity record (synthetic legal-entity dossier)",
+  "description": "One record per entity. The record is the sole source of truth of the dossier. It stores every assertion of every source document, side by side: nothing is merged here. Every figure is {value, source_doc, source_date, edition}. Amounts are decimal strings, shares are fraction strings: a JSON number is never accepted as a value.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "entity", "as_of", "documents", "assertions", "filename_divergences", "unclassified_documents", "classified_checks", "rejected_documents", "ignored_after_as_of"],
+  "properties": {
+    "schema_version": {"const": "2.0.0"},
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "registry_no"],
+      "properties": {
+        "id": {"$ref": "#/$defs/entity_id"},
+        "registry_no": {"type": "string", "pattern": "^TEST-REG-\\d{6}$"}
+      }
+    },
+    "as_of": {"$ref": "#/$defs/date"},
+    "documents": {"type": "array", "items": {"$ref": "#/$defs/document"}},
+    "assertions": {"type": "array", "items": {"$ref": "#/$defs/assertion"}},
+    "filename_divergences": {"type": "array", "items": {"$ref": "#/$defs/divergence"}},
+    "unclassified_documents": {"type": "array", "items": {"$ref": "#/$defs/problem_document"}},
+    "classified_checks": {"type": "array", "items": {"$ref": "#/$defs/classified_check"}},
+    "rejected_documents": {"type": "array", "items": {"$ref": "#/$defs/problem_document"}},
+    "ignored_after_as_of": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+    "entity_id": {"type": "string", "pattern": "^E-\\d{4}$"},
+    "person_id": {"type": "string", "pattern": "^P-\\d{3}$"},
+    "amount": {"type": "string", "pattern": "^\\d+\\.\\d{2}$"},
+    "fraction": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "text": {"type": "string", "minLength": 1},
+    "holder_table": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["holder", "share"],
+        "properties": {
+          "holder": {"type": "string", "pattern": "^(P-\\d{3}|E-\\d{4})$"},
+          "share": {"$ref": "#/$defs/fraction"}
+        }
+      }
+    },
+    "person_list": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/person_id"}},
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doc_id", "file", "kind", "type_label", "date", "edition", "series", "edition_no", "role", "sha256"],
+      "properties": {
+        "doc_id": {"$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/text"},
+        "kind": {"enum": ["DEED", "RESOLUTION", "TRANSFER", "APPOINTMENT", "OFFICE", "EXTRACT", "LEDGER", "FIN"]},
+        "type_label": {"$ref": "#/$defs/text"},
+        "date": {"$ref": "#/$defs/date"},
+        "edition": {"$ref": "#/$defs/text"},
+        "series": {"$ref": "#/$defs/text"},
+        "edition_no": {"type": ["integer", "null"], "minimum": 1},
+        "role": {"enum": ["event", "state"]},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["field", "status", "nature", "role", "series", "edition_no", "source_doc", "source_file", "source_date", "edition", "rule", "line", "line_end", "quote"],
+      "properties": {
+        "field": {"type": "string", "pattern": "^(name|legal_form|registered_office|registered_office\\.previous|share_capital\\.(resolved|subscribed|paid_in|previous)|shareholders|directors|fin\\.FY\\d{4}\\.(net_equity|total_assets|revenue))$"},
+        "status": {"enum": ["STATED", "TO_CONFIRM"]},
+        "value": {},
+        "reason": {"$ref": "#/$defs/text"},
+        "nature": {"enum": ["resolved", "subscribed", "paid_in", "historical", "share", "text", "person", "financial"]},
+        "role": {"enum": ["event", "state"]},
+        "series": {"$ref": "#/$defs/text"},
+        "edition_no": {"type": ["integer", "null"], "minimum": 1},
+        "source_doc": {"$ref": "#/$defs/text"},
+        "source_file": {"$ref": "#/$defs/text"},
+        "source_date": {"$ref": "#/$defs/date"},
+        "edition": {"$ref": "#/$defs/text"},
+        "rule": {"$ref": "#/$defs/text"},
+        "line": {"type": ["integer", "null"], "minimum": 1},
+        "line_end": {"type": ["integer", "null"], "minimum": 1},
+        "quote": {"type": "string"},
+        "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"},
+        "corroboration": {
+          "description": "Since v2.0.8 (D37): on an assertion of the registered office that holds a value, the rule of rules/extract.json address_corroboration that decided its address (ADR-020 corroborated, ADR-999 not) and the mentions it rests on; on an assertion of the company's name that holds a value, the rule of name_corroboration that decided the name of its document's header (NAM-020 corroborated, NAM-999 not) and the documents it rests on. DISC-038 keeps the office or the name [TO CONFIRM] when no current source of it is corroborated.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule", "by"],
+          "properties": {"rule": {"$ref": "#/$defs/text"}, "by": {"type": "array", "items": {"$ref": "#/$defs/text"}}}
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "STATED"}}},
+          "then": {
+            "required": ["value"],
+            "not": {"required": ["reason"]},
+            "properties": {"line": {"type": "integer"}, "line_end": {"type": "integer"}, "quote": {"minLength": 1}}
+          },
+          "else": {"required": ["reason"], "not": {"required": ["value"]}}
+        },
+        {
+          "if": {"properties": {"field": {"pattern": "^(share_capital\\.|fin\\.)"}}},
+          "then": {"properties": {"value": {"$ref": "#/$defs/amount"}}}
+        },
+        {
+          "if": {"properties": {"field": {"const": "shareholders"}}},
+          "then": {"properties": {"value": {"$ref": "#/$defs/holder_table"}}}
+        },
+        {
+          "if": {"properties": {"field": {"const": "directors"}}},
+          "then": {"properties": {"value": {"$ref": "#/$defs/person_list"}}}
+        },
+        {
+          "if": {"properties": {"field": {"pattern": "^(name|legal_form|registered_office|registered_office\\.previous)$"}}},
+          "then": {"properties": {"value": {"$ref": "#/$defs/text"}}}
+        }
+      ]
+    },
+    "divergence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doc_id", "file", "aspect", "filename_says", "content_says"],
+      "properties": {
+        "doc_id": {"$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/text"},
+        "aspect": {"enum": ["date", "kind", "appointee", "folder"]},
+        "filename_says": {"type": "string"},
+        "content_says": {"type": "string"}
+      }
+    },
+    "problem_document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["file", "reason"],
+      "properties": {
+        "file": {"$ref": "#/$defs/text"},
+        "reason": {"$ref": "#/$defs/text"},
+        "doc_id": {"type": "string"},
+        "date": {"type": "string"},
+        "holders_check": {"$ref": "#/$defs/holders_check"},
+        "fields_check": {"$ref": "#/$defs/fields_check"}
+      }
+    },
+    "classified_check": {
+      "description": "Since v2.0.5 (D34): a document of a recognised type with text that no rule of its kind reads (fields_check.may_change ['*']), or a holders' table in a document of a kind not read for holders (['shareholders']), or a line that may state a holding outside the lists of its kind (holders_check). Decided by rules/extract.json classified_lines; used by DISC-006, OWN-010 and OWN-015.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["doc_id", "file", "date", "kind", "fields_check", "holders_check"],
+      "properties": {
+        "doc_id": {"$ref": "#/$defs/text"},
+        "file": {"$ref": "#/$defs/text"},
+        "date": {"$ref": "#/$defs/date"},
+        "kind": {"enum": ["DEED", "RESOLUTION", "TRANSFER", "APPOINTMENT", "OFFICE", "EXTRACT", "LEDGER", "FIN"]},
+        "fields_check": {"$ref": "#/$defs/fields_check"},
+        "holders_check": {"$ref": "#/$defs/holders_check"}
+      }
+    },
+    "fields_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["may_change", "why"],
+      "properties": {
+        "may_change": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "except": {"description": "Since v2.0.8 (D37): the fields that '*' of may_change leaves out (an address that no second document states alike: every field but the registered office; a header name that no second document states alike: every field but the name; both in one document: none is left out).", "type": "array", "items": {"type": "string", "minLength": 1}},
+        "why": {"type": "string"}
+      }
+    },
+    "holders_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "why"],
+      "properties": {
+        "status": {"enum": ["no_table", "read", "not_read"]},
+        "why": {"type": "string"},
+        "edition": {"type": "string"},
+        "tables": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["line", "line_end", "value"],
+            "properties": {
+              "line": {"type": "integer", "minimum": 1},
+              "line_end": {"type": "integer", "minimum": 1},
+              "value": {"$ref": "#/$defs/holder_table"},
+              "stated_total": {"type": "string", "pattern": "^\\d+/[1-9]\\d*$"}
+            }
+          }
+        }
+      },
+      "if": {"properties": {"status": {"const": "read"}}},
+      "then": {"required": ["edition", "tables"]}
+    }
+  }
+}

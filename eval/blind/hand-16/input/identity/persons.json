@@ -1,0 +1,122 @@
+{
+  "P-001": {
+    "born": "1963-04-11",
+    "email": "ugo.finzione@persons.example",
+    "name": "Ugo Finzione",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "born": "1970-09-02",
+    "email": "nora.immaginari@persons.example",
+    "name": "Nora Immaginari",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "born": "1975-01-23",
+    "email": "teo.congetturi@persons.example",
+    "name": "Teo Congetturi",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "born": "1981-06-30",
+    "email": "lia.presunti@persons.example",
+    "name": "Lia Presunti",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "born": "1966-12-12",
+    "email": "ivo.apparenti@persons.example",
+    "name": "Ivo Apparenti",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "born": "1979-03-08",
+    "email": "ada.supposti@persons.example",
+    "name": "Ada Supposti",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "born": "1984-10-19",
+    "email": "rea.fittivoli@persons.example",
+    "name": "Rea Fittivoli",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "born": "1972-07-07",
+    "email": "gil.mendacini@persons.example",
+    "name": "Gil Mendacini",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "born": "1988-02-14",
+    "email": "zoe.illusori@persons.example",
+    "name": "Zoe Illusori",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "born": "1969-11-27",
+    "email": "max.chimerici@persons.example",
+    "name": "Max Chimerici",
+    "tax_code": "SYN-CF-P010"
+  },
+  "P-011": {
+    "born": "1977-05-05",
+    "email": "eva.favolosi@persons.example",
+    "name": "Eva Favolosi",
+    "tax_code": "SYN-CF-P011"
+  },
+  "P-012": {
+    "born": "1983-08-21",
+    "email": "dan.allegorici@persons.example",
+    "name": "Dan Allegorici",
+    "tax_code": "SYN-CF-P012"
+  },
+  "P-013": {
+    "born": "1974-01-09",
+    "email": "ida.parvenze@persons.example",
+    "name": "Ida Parvenze",
+    "tax_code": "SYN-CF-P013"
+  },
+  "P-014": {
+    "born": "1986-09-16",
+    "email": "leo.fantasmini@persons.example",
+    "name": "Leo Fantasmini",
+    "tax_code": "SYN-CF-P014"
+  },
+  "P-015": {
+    "born": "1971-03-29",
+    "email": "ines.verosimili@persons.example",
+    "name": "Ines Verosimili",
+    "tax_code": "SYN-CF-P015"
+  },
+  "P-016": {
+    "born": "1980-12-01",
+    "email": "sam.figurati@persons.example",
+    "name": "Sam Figurati",
+    "tax_code": "SYN-CF-P016"
+  },
+  "P-017": {
+    "born": "1978-06-18",
+    "email": "uma.pretesti@persons.example",
+    "name": "Uma Pretesti",
+    "tax_code": "SYN-CF-P017"
+  },
+  "P-018": {
+    "born": "1965-02-25",
+    "email": "pio.contraffatti@persons.example",
+    "name": "Pio Contraffatti",
+    "tax_code": "SYN-CF-P018"
+  },
+  "P-019": {
+    "born": "1989-07-13",
+    "email": "bea.larvati@persons.example",
+    "name": "Bea Larvati",
+    "tax_code": "SYN-CF-P019"
+  },
+  "P-020": {
+    "born": "1976-10-04",
+    "email": "rui.fantocci@persons.example",
+    "name": "Rui Fantocci",
+    "tax_code": "SYN-CF-P020"
+  }
+}

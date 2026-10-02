@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0016-01
+Document type: Deed of incorporation
+Document date: 2023-06-12
+Edition: DEED/1
+Entity: Finanziaria Pratofinto S.p.A. (test registry no. TEST-REG-000016)
+
+1. Name and form. The company is named Finanziaria Pratofinto S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Viale degli Esempi 40, Pratofinto (ZZ).
+3. Share capital. The share capital is EUR 200.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-039 (Sergio Finti): 80%
+- P-040 (Tina Provetti): 20%
+
+5. Directors.
+- P-039 (Sergio Finti)
+- P-040 (Tina Provetti)

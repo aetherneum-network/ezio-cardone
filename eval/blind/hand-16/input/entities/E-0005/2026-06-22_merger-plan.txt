@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0005-03
+Document type: Merger plan
+Document date: 2026-06-22
+Edition: PLAN/1
+Entity: Conceria Roccasogno S.r.l. (test registry no. TEST-REG-000005)
+
+Summary of the plan (synthetic).
+Upon completion Smalteria Gradofinto S.r.l. will have been absorbed; its two founders, Rea Fittivoli (P-007) and Gil Mendacini (P-008), will then stand beside Ada Supposti (P-006) with one fifth of the whole between them, and the company's own means will rise from EUR 60.000,00 to EUR 75.000,00.

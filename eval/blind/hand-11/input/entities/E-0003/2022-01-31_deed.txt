@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-01
+Document type: Deed of incorporation
+Document date: 2022-01-31
+Edition: DEED/1
+Entity: Filanda Mezzaluna S.r.l. (test registry no. TEST-REG-000003)
+
+1. Name and form. The company is named Filanda Mezzaluna S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Corso delle Ombre 21, Mezzaluna (ZZ).
+3. Share capital. The share capital is EUR 90.000,00, fully subscribed and fully paid in. It is split into 900 quotas.
+iv. Quotaholdings
+1. P-006 (Fabio Presunti)	630 quotas
+2. P-007 (Gilda Fantomatici)	270 quotas
+
+v. Directors
+1. P-006 (Fabio Presunti)

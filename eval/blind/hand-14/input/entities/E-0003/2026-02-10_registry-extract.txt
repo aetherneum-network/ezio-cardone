@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-02
+Document type: Test registry extract
+Document date: 2026-02-10
+Edition: EXTRACT/1
+Entity: Conceria Rocca Immaginaria S.p.A. (test registry no. TEST-REG-000003)
+
+Name: Conceria Rocca Immaginaria S.p.A.
+Legal form: S.p.A.
+Registered office: Viale dei Tini 30, Rocca Immaginaria (ZZ)
+Share capital: resolved EUR 120.000,00; subscribed and paid in EUR 120.000,00
+Holders:
+- P-007 (Remo Virtuali): 30%
+- P-008 (Zita Teorici): 30%
+- P-009 (Lapo Figurati): 40%
+
+Directors:
+- P-009 (Lapo Figurati)

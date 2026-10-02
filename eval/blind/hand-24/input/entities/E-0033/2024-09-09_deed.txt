@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0033-01
+Document type: Deed of incorporation
+Document date: 2024-09-09
+Edition: DEED/1
+Entity: Finanziaria Collesintesi S.p.A. (test registry no. TEST-REG-000033)
+
+1. Name and form. The company is named Finanziaria Collesintesi S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Viale degli Esempi 14, Collesintesi (ZZ).
+3. Share capital. The share capital is EUR 240.000,00, split into 2.400 registered shares, fully subscribed and fully paid in.
+4. Holders.
+- P-061 (Piero Ipotetici): 75%
+- P-062 (Rita Finti): 25%
+
+5. Directors.
+- P-061 (Piero Ipotetici)

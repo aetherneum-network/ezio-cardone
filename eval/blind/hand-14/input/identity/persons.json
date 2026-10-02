@@ -1,0 +1,98 @@
+{
+  "P-001": {
+    "born": "1963-04-11",
+    "email": "ugo.apocrifi@persons.example",
+    "name": "Ugo Apocrifi",
+    "tax_code": "SYN-CF-P001"
+  },
+  "P-002": {
+    "born": "1970-09-02",
+    "email": "nilde.supposti@persons.example",
+    "name": "Nilde Supposti",
+    "tax_code": "SYN-CF-P002"
+  },
+  "P-003": {
+    "born": "1958-12-20",
+    "email": "tancredi.illusori@persons.example",
+    "name": "Tancredi Illusori",
+    "tax_code": "SYN-CF-P003"
+  },
+  "P-004": {
+    "born": "1975-06-15",
+    "email": "vanna.modellini@persons.example",
+    "name": "Vanna Modellini",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "born": "1966-01-30",
+    "email": "osvaldo.congetturi@persons.example",
+    "name": "Osvaldo Congetturi",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "born": "1981-03-08",
+    "email": "ilaria.presunti@persons.example",
+    "name": "Ilaria Presunti",
+    "tax_code": "SYN-CF-P006"
+  },
+  "P-007": {
+    "born": "1969-10-25",
+    "email": "remo.virtuali@persons.example",
+    "name": "Remo Virtuali",
+    "tax_code": "SYN-CF-P007"
+  },
+  "P-008": {
+    "born": "1977-07-07",
+    "email": "zita.teorici@persons.example",
+    "name": "Zita Teorici",
+    "tax_code": "SYN-CF-P008"
+  },
+  "P-009": {
+    "born": "1960-05-19",
+    "email": "lapo.figurati@persons.example",
+    "name": "Lapo Figurati",
+    "tax_code": "SYN-CF-P009"
+  },
+  "P-010": {
+    "born": "1972-02-14",
+    "email": "brunilde.esemplari@persons.example",
+    "name": "Brunilde Esemplari",
+    "tax_code": "SYN-CF-P010"
+  },
+  "P-011": {
+    "born": "1965-08-23",
+    "email": "corrado.immaginari@persons.example",
+    "name": "Corrado Immaginari",
+    "tax_code": "SYN-CF-P011"
+  },
+  "P-012": {
+    "born": "1979-11-11",
+    "email": "delfina.prototti@persons.example",
+    "name": "Delfina Prototti",
+    "tax_code": "SYN-CF-P012"
+  },
+  "P-013": {
+    "born": "1984-04-04",
+    "email": "ettore.fantasmi@persons.example",
+    "name": "Ettore Fantasmi",
+    "tax_code": "SYN-CF-P013"
+  },
+  "P-014": {
+    "born": "1971-12-01",
+    "email": "fosca.allegorici@persons.example",
+    "name": "Fosca Allegorici",
+    "tax_code": "SYN-CF-P014"
+  },
+  "P-015": {
+    "born": "1962-06-27",
+    "email": "guido.parabolici@persons.example",
+    "name": "Guido Parabolici",
+    "tax_code": "SYN-CF-P015"
+  },
+  "P-016": {
+    "born": "1986-09-16",
+    "email": "hilde.simulanti@persons.example",
+    "name": "Hilde Simulanti",
+    "tax_code": "SYN-CF-P016"
+  }
+}

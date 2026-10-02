@@ -1,0 +1,129 @@
+{
+  "docx_discrepancy_rows": [
+    [
+      "share_capital.resolved",
+      "EUR 50.000,00",
+      "DOC-E0001-01",
+      "2025-03-10",
+      "DEED/1"
+    ],
+    [
+      "share_capital.resolved",
+      "EUR 80.000,00",
+      "DOC-E0001-02",
+      "2026-02-02",
+      "EXTRACT/1"
+    ]
+  ],
+  "entity": "E-0001",
+  "exit_code": 0,
+  "fields": {
+    "directors": {
+      "status": "STATED",
+      "value": [
+        "P-001"
+      ]
+    },
+    "name": {
+      "status": "STATED",
+      "value": "Fornace Aurelia S.r.l."
+    },
+    "registered_office": {
+      "status": "STATED",
+      "value": "Via del Collaudo 7, Borgoprova (ZZ)"
+    },
+    "share_capital.paid_in": {
+      "status": "DISCREPANCY",
+      "values": [
+        {
+          "sources": [
+            [
+              "DOC-E0001-01",
+              "2025-03-10",
+              "DEED/1"
+            ]
+          ],
+          "value": "50000.00"
+        },
+        {
+          "sources": [
+            [
+              "DOC-E0001-02",
+              "2026-02-02",
+              "EXTRACT/1"
+            ]
+          ],
+          "value": "80000.00"
+        }
+      ]
+    },
+    "share_capital.resolved": {
+      "status": "DISCREPANCY",
+      "values": [
+        {
+          "sources": [
+            [
+              "DOC-E0001-01",
+              "2025-03-10",
+              "DEED/1"
+            ]
+          ],
+          "value": "50000.00"
+        },
+        {
+          "sources": [
+            [
+              "DOC-E0001-02",
+              "2026-02-02",
+              "EXTRACT/1"
+            ]
+          ],
+          "value": "80000.00"
+        }
+      ]
+    },
+    "share_capital.subscribed": {
+      "status": "DISCREPANCY",
+      "values": [
+        {
+          "sources": [
+            [
+              "DOC-E0001-01",
+              "2025-03-10",
+              "DEED/1"
+            ]
+          ],
+          "value": "50000.00"
+        },
+        {
+          "sources": [
+            [
+              "DOC-E0001-02",
+              "2026-02-02",
+              "EXTRACT/1"
+            ]
+          ],
+          "value": "80000.00"
+        }
+      ]
+    },
+    "shareholders": {
+      "status": "STATED",
+      "value": [
+        {
+          "holder": "P-001",
+          "share": "3/5"
+        },
+        {
+          "holder": "P-002",
+          "share": "2/5"
+        }
+      ]
+    }
+  },
+  "fields_never_shown_as_fact": [
+    "share_capital.resolved",
+    "share_capital.subscribed",
+    "share_capital.paid_in"
+  ]
+}

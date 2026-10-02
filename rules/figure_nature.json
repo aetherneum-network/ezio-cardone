@@ -1,0 +1,98 @@
+{
+  "file": "figure_nature.json",
+  "version": "2.0.10",
+  "reading": "Classify the nature of an amount before counting it. Resolved, subscribed, paid-in and historical capital are different natures. Ordered rules, first match wins, exceptions on top. 'pre' is the text between the previous amount (or the start of the clause) and this amount; 'post' is the text between this amount and the next one (or the end of the clause). An amount no rule recognises has no nature and is [TO CONFIRM]: it is never counted.",
+  "parameters": {
+    "bare_capital_nature": {
+      "value": "resolved",
+      "status": "[TO CONFIRM with legal]",
+      "note": "A clause that gives one amount as 'the share capital' with no other cue is read as the resolved (nominal) capital only. Whether that amount is also subscribed or paid in is not inferred."
+    }
+  },
+  "rules": [
+    {
+      "id": "NAT-010",
+      "when": {"pre_matches": "\\bfrom\\s*$"},
+      "natures": ["historical"],
+      "rationale": "Exception on top: 'from EUR A to EUR B' - A is the value before the event. It is history, not a current figure.",
+      "tests": [{"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00.", "amount_index": 0, "expect": ["historical"]}]
+    },
+    {
+      "id": "NAT-020",
+      "when": {"post_matches": "^[\\s.,;]*(?:the increase has been )?fully subscribed and fully paid[- ]in\\b", "single_current_amount": true},
+      "natures": ["resolved", "subscribed", "paid_in"],
+      "rationale": "The clause itself says that the amount is fully subscribed and fully paid in: one amount, three natures. Since v2.0.10 (D39) only when it is the only current amount of the clause: in 'the share capital is EUR 100.000,00, of which EUR 20.000,00 fully subscribed and fully paid in' the second amount is a part, not the resolved capital (found by the count-form siblings, case C19; v2.0.9 read it as resolved too, and the line, which no capital line rule explains, kept every field [TO CONFIRM] - nothing was published).",
+      "tests": [
+        {"clause": "The share capital is EUR 50.000,00, fully subscribed and fully paid in.", "amount_index": 0, "expect": ["resolved", "subscribed", "paid_in"]},
+        {"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00. The increase has been fully subscribed and fully paid in.", "amount_index": 1, "expect": ["resolved", "subscribed", "paid_in"]}
+      ]
+    },
+    {
+      "id": "NAT-025",
+      "when": {"post_matches": "^(?:,\\s*|\\s+)(?:divided|split)\\s+into\\s+(?:\\d{1,3}(?:[.,'’ ]\\d{3})+|\\d+)\\s+(?:(?:ordinary|registered|equal)\\s+)?(?:quotas|shares)(?:,\\s*|\\s+)fully subscribed and fully paid[- ]in\\s*\\.?\\s*$", "single_current_amount": true},
+      "natures": ["resolved", "subscribed", "paid_in"],
+      "rationale": "Since v2.0.10 (D39, defect D2 of the blind run of v2.0.9, run 22: E-0007 of hand-22). The count form of the clause of NAT-020 (CHANGELOG 2.0.3, C4): the amount, the number of quotas or shares it is divided into, and 'fully subscribed and fully paid in', in this order, in ONE sentence, with nothing after it but the full stop. One amount, three natures, as in NAT-020. Read only without qualification, by grammar: the post must be exactly this (no other word, no second amount, no second sentence - '... quotas. It is fully subscribed and fully paid in.' stays with NAT-070), and the amount must be the only current amount of the clause (single_current_amount: an 'of which' before it, or any other amount, leaves it to NAT-999). 'partly', 'for one quarter', 'to be paid in', 'of which EUR X paid in', 'subscribed for EUR X', a nominal amount per quota, 'fully subscribed' or 'fully paid in' alone, the words split across two sentences or two lines: none of them closes (tests/test_d39_capital_count.py). A different amount for the same nature elsewhere in the entity, or a second capital clause, is decided as before (DISCREPANCY, or every nature abstains).",
+      "tests": [
+        {"clause": "The share capital is EUR 20.000,00, divided into 2.000 quotas, fully subscribed and fully paid in.", "amount_index": 0, "expect": ["resolved", "subscribed", "paid_in"]},
+        {"clause": "3. Share capital. The share capital is EUR 40.000,00, split into 400 shares, fully subscribed and fully paid-in.", "amount_index": 0, "expect": ["resolved", "subscribed", "paid_in"]},
+        {"clause": "The share capital is EUR 20.000,00 divided into 2.000 equal quotas fully subscribed and fully paid in.", "amount_index": 0, "expect": ["resolved", "subscribed", "paid_in"]}
+      ]
+    },
+    {
+      "id": "NAT-030",
+      "when": {"pre_matches": "\\bsubscribed and (?:fully )?paid[- ]in\\b[^.;]*$"},
+      "natures": ["subscribed", "paid_in"],
+      "rationale": "Exception above the single cues: one amount named as both subscribed and paid in.",
+      "tests": [{"clause": "Share capital: resolved EUR 120.000,00; subscribed and paid in EUR 100.000,00", "amount_index": 1, "expect": ["subscribed", "paid_in"]}]
+    },
+    {
+      "id": "NAT-040",
+      "when": {"pre_matches": "\\bpaid[- ]in\\b[^.;]*$"},
+      "natures": ["paid_in"],
+      "rationale": "Cue 'paid in' in the words that introduce the amount.",
+      "tests": [{"clause": "after the increase the subscribed capital is EUR 100.000,00 and the paid-in capital is EUR 75.000,00.", "amount_index": 1, "expect": ["paid_in"]}]
+    },
+    {
+      "id": "NAT-050",
+      "when": {"pre_matches": "\\bsubscribed\\b[^.;]*$"},
+      "natures": ["subscribed"],
+      "rationale": "Cue 'subscribed' in the words that introduce the amount.",
+      "tests": [{"clause": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "amount_index": 1, "expect": ["subscribed"]}]
+    },
+    {
+      "id": "NAT-060",
+      "when": {"pre_matches": "\\bresolved\\s*$|\\bto\\s*$"},
+      "natures": ["resolved"],
+      "rationale": "Cue 'resolved', or the target of 'from ... to ...'.",
+      "tests": [
+        {"clause": "Share capital: resolved EUR 120.000,00; subscribed EUR 100.000,00; paid in EUR 75.000,00", "amount_index": 0, "expect": ["resolved"]},
+        {"clause": "The meeting resolved to increase the share capital from EUR 50.000,00 to EUR 80.000,00; after the increase the subscribed capital is EUR 70.000,00 and the paid-in capital is EUR 55.000,00.", "amount_index": 1, "expect": ["resolved"]}
+      ]
+    },
+    {
+      "id": "NAT-070",
+      "when": {"pre_matches": "\\bshare capital(?: is|:)?\\s*$", "single_current_amount": true},
+      "natures": ["{bare_capital_nature}"],
+      "rationale": "One amount, introduced as 'the share capital' and nothing else: see the parameter bare_capital_nature [TO CONFIRM with legal].",
+      "tests": [
+        {"clause": "The share capital is EUR 50.000,00.", "amount_index": 0, "expect": ["resolved"]},
+        {"clause": "The share capital is EUR 20.000,00, divided into 2.000 quotas, fully subscribed and partly paid in.", "amount_index": 0, "expect": ["resolved"]},
+        {"clause": "The share capital is EUR 20.000,00, divided into 2.000 quotas. It is fully subscribed and fully paid in.", "amount_index": 0, "expect": ["resolved"]},
+        {"clause": "The share capital is EUR 20.000,00, divided into 2.000 quotas, fully subscribed.", "amount_index": 0, "expect": ["resolved"]}
+      ]
+    },
+    {
+      "id": "NAT-999",
+      "when": {},
+      "natures": [],
+      "rationale": "Default: the text does not say what the amount is. No nature is assigned and the amount is [TO CONFIRM].",
+      "tests": [
+        {"clause": "The share capital is EUR 120.000,00, of which EUR 100.000,00 and EUR 75.000,00.", "amount_index": 0, "expect": []},
+        {"clause": "The share capital is EUR 120.000,00, of which EUR 100.000,00 and EUR 75.000,00.", "amount_index": 2, "expect": []},
+        {"clause": "The share capital is EUR 100.000,00, of which EUR 20.000,00, divided into 2.000 quotas, fully subscribed and fully paid in.", "amount_index": 1, "expect": []},
+        {"clause": "The share capital is EUR 100.000,00, of which EUR 20.000,00 fully subscribed and fully paid in.", "amount_index": 1, "expect": []},
+        {"clause": "The share capital is EUR 20.000,00, divided into 2.000 quotas, fully subscribed and fully paid in, of which EUR 5.000,00 in kind.", "amount_index": 0, "expect": []}
+      ]
+    }
+  ]
+}

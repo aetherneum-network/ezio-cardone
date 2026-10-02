@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-01
+Document type: Deed of incorporation
+Document date: 2022-09-19
+Edition: DEED/1
+Entity: Segherie Collefasullo S.p.A. (test registry no. TEST-REG-000003)
+
+1. Name and form. The company is named Segherie Collefasullo S.p.A.; its legal form is S.p.A.
+2. Registered office. The registered office is at Largo degli Esempi 22, Collefasullo (ZZ).
+3. Share capital. The share capital is EUR 300.000,00, fully subscribed and fully paid in.
+Clause 4 - Stockholders:
+- P-003 (Clelia Posticcia): 40%
+- P-004 (Dino Apocrifi): 35%
+- P-005 (Elsa Finzioni): 20%
+
+Clause 5 - Directors:
+- P-005 (Elsa Finzioni)

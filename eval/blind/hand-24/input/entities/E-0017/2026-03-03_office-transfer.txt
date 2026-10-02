@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0017-03
+Document type: Transfer of registered office
+Document date: 2026-03-03
+Edition: OFFICE/1
+Entity: Frantoi Casalprova S.r.l. (test registry no. TEST-REG-000017)
+
+The registered office is transferred from Via dei Prototipi 30, Casalprova (ZZ) to Corso dei Modelli 11, Casalprova (ZZ).
+With the same deed P-034 (Mara Sintetici) has sold all her quotas to P-035 (Nino Esempi), who is now the only quotaholder.

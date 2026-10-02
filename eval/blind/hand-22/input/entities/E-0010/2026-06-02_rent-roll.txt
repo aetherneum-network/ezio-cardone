@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0010-03
+Document type: Rent roll
+Document date: 2026-06-02
+Edition: RENT/1
+Entity: Tipografie Monteprototipo S.r.l. (test registry no. TEST-REG-000010)
+
+Entries of the test landlord (synthetic).
+Every notice to the company is henceforth to be delivered to Corso dei Modelli 9, Pietrafinta (ZZ), the premises at Piazza del Campione 10 being given up at the end of the month.

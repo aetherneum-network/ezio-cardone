@@ -1,0 +1,11 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-02
+Document type: Financial statements summary
+Document date: 2026-03-30
+Edition: FIN-FY2025/1
+Entity: Mulino Lagofalso S.r.l. (test registry no. TEST-REG-000006)
+Financial year: 2025
+
+Net equity: EUR 61.200,00
+Total assets: EUR 240.115,75
+Revenue: EUR 398.004,00

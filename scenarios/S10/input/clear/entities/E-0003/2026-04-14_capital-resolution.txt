@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0003-02
+Document type: Resolution on share capital
+Document date: 2026-04-14
+Edition: RESOLUTION/1
+Entity: Finanziaria Collelungo S.p.A. (test registry no. TEST-REG-000003)
+
+Minutes of the holders' meeting (synthetic).
+The meeting resolved to increase the share capital from EUR 300.000,00 to EUR 500.000,00; after the increase the subscribed capital is EUR 400.000,00 and the paid-in capital is EUR 250.000,00.

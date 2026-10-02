@@ -1,0 +1,9 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0006-03
+Document type: Pledge release
+Document date: 2026-04-01
+Edition: DECLARATION/1
+Entity: Tipografie Castelspurio S.r.l. (test registry no. TEST-REG-000006)
+
+Declaration of the lender (synthetic).
+On 15 March 2026 each founder paid in again what he had paid at the formation of the company, and the lender, so satisfied, releases its security.

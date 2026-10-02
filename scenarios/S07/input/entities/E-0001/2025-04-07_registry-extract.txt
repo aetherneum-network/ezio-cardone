@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0001-02
+Document type: Test registry extract
+Document date: 2025-04-07
+Edition: EXTRACT/1
+Entity: Fornace Aurelia S.r.l. (test registry no. TEST-REG-000001)
+
+Name: Fornace Aurelia S.r.l.
+Legal form: S.r.l.
+Registered office: Via del Collaudo 7, Borgoprova (ZZ)
+Share capital: resolved EUR 50.000,00; subscribed and paid in EUR 50.000,00
+Holders:
+- P-001 (Aldo Finti): 30%
+- E-0002 (Holding Aurelia Partecipazioni S.r.l.): 70%
+
+Directors:
+- P-001 (Aldo Finti)

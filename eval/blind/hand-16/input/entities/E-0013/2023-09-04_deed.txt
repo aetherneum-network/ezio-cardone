@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0013-01
+Document type: Deed of incorporation
+Document date: 2023-09-04
+Edition: DEED/1
+Entity: Saline Capochimera S.r.l. (test registry no. TEST-REG-000013)
+
+1. Name and form. The company is named Saline Capochimera S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Corso Breccia 19, Capochimera (ZZ).
+3. Share capital. The share capital is EUR 70.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-015 (Ines Verosimili): 70%
+- P-016 (Sam Figurati): 30%
+
+5. Directors.
+- P-015 (Ines Verosimili)

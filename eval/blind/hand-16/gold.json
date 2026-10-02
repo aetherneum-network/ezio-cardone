@@ -1,0 +1,2733 @@
+{
+  "as_of": "2026-09-30",
+  "cycle_policy": "abstain",
+  "entities": {
+    "E-0001": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0001",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-001"
+          ]
+        },
+        "fin.FY2025.net_equity": {
+          "sources": [
+            "DOC-E0001-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "212410.00"
+        },
+        "fin.FY2025.revenue": {
+          "sources": [
+            "DOC-E0001-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "1204980.10"
+        },
+        "fin.FY2025.total_assets": {
+          "sources": [
+            "DOC-E0001-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "655300.75"
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Vetreria Collefalso S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Scoria 14, Collefalso (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "50000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "50000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "50000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0001-01",
+            "DOC-E0001-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-001",
+              "share": "11/20"
+            },
+            {
+              "holder": "P-002",
+              "share": "9/20"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-001": "11/20",
+          "P-002": "9/20"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0002": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0002",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-002"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.p.A."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Cantiere Pontefinto S.p.A."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Corso Ghisa 31, Pontefinto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "DISCREPANCY",
+          "superseded": [],
+          "values": [
+            "200000.00",
+            "260000.00"
+          ]
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "DISCREPANCY",
+          "superseded": [],
+          "values": [
+            "200000.00",
+            "260000.00"
+          ]
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "DISCREPANCY",
+          "superseded": [],
+          "values": [
+            "200000.00",
+            "260000.00"
+          ]
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0002-01",
+            "DOC-E0002-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-002",
+              "share": "3/4"
+            },
+            {
+              "holder": "P-003",
+              "share": "1/4"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-002": "3/4",
+          "P-003": "1/4"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0003": {
+      "blocked_by": [
+        {
+          "source_doc": "DOC-E0003-01",
+          "sum": "21/20"
+        }
+      ],
+      "build": "BLOCKED",
+      "documents": 2,
+      "entity": "E-0003",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-004"
+          ]
+        },
+        "fin.FY2025.net_equity": {
+          "sources": [
+            "DOC-E0003-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "150000.00"
+        },
+        "fin.FY2025.revenue": {
+          "sources": [
+            "DOC-E0003-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "620100.00"
+        },
+        "fin.FY2025.total_assets": {
+          "sources": [
+            "DOC-E0003-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "410250.00"
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Fonderia Vallecieca S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Piazza Ruggine 9, Vallecieca (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "100000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "100000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "100000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0003-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-004",
+              "share": "9/20"
+            },
+            {
+              "holder": "P-005",
+              "share": "7/20"
+            },
+            {
+              "holder": "P-006",
+              "share": "1/4"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "BLOCKED"
+      }
+    },
+    "E-0004": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0004",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Segheria Piandimmagine S.r.l."
+        },
+        "registered_office": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "20000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "20000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "20000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0004-01",
+            "DOC-E0004-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-004",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-005",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-004": "1/2",
+          "P-005": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0005": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0005",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0005-01",
+            "DOC-E0005-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-006"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0005-01",
+            "DOC-E0005-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0005-01",
+            "DOC-E0005-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Conceria Roccasogno S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0005-01",
+            "DOC-E0005-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Loppa 22, Roccasogno (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.resolved": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.subscribed": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "shareholders": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0006": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0006",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0006-01",
+            "DOC-E0006-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-007"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0006-01",
+            "DOC-E0006-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0006-01",
+            "DOC-E0006-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Mulino Serrafiaba S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0006-01",
+            "DOC-E0006-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Largo Fuliggine 3, Serrafiaba (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.resolved": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.subscribed": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0006-01",
+            "DOC-E0006-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-007",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-008",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-007": "1/2",
+          "P-008": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0007": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0007",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-009"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "registered_office": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "25000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "25000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "25000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0007-01",
+            "DOC-E0007-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-009",
+              "share": "3/5"
+            },
+            {
+              "holder": "P-010",
+              "share": "2/5"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-009": "3/5",
+          "P-010": "2/5"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0008": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0008",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0008-03"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0008-01",
+              "old_value": [
+                "P-010"
+              ]
+            },
+            {
+              "old_source_doc": "DOC-E0008-02",
+              "old_value": [
+                "P-010"
+              ]
+            }
+          ],
+          "value": [
+            "P-009"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.p.A."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Cartiera Bosconarrato S.p.A."
+        },
+        "registered_office": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "120000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "120000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "120000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0008-01",
+            "DOC-E0008-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-010",
+              "share": "7/10"
+            },
+            {
+              "holder": "P-011",
+              "share": "3/10"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-010": "7/10",
+          "P-011": "3/10"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0009": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0009",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0009-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-010"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0009-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0009-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Oleificio Castelmiraggio S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0009-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Tufo 2, Castelmiraggio (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0009-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0009-01",
+              "old_value": "30000.00"
+            }
+          ],
+          "value": "60000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0009-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0009-01",
+              "old_value": "30000.00"
+            }
+          ],
+          "value": "60000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0009-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0009-01",
+              "old_value": "30000.00"
+            }
+          ],
+          "value": "60000.00"
+        },
+        "shareholders": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0010": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0010",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Officina Portoapparente S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Strada Calcina 11, Portoapparente (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "45000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "45000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0010-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "45000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0010-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0010-01",
+              "old_value": [
+                {
+                  "holder": "P-001",
+                  "share": "3/5"
+                },
+                {
+                  "holder": "P-013",
+                  "share": "2/5"
+                }
+              ]
+            }
+          ],
+          "value": [
+            {
+              "holder": "P-013",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-014",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-013": "1/2",
+          "P-014": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0011": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0011",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0011-01",
+            "DOC-E0011-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-014"
+          ]
+        },
+        "fin.FY2025.net_equity": {
+          "sources": [
+            "DOC-E0011-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "310400.00"
+        },
+        "fin.FY2025.revenue": {
+          "sources": [
+            "DOC-E0011-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "1420010.50"
+        },
+        "fin.FY2025.total_assets": {
+          "sources": [
+            "DOC-E0011-03"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "980250.00"
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0011-01",
+            "DOC-E0011-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0011-01",
+            "DOC-E0011-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Lanificio Valdirima S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0011-01",
+            "DOC-E0011-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Arenaria 8, Valdirima (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.resolved": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.subscribed": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0011-01",
+            "DOC-E0011-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-014",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-015",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-014": "1/2",
+          "P-015": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0012": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0012",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-006"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Birrificio Montesupposto S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0012-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0012-01",
+              "old_value": "Via Loppa 8, Montesupposto (ZZ)"
+            }
+          ],
+          "value": "Largo Fuliggine 2, Montesupposto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "35000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "35000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0012-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "35000.00"
+        },
+        "shareholders": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0013": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0013",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-015"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Saline Capochimera S.r.l."
+        },
+        "registered_office": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "70000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "70000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0013-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "70000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0013-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0013-01",
+              "old_value": [
+                {
+                  "holder": "P-015",
+                  "share": "7/10"
+                },
+                {
+                  "holder": "P-016",
+                  "share": "3/10"
+                }
+              ]
+            }
+          ],
+          "value": [
+            {
+              "holder": "P-015",
+              "share": "7/10"
+            },
+            {
+              "holder": "E-0077",
+              "share": "3/10"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0014": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0014",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Ceramiche Pievefantasia S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0014-03"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0014-01",
+              "old_value": "Via Pomice 5, Pievefantasia (ZZ)"
+            },
+            {
+              "old_source_doc": "DOC-E0014-02",
+              "old_value": "Via Pomice 5, Pievefantasia (ZZ)"
+            }
+          ],
+          "value": "Viale Basalto 18, Pievefantasia (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0014-01",
+            "DOC-E0014-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-001",
+              "share": "1"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-001": "1"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0015": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 3,
+      "entity": "E-0015",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0015-01",
+            "DOC-E0015-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-017"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0015-01",
+            "DOC-E0015-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0015-01",
+            "DOC-E0015-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Tipografia Isolafinta S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0015-01",
+            "DOC-E0015-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Scoria 2, Isolafinta (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0015-03"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0015-01",
+              "old_value": "40000.00"
+            },
+            {
+              "old_source_doc": "DOC-E0015-02",
+              "old_value": "40000.00"
+            }
+          ],
+          "value": "80000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0015-03"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0015-01",
+              "old_value": "40000.00"
+            },
+            {
+              "old_source_doc": "DOC-E0015-02",
+              "old_value": "40000.00"
+            }
+          ],
+          "value": "80000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0015-03"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0015-01",
+              "old_value": "40000.00"
+            },
+            {
+              "old_source_doc": "DOC-E0015-02",
+              "old_value": "40000.00"
+            }
+          ],
+          "value": "80000.00"
+        },
+        "shareholders": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0016": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0016",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0016-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0016-01",
+              "old_value": [
+                "P-018"
+              ]
+            }
+          ],
+          "value": [
+            "P-019"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Falegnameria Collefalso S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Scoria 30, Collefalso (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "18000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "18000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0016-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "18000.00"
+        },
+        "shareholders": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": null,
+        "outcome": "TO_CONFIRM"
+      }
+    },
+    "E-0017": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0017",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0017-01",
+            "DOC-E0017-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-003"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0017-01",
+            "DOC-E0017-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0017-01",
+            "DOC-E0017-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Stamperia Pontefinto S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0017-01",
+            "DOC-E0017-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Corso Ghisa 7, Pontefinto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.resolved": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.subscribed": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0017-01",
+            "DOC-E0017-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-003",
+              "share": "7/10"
+            },
+            {
+              "holder": "P-005",
+              "share": "3/10"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-003": "7/10",
+          "P-005": "3/10"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0018": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0018",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0018-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-011"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0018-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.p.A."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0018-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Distilleria Vallecieca S.p.A."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0018-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Piazza Ruggine 1, Vallecieca (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.resolved": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "share_capital.subscribed": {
+          "status": "TO_CONFIRM",
+          "superseded": []
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0018-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0018-01",
+              "old_value": [
+                {
+                  "holder": "P-011",
+                  "share": "4/5"
+                },
+                {
+                  "holder": "P-012",
+                  "share": "1/5"
+                }
+              ]
+            }
+          ],
+          "value": [
+            {
+              "holder": "P-011",
+              "share": "4/5"
+            },
+            {
+              "holder": "P-021",
+              "share": "1/5"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-011": "4/5",
+          "P-021": "1/5"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0019": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0019",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0019-02"
+          ],
+          "status": "FACT",
+          "superseded": [
+            {
+              "old_source_doc": "DOC-E0019-01",
+              "old_value": [
+                "P-006"
+              ]
+            }
+          ],
+          "value": [
+            "P-007"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Vivaio Bugiardello S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Tufo 25, Bugiardello (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "22000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "22000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0019-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "22000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0019-01",
+            "DOC-E0019-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-006",
+              "share": "3/5"
+            },
+            {
+              "holder": "P-007",
+              "share": "2/5"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-006": "3/5",
+          "P-007": "2/5"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0020": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0020",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-008"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Lavanderia Fossoimmaginato S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Arenaria 44, Fossoimmaginato (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0020-01",
+            "DOC-E0020-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-008",
+              "share": "7/10"
+            },
+            {
+              "holder": "P-009",
+              "share": "3/10"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-008": "7/10",
+          "P-009": "3/10"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0021": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0021",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-009"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Marmeria Grottafittizia S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Largo Fuliggine 12, Grottafittizia (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "16000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "16000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "16000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0021-01",
+            "DOC-E0021-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-008",
+              "share": "2/5"
+            },
+            {
+              "holder": "P-009",
+              "share": "3/5"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-008": "2/5",
+          "P-009": "3/5"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0022": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0022",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-010"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Pastificio Borgoillusione S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Pomice 61, Borgoillusione (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "9000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "9000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "9000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0022-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-010",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-011",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-010": "1/2",
+          "P-011": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0023": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0023",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-002"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Latteria Valleombra S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Strada Calcina 3, Valleombra (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "12000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0023-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-001",
+              "share": "3/4"
+            },
+            {
+              "holder": "P-002",
+              "share": "1/4"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-001": "3/4",
+          "P-002": "1/4"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0024": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0024",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-012"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Cereria Pianoinventato S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Tufo 9, Pianoinventato (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "10000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0024-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-012",
+              "share": "7/10"
+            },
+            {
+              "holder": "P-013",
+              "share": "3/10"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-012": "7/10",
+          "P-013": "3/10"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0025": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0025",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-014"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Carbonaia Boscosupposto S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Viale Basalto 5, Boscosupposto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "30000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "30000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "30000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0025-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-014",
+              "share": "2/3"
+            },
+            {
+              "holder": "P-016",
+              "share": "1/3"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-014": "2/3",
+          "P-016": "1/3"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0026": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0026",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-017"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Filanda Collesogno S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Corso Breccia 77, Collesogno (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "80000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "80000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "80000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0026-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-017",
+              "share": "5/8"
+            },
+            {
+              "holder": "P-018",
+              "share": "3/8"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-017": "5/8",
+          "P-018": "3/8"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0027": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 1,
+      "entity": "E-0027",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-020"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Serra Pratofinto S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Via Loppa 15, Pratofinto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "24000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "24000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "24000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0027-01"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-019",
+              "share": "1/8"
+            },
+            {
+              "holder": "P-020",
+              "share": "7/8"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-019": "1/8",
+          "P-020": "7/8"
+        },
+        "outcome": "RESOLVED"
+      }
+    },
+    "E-0028": {
+      "blocked_by": [],
+      "build": "OK",
+      "documents": 2,
+      "entity": "E-0028",
+      "fault": "HAND",
+      "fields": {
+        "directors": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            "P-003"
+          ]
+        },
+        "legal_form": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "S.r.l."
+        },
+        "name": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Gelateria Montesegreto S.r.l."
+        },
+        "registered_office": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "Vicolo Argilla 21, Montesegreto (ZZ)"
+        },
+        "share_capital.paid_in": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "14000.00"
+        },
+        "share_capital.resolved": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "14000.00"
+        },
+        "share_capital.subscribed": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": "14000.00"
+        },
+        "shareholders": {
+          "sources": [
+            "DOC-E0028-01",
+            "DOC-E0028-02"
+          ],
+          "status": "FACT",
+          "superseded": [],
+          "value": [
+            {
+              "holder": "P-001",
+              "share": "1/2"
+            },
+            {
+              "holder": "P-003",
+              "share": "1/2"
+            }
+          ]
+        }
+      },
+      "filename_divergences": [
+        {
+          "aspect": "date",
+          "doc_id": "DOC-E0028-02"
+        }
+      ],
+      "ownership": {
+        "cycles": [],
+        "effective": {
+          "P-001": "1/2",
+          "P-003": "1/2"
+        },
+        "outcome": "RESOLVED"
+      }
+    }
+  },
+  "perturbed": false,
+  "schema": "gold/2.0.0",
+  "seed": null,
+  "summary": {}
+}

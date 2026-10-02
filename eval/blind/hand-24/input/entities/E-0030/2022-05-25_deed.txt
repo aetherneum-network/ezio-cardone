@@ -1,0 +1,15 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0030-01
+Document type: Deed of incorporation
+Document date: 2022-05-25
+Edition: DEED/1
+Entity: Cantieri Rivaprova S.r.l. (test registry no. TEST-REG-000030)
+
+1. Name and form. The company is named Cantieri Rivaprova S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Collaudo 3, Rivaprova (ZZ).
+3. Share capital. The share capital is EUR 60.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-057 (Livio Prototipi): 100%
+
+5. Directors.
+- P-057 (Livio Prototipi)

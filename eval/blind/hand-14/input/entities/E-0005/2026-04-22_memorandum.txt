@@ -1,0 +1,10 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0005-04
+Document type: Memorandum
+Document date: 2026-04-22
+Edition: MEMO/1
+Entity: Stamperia Pianoprova S.r.l. (test registry no. TEST-REG-000005)
+
+Memorandum (synthetic).
+On this day the two members contributed a second EUR 45.000,00 in cash to the company, whose endowment now stands at twice its former figure.
+From the same day the company keeps its books, takes delivery of its mail and holds its sittings at Vicolo delle Rotative 9, Pianoprova (ZZ).

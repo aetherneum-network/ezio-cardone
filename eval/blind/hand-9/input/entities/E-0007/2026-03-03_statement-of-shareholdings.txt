@@ -1,0 +1,10 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0007-02
+Document type: Statement of shareholdings
+Document date: 2026-03-03
+Edition: STATEMENT/1
+Entity: Lanificio Ipotetico S.p.A. (test registry no. TEST-REG-000007)
+
+Shareholding structure at the document date (synthetic):
+- P-009 (Gina Presunti): thirty per cent
+- P-010 (Elmo Ipotetici): seventy per cent

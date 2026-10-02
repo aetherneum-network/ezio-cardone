@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-02
+Document type: Test registry extract
+Document date: 2026-02-11
+Edition: EXTRACT/1
+Entity: Cantiere Pontefinto S.p.A. (test registry no. TEST-REG-000002)
+
+Name: Cantiere Pontefinto S.p.A.
+Legal form: S.p.A.
+Registered office: Corso Ghisa 31, Pontefinto (ZZ)
+Share capital: resolved EUR 260.000,00; subscribed and paid in EUR 260.000,00
+Holders:
+- P-002 (Nora Immaginari): 75%
+- P-003 (Teo Congetturi): 25%
+
+Directors:
+- P-002 (Nora Immaginari)

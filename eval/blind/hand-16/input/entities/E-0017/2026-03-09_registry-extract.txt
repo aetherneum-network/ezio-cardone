@@ -1,0 +1,18 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0017-02
+Document type: Test registry extract
+Document date: 2026-03-09
+Edition: EXTRACT/1
+Entity: Stamperia Pontefinto S.r.l. (test registry no. TEST-REG-000017)
+
+Name: Stamperia Pontefinto S.r.l.
+Legal form: S.r.l.
+Registered office: Corso Ghisa 7, Pontefinto (ZZ)
+Share capital: resolved EUR 10.000,00; subscribed and paid in EUR 10.000,00
+The capital is divided into 1.000 quotas.
+Holders:
+- P-003 (Teo Congetturi): 700 quotas
+- P-005 (Ivo Apparenti): 300 quotas Twenty Euro Apiece
+
+Directors:
+- P-003 (Teo Congetturi)

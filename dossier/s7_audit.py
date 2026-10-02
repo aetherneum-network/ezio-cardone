@@ -1,0 +1,1140 @@
+"""Stage 7 - audit of what was built, read back from disk.
+
+The audit does not trust the builder. It re-opens ``provenance.json`` and the DOCX and checks that
+
+1. every figure has a value, a source document, a source date and an edition;
+2. the cited document exists in the input, has the recorded SHA-256, and carries the quoted lines at
+   the recorded line numbers; and the value is supported by the quote (re-read with a small parser
+   of its own, not with the extraction rules);
+3. a field shown as one value has no current source that says otherwise (a second, independent
+   implementation of the rule declared in ``rules/discrepancy.json``), and no document - of unrecognised type, or
+   (since v2.0.5, D34) of a recognised type with a line that no rule of its kind reads, every body line read again
+   by the audit - that may change it;
+4. every figure row of the DOCX matches its provenance entry, no row lacks a source, nothing marked
+   ``[TO CONFIRM]`` carries a value, and no amount, percentage or fraction appears outside a table;
+5. the cap table in the DOCX sums to exactly the whole.
+
+Any problem makes the run FAILED and the dossier is not published.
+
+``scan_outgoing`` is the scanner for outgoing documents that still carry a superseded value.
+"""
+from __future__ import annotations
+
+import hashlib
+import json
+import re
+import weakref
+from fractions import Fraction
+from pathlib import Path
+
+from docx import Document
+
+from . import SYNTHETIC_MARKER, TO_CONFIRM
+from .lib import jsonio
+from .lib.numbers import parse_amount, parse_frac, parse_share
+from . import rules_engine
+from .rules_engine import Rules, first_match, rx
+from . import s6_build as b
+
+_ORPHAN = re.compile(r"(EUR\s*[\d#\[])|(\d\s*%)|(\b\d+/\d+\b)")
+# The audit's own reading of an amount in a quote (not the extraction rules): the whole run of digits and of
+# any character that may group digits, so that a figure is never cut short at a separator (finding T16).
+_GROUPING = r"(?:[.,'’‘ʼ′´`]|[^\S\n])"
+_DIGIT_RUN = rf"\d(?:\d|{_GROUPING}(?=\d))*"
+_AMOUNT_IN_QUOTE = re.compile(
+    rf"(?<![A-Za-z])EUR\s+({_DIGIT_RUN})"
+    rf"(?!{_GROUPING}+[\d#]|[\dA-Za-z#]|\s*(?:thousand|million|billion|k|m|bn|mn|mln|mio|mrd)(?![A-Za-z]))", re.I)
+# The audit's own reading of a list line (v2.0.3, D30): a list marker (dash, bullet, number, letter, roman
+# numeral) or none; the identifier first with an optional label in parentheses, or a name first with the
+# identifier in parentheses; then a colon, tab, bar, spaced dash or space, and the share.
+_MARK = r"(?:[-*•–—·]|\(?\d{1,3}[.)]|\(\d{1,3}\)|\(?[a-z][.)]|\([a-z]\)|\(?[ivx]{1,5}[.)]|\([ivx]{1,5}\))"
+_HOLDER = r"(?:(P-\d{3}|E-\d{4})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{3}|E-\d{4})\))"
+# v2.0.4 (D30b): dot leaders as a separator ('P-014 (Pia Mendaci) ...... 50%'), a share before the holder
+# ('- 60% P-002 (Bruno Simulanti)', per cent or n/d only), and a last line 'Total' that must equal the exact sum.
+_SEP = r"(?::|\t|\||\s[-–—]\s|\s*\.{3,}\s*|\s)"
+_SHARE_IN_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?{_HOLDER}\s*{_SEP}\s*([^\s.].*?)\s*$", re.I)
+_SHARE_FIRST_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(\d{{1,3}}(?:[.,]\d+)?\s*(?:%|per\s*-?\s*cent|percent|pct)"
+                               rf"|\d+\s*/\s*[1-9]\d*)\s*{_SEP}\s*{_HOLDER}\s*$", re.I)
+_TOTAL_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:the\s+)?total\s*{_SEP}\s*([^\s.].*?)\s*$", re.I)
+_PERSON_LINE = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:(P-\d{{3}})(?:\s*\([^()]*\))?|[^()|:\t]+?\s*\((P-\d{{3}})\))\s*$",
+                          re.I)
+_COUNT_IN_LINE = re.compile(r"^(\d{1,3}(?:[.,'’ ]\d{3})+|\d+)\s+(?:(?:ordinary|registered)\s+)?(?:quotas?|shares?)$",
+                            re.I)
+_TOTAL_IN_LINE = re.compile(r"(?<![\d.,'’])(\d{1,3}(?:[.,'’ ]\d{3})+|\d+)\s+(?:(?:ordinary|registered|equal)\s+)?"
+                            r"(?:quotas|shares)\b", re.I)
+FIGURE_SECTIONS = {"facts": b.H_FACTS, "discrepancies": b.H_DISC, "unconfirmed": b.H_UNCONF,
+                   "cap_table": b.H_CAP, "chain": b.H_CHAIN, "history": b.H_HIST}
+_ISO_DATE = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _key(v) -> str:
+    return json.dumps(v, sort_keys=True, ensure_ascii=False)
+
+
+# ----------------------------------------------------------------------------------------------
+# 2. value supported by the quoted source lines
+
+def supported_by_quote(fig: dict) -> bool:
+    quote, value, fld = fig.get("quote") or "", fig["value"], fig["field"]
+    if fig["section"] in ("cap_table", "chain"):
+        return _holder_lines(quote).get(fig["holder"]) == parse_frac(value)
+    if fld == "shareholders":
+        return _holder_lines(quote) == {r["holder"]: parse_frac(r["share"]) for r in value}
+    if fld == "directors":
+        ids = [m.group(1) or m.group(2) for m in map(_PERSON_LINE.match, quote.split("\n")[1:]) if m]
+        return sorted(ids) == sorted(value)
+    if isinstance(value, str) and re.fullmatch(r"\d+\.\d{2}", value) and (
+            fld.startswith(("share_capital", "fin."))):
+        return any(parse_amount(t)[0] == value and _same_digits(t, value) for t in _AMOUNT_IN_QUOTE.findall(quote))
+    return isinstance(value, str) and value in quote
+
+
+def _same_digits(token: str, value: str) -> bool:
+    """Every digit of the quoted figure is in the value, in order: no group was dropped or added."""
+    written = re.sub(r"\D", "", token)
+    return value.replace(".", "") in (written, written + "00")
+
+
+def _holder_lines(quote: str) -> dict[str, Fraction]:
+    """Every holder line of the quote with its share. Numbers of quotas or shares are shares only through the one
+    total the other lines of the quote state; a quote that mixes them with shares, or states no single total, gives
+    a table that cannot match (the audit then fails the dossier)."""
+    out: dict[str, Fraction] = {}
+    counts: dict[str, int] = {}
+    others: list[str] = []
+    lines = [x for x in quote.split("\n") if x.strip()]
+    stated = None
+    if lines and _TOTAL_LINE.match(lines[-1]):
+        stated = _TOTAL_LINE.match(lines[-1]).group(1)
+        lines = lines[:-1]
+    for line in lines:
+        m = _SHARE_IN_LINE.match(line)
+        hid = (m.group(1) or m.group(2)) if m else None
+        share = parse_share(m.group(3))[0] if m else None
+        count = _COUNT_IN_LINE.match(m.group(3).strip()) if m and share is None else None
+        f = _SHARE_FIRST_LINE.match(line) if share is None and not count else None
+        if f:
+            hid, share = f.group(2) or f.group(3), parse_share(f.group(1))[0]
+        if share is not None:
+            out[hid] = share
+        elif count:
+            counts[hid] = int(re.sub(r"\D", "", count.group(1)))
+        else:
+            others.append(line)
+    if counts:
+        totals = {int(re.sub(r"\D", "", t)) for line in others for t in _TOTAL_IN_LINE.findall(line)}
+        if out or len(totals) != 1 or 0 in totals:
+            return {"": Fraction(-1)}
+        total = totals.pop()
+        out = {h: Fraction(n, total) for h, n in counts.items()}
+        if stated is not None:
+            c = _COUNT_IN_LINE.match(stated.strip())
+            if not c or Fraction(int(re.sub(r"\D", "", c.group(1))), total) != sum(out.values(), Fraction(0)):
+                return {"": Fraction(-1)}
+    elif stated is not None and parse_share(stated)[0] != sum(out.values(), Fraction(0)):
+        return {"": Fraction(-1)}                      # a Total that is not the exact sum of the rows
+    return out
+
+
+def _is_holder_row(line: str) -> bool:
+    return bool(_SHARE_IN_LINE.match(line) or _SHARE_FIRST_LINE.match(line) or _TOTAL_LINE.match(line))
+
+
+# ----------------------------------------------------------------------------------------------
+# 3. independent re-derivation of the current values of a field
+
+def current_values(assertions: list[dict]) -> tuple[set[str], bool, bool, str]:
+    """(distinct readable current values, any current source?, any unreadable current source?, date of
+    the latest event document) for one field."""
+    events = [a for a in assertions if a["role"] == "event"]
+    cutoff = max((a["source_date"] for a in events), default="")
+    current = []
+    if events:
+        current.append(max(events, key=lambda a: (a["source_date"], a["edition_no"] or 0, a["source_doc"])))
+    for series in {a["series"] for a in assertions if a["role"] == "state"}:
+        latest = max((a for a in assertions if a["role"] == "state" and a["series"] == series),
+                     key=lambda a: (a["source_date"], a["edition_no"] or 0, a["source_doc"]))
+        if latest["source_date"] >= cutoff:
+            current.append(latest)
+    return ({_key(a["value"]) for a in current if a["status"] == "STATED"}, bool(current),
+            any(a["status"] != "STATED" for a in current), cutoff)
+
+
+def _expand_all(pattern: str, params: dict) -> str:
+    """Substitute every ``{name}`` of the rule parameters, until none is left (the audit's own expansion)."""
+    for _ in range(8):
+        new = re.sub(r"\{([a-z_]+)\}", lambda m: params[m.group(1)] if isinstance(params.get(m.group(1)), str)
+                     else m.group(0), pattern)
+        if new == pattern:
+            break
+        pattern = new
+    return pattern
+
+
+def unread_scope(u: dict, input_dir: Path | str, rules: Rules | None) -> tuple[set[str], list[dict]]:
+    """(fields an unread document may change, holders' tables of it re-read by the audit), read again from the
+    source by the audit: a second implementation of rules/discrepancy.json unread_document_scope over
+    rules/extract.json unread_fields and holders_evidence. ``{"*"}`` is every field."""
+    every = ({"*"}, [])
+    if rules is None or rules.param("discrepancy", "unread_document_scope") != "fields_it_may_state":
+        return every
+    reason = u.get("reason") or ""
+    if not reason.startswith("document type not recognised") or "; " in reason:
+        return every                      # another problem of the header: any field
+    path = Path(input_dir) / u["file"]
+    if not path.exists():
+        return every
+    lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
+    start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
+    skip: set[int] = set()
+    tables = []
+    hc = u.get("holders_check") or {}
+    for t in hc.get("tables") or [] if hc.get("status") == "read" else []:
+        rows = lines[t["line"]:t["line_end"]]          # the lines after the heading, 0-based t["line"] is next
+        got = _holder_lines("\n".join(lines[t["line"] - 1:t["line_end"]]))
+        want = {r["holder"]: parse_frac(r["share"]) for r in t["value"]}
+        if t["line"] > start and rows and all(_is_holder_row(x) for x in rows) and got == want:
+            skip.update(range(t["line"], t["line_end"] + 1))
+            tables.append(t["value"])
+    p = rules.extract["parameters"]
+    fev = rules.extract["unread_fields"]["rules"]
+    hev = rules.extract["holders_evidence"]
+    neutral = rx(_expand_all(hev["parameters"]["neutral_phrases"], p))
+    fields: set[str] = set()
+    holders = False
+    for no in range(start + 1, len(lines) + 1):
+        text = lines[no - 1]
+        if no in skip or not text.strip():
+            continue
+        topics = [r for r in fev if r["when"] == "topic" and rx(_expand_all(r["pattern"], p)).search(text)]
+        if not topics:
+            topics = [next(r for r in fev if r["when"] != "topic" and (
+                r["when"] == "always" or rx(_expand_all(r["pattern"], p)).search(text)))]
+        for r in topics:
+            fields.update(r["fields"])
+        plain = neutral.sub(" ", text)
+        hit = next(r for r in hev["rules"] if r["when"] == "always" or rx(_expand_all(r["pattern"], p)).search(plain))
+        holders = holders or hit["outcome"] != "none"
+    if holders or tables or hc.get("status") != "no_table":
+        fields.add("shareholders")
+    return ({"*"} if "*" in fields else fields), tables
+
+
+# The audit's own reading of a legal form at the end of a name (v2.0.6, D35): a second implementation of DISC-035.
+_FORM_CODES = {"srl", "srls", "spa", "sapa", "sas", "snc"}
+_NAME_TAIL = re.compile(r"(?:^|\s)((?:[^\W\d_]\.?\s?){3,4})[.\s]*$")
+
+
+def _tail_form(value, whole: bool) -> str | None:
+    if not isinstance(value, str):
+        return None
+    m = _NAME_TAIL.search(value)
+    code = re.sub(r"[^a-z]", "", m.group(1).lower()) if m else ""
+    if code not in _FORM_CODES or (whole and value[:m.start(1)].strip()):
+        return None
+    return code
+
+
+def _bare_name(value: str) -> str:
+    """A company name without the legal form at its end, spaces collapsed (the audit's own reading)."""
+    m = _NAME_TAIL.search(value)
+    if m and re.sub(r"[^a-z]", "", m.group(1).lower()) in _FORM_CODES:
+        value = value[:m.start(1)]
+    return " ".join(value.split())
+
+
+def form_clash(by_field: dict[str, list[dict]]) -> bool:
+    """Whether a current name ends with a legal form other than a current legal form, by the audit's own reading."""
+    names = [json.loads(k) for k in current_values(by_field.get("name", []))[0]] if by_field.get("name") else []
+    forms = [json.loads(k) for k in current_values(by_field.get("legal_form", []))[0]] if by_field.get("legal_form") else []
+    return any(_tail_form(n, False) and _tail_form(f, True) and _tail_form(n, False) != _tail_form(f, True)
+               for n in names for f in forms)
+
+
+def _in_scope(scope: set[str], fld: str) -> bool:
+    """'*~a,b' (since v2.0.8): every field but a and b."""
+    return any(m == "*" or m == fld or (m.endswith(".*") and fld.startswith(m[:-1]))
+               or (m.startswith("*~") and fld not in m[2:].split(",")) for m in scope)
+
+
+def _adr_tokens(value: str) -> tuple[str, ...]:
+    """The audit's own tokens of an address: spaces collapsed, cut at spaces and before each comma."""
+    return tuple(re.findall(r"[^\s,]+|,", " ".join(value.split())))
+
+
+def _within(short: tuple[str, ...], long: tuple[str, ...]) -> bool:
+    """Every token of ``short`` stands in ``long`` in the same order, and ``long`` has more."""
+    if len(long) <= len(short):
+        return False
+    i = 0
+    for t in long:
+        if i < len(short) and t == short[i]:
+            i += 1
+    return i == len(short)
+
+
+def address_audit(read: list[tuple[dict, dict]]) -> dict:
+    """The addresses of one entity read again by the audit (v2.0.8, D37: a second implementation of rules/extract.json
+    address_corroboration over the lines classified_scope closed). ``read``: (document meta, classified_scope result)
+    for every document of the record. Returns {"lines": {(doc_id, line): 'plus' | 'alone' | 'fact'} (the most cautious
+    outcome of the line), "corroborated": token tuples of the addresses that a second document states alike,
+    "plus": token tuples of the addresses that are another address of the entity plus words}."""
+    mentions, partners = [], []
+    for meta, got in read:
+        for no, k, s, e, v in got["addresses"]:
+            mentions.append((meta["doc_id"], meta["date"], meta["kind"] == "OFFICE" and k == "w_office", no, s, e,
+                             _adr_tokens(v)))
+        for no, s, e, v in got["partners"]:
+            partners.append((meta["doc_id"], no, s, e, _adr_tokens(v)))
+    others = partners + [(d, no, s, e, t) for d, _, _, no, s, e, t in mentions]
+    rank = {"plus": 0, "alone": 1, "fact": 2}
+    out: dict = {"lines": {}, "corroborated": set(), "plus": set()}
+    for d, date, new, no, s, e, tok in mentions:
+        if any(not (od == d and on == no and os < e and s < oe) and _within(ot, tok) for od, on, os, oe, ot in others):
+            got = "plus"
+        elif any(xd != d and xt == tok and (not new or xdate > date) and (not xnew or date > xdate)
+                 for xd, xdate, xnew, _, _, _, xt in mentions):
+            got = "fact"
+        else:
+            got = "alone"
+        prev = out["lines"].get((d, no))
+        out["lines"][(d, no)] = got if prev is None else min((got, prev), key=rank.get)
+        if got == "fact":
+            out["corroborated"].add(tok)
+        elif got == "plus":
+            out["plus"].add(tok)
+    return out
+
+
+class _Ident:
+    """The audit's own identification of a free-text slot (v2.0.9, D38): a second implementation of rules/extract.json
+    free_text_identification. The gazetteer lists are read as sets of whole entries and the slot is cut by the
+    audit's own reading (an address: a street of the gazetteer, then the house number of the slot grammar, a comma, a
+    town and a province of the gazetteer in parentheses, optionally a mark; a company's name: a trade and a town, or
+    'Holding', a town and 'Partecipazioni', before the legal form; a person's name: a first name and a surname); a
+    title or a label is a recognised text. A numeral (parameter numeral_token) is looked for in the street and the town
+    of an address and in the whole of any other slot."""
+
+    def __init__(self, rules: Rules):
+        self.key = _rules_key(rules)        # since v2.0.10 (D39 d): the rule set it was built from (own_names' cache)
+        p = rules.extract["parameters"]
+        self.towns, self.provinces = set(p["gazetteer_town"]), set(p["gazetteer_province"])
+        self.streets = sorted({f"{t} {n}" for t in p["gazetteer_street_type"] for n in p["gazetteer_street_name"]},
+                              key=len, reverse=True)
+        self.trades, self.firsts, self.lasts = (set(p["gazetteer_trade"]), set(p["gazetteer_first_name"]),
+                                                set(p["gazetteer_surname"]))
+        self.house = re.compile(_expand_all(p["slot_house_number"], p))
+        self.tail = re.compile(r"(\S.*?) \(([^()]*)\)(?: - (?i:interno|scala|piano) [A-Z0-9]{1,3})?")
+        self.numeral_token = rx(_expand_all(p["numeral_token"], p))
+        self.address_part = rx(_expand_all(p["slot_address_part"], p))
+        self.texts = {g: {_adr_tokens(t) for t in v} for g, v in p["text_recognised"].items()}
+        self.classes = p["identification_slot_classes"]
+
+    def address(self, value: str) -> bool:
+        plain = " ".join(value.split())
+        for st in self.streets:
+            if not plain.startswith(st + " "):
+                continue
+            house, comma, rest = plain[len(st) + 1:].partition(", ")
+            m = self.tail.fullmatch(rest)
+            if comma and self.house.fullmatch(house) and m and m.group(1) in self.towns and m.group(2) in self.provinces:
+                return True
+        return False
+
+    def company(self, value: str) -> bool:
+        # an entry of the gazetteer may hold more than one word (a trade 'Cooperativa Agricola', a town 'Borgo
+        # Lontano'): every way of cutting the name into a trade and a town is tried, each part matched whole
+        bare = " ".join(_bare_name(value).split())
+        if any(bare.startswith(t + " ") and bare[len(t) + 1:] in self.towns for t in self.trades):
+            return True
+        return (bare.startswith("Holding ") and bare.endswith(" Partecipazioni")
+                and bare[len("Holding "):-len(" Partecipazioni")] in self.towns)
+
+    def person(self, value: str) -> bool:
+        plain = " ".join(value.split())
+        return any(plain.startswith(f + " ") and plain[len(f) + 1:] in self.lasts for f in self.firsts)
+
+    def numeral(self, value: str, cls: str = "") -> bool:
+        if cls == "address":
+            m = self.address_part.match(" ".join(value.split()))
+            if m:
+                value = m.group("street") + " " + m.group("town")
+        return any(self.numeral_token.search(w) for w in re.findall(r"[^\W_]+(?:['\u2019-][^\W_]+)*", value))
+
+    def ok(self, value: str, cls: str) -> bool:
+        """Identified: every word accounted for, and no numeral."""
+        if self.numeral(value, cls):
+            return False
+        if cls in ("title", "label"):
+            return _adr_tokens(value) in self.texts.get("w_" + cls, set())
+        return {"address": self.address, "company": self.company, "person": self.person}[cls](value)
+
+
+_DIGESTS: dict[int, tuple[weakref.ref, str]] = {}
+_IDENT_CACHE: dict[str, _Ident] = {}
+
+
+def _rules_key(rules: Rules) -> str:
+    """The content of a rule set, as the key of the audit's caches (v2.0.10, D39 d). Until v2.0.9 they were keyed by
+    id(rules): rules_engine.load() makes a new Rules for every run, and once one is freed its id may be handed to the
+    next, so a process that ran with two rule sets (the suite does: copies of the rules with another gazetteer) could be
+    served the identification built from the other set - an audit that disagrees with the extractor, intermittently,
+    as the allocator happens to reuse an address (400 alternating loads on the v2.0.9 code: 7 reuses, 7 wrong
+    answers). A SHA-256 of the four rule files is equal for equal rules and differs otherwise; it is computed once per
+    Rules object, which is checked to be the very same object by a weak reference, never by its id alone."""
+    hit = _DIGESTS.get(id(rules))
+    if hit is not None and hit[0]() is rules:
+        return hit[1]
+    text = json.dumps([rules.extract, rules.figure_nature, rules.discrepancy, rules.ownership], sort_keys=True,
+                      ensure_ascii=False)
+    key = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    rid = id(rules)
+    _DIGESTS[rid] = (weakref.ref(rules, lambda _r: _DIGESTS.pop(rid, None)), key)
+    return key
+
+
+def _ident(rules: Rules) -> _Ident:
+    key = _rules_key(rules)
+    if key not in _IDENT_CACHE:
+        _IDENT_CACHE[key] = _Ident(rules)
+    return _IDENT_CACHE[key]
+
+
+def name_audit(read: list[tuple[dict, dict]], ident: _Ident | None = None) -> dict:
+    """The company's names of the headers of one entity read again by the audit (v2.0.8, D37: a second
+    implementation of rules/extract.json name_corroboration). ``read``: (document meta, classified_scope result) for
+    every document of the record. Returns {"docs": {doc_id: 'plus' | 'unidentified' | 'alone' | 'fact'},
+    "corroborated": token tuples of the names that a second document states alike, "plus": token tuples of the names
+    that are another name of the entity plus words} (tokens: the name without the legal form at its end). Since v2.0.9
+    (D38) a name that ``ident`` does not identify is 'unidentified' before any agreement of the documents."""
+    heads = [(meta["doc_id"], _adr_tokens(_bare_name(got["own"])), got["own"]) for meta, got in read]
+    out: dict = {"docs": {}, "corroborated": set(), "plus": set()}
+    for d, tok, own in heads:
+        if any(o != d and _within(t, tok) for o, t, _ in heads):
+            got = "plus"
+        elif ident is not None and not ident.ok(own, "company"):
+            got = "unidentified"
+        elif any(o != d and t == tok for o, t, _ in heads):
+            got = "fact"
+        else:
+            got = "alone"
+        out["docs"][d] = got
+        if got == "fact":
+            out["corroborated"].add(tok)
+        elif got == "plus":
+            out["plus"].add(tok)
+    return out
+
+
+# ----------------------------------------------------------------------------------------------
+# 3b. documents of a recognised type, every body line read again (v2.0.5, D34)
+
+# The audit's own reading of the name beside an identifier in a list line.
+_LABEL_AFTER = re.compile(r"(?:P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+_LABEL_BEFORE = re.compile(rf"^\s*(?:{_MARK}\s+)?([^()|:\t]+?)\s*\((?:P-\d{{3}}|E-\d{{4}})\)")
+_FY_HEADER = re.compile(r"^Financial year:\s*(\d{4})\s*$")
+
+
+def _topic_of(fld: str) -> str:
+    return "share_capital.*" if fld.startswith("share_capital.") else "fin.*" if fld.startswith("fin.") else fld
+
+
+class _Words:
+    """The audit's own test of free words: the fields they may name, by the rules that judge a document of
+    unrecognised type (the topic rules of unread_fields, and holders_evidence for a holding). Figures are
+    removed first: a slot's figures are typed by its grammar."""
+
+    def __init__(self, rules: Rules):
+        p = rules.extract["parameters"]
+        self.topics = [(rx(_expand_all(r["pattern"], p)), r["fields"]) for r in rules.extract["unread_fields"]["rules"]
+                       if r["when"] == "topic"]
+        hev = rules.extract["holders_evidence"]
+        self.neutral = rx(_expand_all(hev["parameters"]["neutral_phrases"], p))
+        self.hev = [(None if r["when"] == "always" else rx(_expand_all(r["pattern"], p)), r["outcome"])
+                    for r in hev["rules"]]
+        self.not_name = rx(_expand_all(p["slot_not_name_word"], p))
+        self.name_groups = set(p["slot_name_groups"])
+
+    def holding(self, text: str) -> bool:
+        plain = self.neutral.sub(" ", text)
+        return next(out for pat, out in self.hev if pat is None or pat.search(plain)) != "none"
+
+    def name(self, text: str, names: bool = False) -> set[str]:
+        words = re.sub(r"[0-9]", " ", text)
+        out = {f for pat, fields in self.topics if pat.search(words) for f in fields}
+        if self.holding(words):
+            out.add("shareholders")
+        if names and any(self.not_name.search(w) for w in re.findall(r"[^\W\d_]+", text)):
+            out.add("*")         # since v2.0.6: a word that cannot be part of a name, in a slot that holds a name
+        return out
+
+
+# The audit's own reading of a name beside an identifier, and of the names that are the identifier's own (v2.0.6, D35).
+_PAIR_AFTER = re.compile(r"(P-\d{3}|E-\d{4})\s*\(([^()]*)\)")
+_PAIR_FIRST = re.compile(rf"^\s*(?:{_MARK}\s+)?(?:\d{{1,3}}(?:[.,]\d+)?\s*(?:%|per\s*-?\s*cent|percent|pct)\s*{_SEP}\s*|"
+                         rf"\d+\s*/\s*[1-9]\d*\s*{_SEP}\s*)?([^()|:\t]+?)\s*\((P-\d{{3}}|E-\d{{4}})\)", re.I)
+_ENTITY_HEADER = re.compile(r"^Entity:\s*(.+) \(test registry no\. TEST-REG-(\d{6})\)\s*$")
+_KNOWN_CACHE: dict[tuple, dict[str, set[str]]] = {}
+
+
+def own_names(input_dir: Path | str, ident: _Ident | None = None) -> dict[str, set[str]]:
+    """identifier -> its own names, read again by the audit: the identity layer of the input and the header line
+    'Entity:' of every source file that opens with the SYNTHETIC marker. Since v2.0.9 (D38) only a name that ``ident``
+    identifies; the identifier of a person stays known with no name."""
+    root = Path(input_dir)
+    files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
+    layer = root / "identity" / "persons.json"
+    # since v2.0.10 (D39 d): the rule set the identification was built from, not the id of an object that may be freed
+    key = (str(root.resolve()), ident.key if ident is not None else None) + tuple(
+        (str(f), f.stat().st_size, f.stat().st_mtime_ns) for f in files + ([layer] if layer.exists() else []))
+    if key in _KNOWN_CACHE:
+        return _KNOWN_CACHE[key]
+    out: dict[str, set[str]] = {}
+    if layer.exists():
+        for pid, person in (json.loads(layer.read_text(encoding="utf-8")) or {}).items():
+            if isinstance(person, dict) and isinstance(person.get("name"), str) and person["name"].strip():
+                name = " ".join(person["name"].split())
+                own = out.setdefault(pid, set())
+                if ident is None or ident.ok(name, "person"):
+                    own.add(name)
+    for f in files:
+        try:
+            lines = jsonio.read_bytes(f).decode("utf-8").replace("\r\n", "\n").split("\n")
+        except UnicodeDecodeError:
+            continue
+        if not lines or lines[0].strip() != SYNTHETIC_MARKER:
+            continue
+        for x in lines[1:]:
+            if not x.strip():
+                break
+            if x.partition(":")[1] and x.partition(":")[0].strip() == "Entity":
+                m = _ENTITY_HEADER.match("Entity: " + x.partition(":")[2].strip())
+                if m and m.group(1).strip():
+                    out.setdefault(f"E-{m.group(2)[-4:]}", set()).add(" ".join(m.group(1).split()))
+                break
+    for eid in [k for k in out if k.startswith("E-")]:
+        # since v2.0.8 (D37): a header name that is another header name of the same company plus words is not its own
+        toks = {n: _adr_tokens(_bare_name(n)) for n in out[eid]}
+        out[eid] = {n for n in out[eid] if not any(_within(toks[o], toks[n]) for o in out[eid])
+                    and (ident is None or ident.ok(n, "company"))}
+    _KNOWN_CACHE[key] = out
+    return out
+
+
+_TEXT_CACHE: dict[tuple, dict] = {}
+
+
+def corpus_texts(input_dir: Path | str, rules: Rules) -> dict[tuple[str, tuple[str, ...]], str]:
+    """The titles and labels of the input read again by the audit (v2.0.8, D37: a second implementation of
+    rules/extract.json text_corroboration): (group, tokens) -> 'fact' when it is a recognised text, 'open' otherwise
+    (since v2.0.9, D38: another file that states the same text accounts for none of its words)."""
+    p = rules.extract["parameters"]
+    root = Path(input_dir)
+    files = sorted((root / "entities").glob("*/*.txt")) if (root / "entities").is_dir() else []
+    # since v2.0.10 (D39 d): the rule set is part of the key (its patterns and recognised texts decide the answer)
+    key = (str(root.resolve()), _rules_key(rules)) + tuple((str(f), f.stat().st_size, f.stat().st_mtime_ns)
+                                                          for f in files)
+    if key in _TEXT_CACHE:
+        return _TEXT_CACHE[key]
+    pats = [(rx(_expand_all(r["pattern"], p)), g) for r in rules.extract["classified_lines"]["rules"]
+            for g in p["slot_text_groups"] if r.get("pattern") and f"(?P<{g}>" in r["pattern"]]
+    where: dict[tuple[str, tuple[str, ...]], set[str]] = {}
+    for f in files:
+        try:
+            lines = jsonio.read_bytes(f).decode("utf-8").replace("\r\n", "\n").split("\n")
+        except UnicodeDecodeError:
+            continue
+        if not lines or lines[0].strip() != SYNTHETIC_MARKER:
+            continue
+        start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
+        for x in lines[start:]:
+            for pat, g in pats:
+                m = pat.search(x.strip())
+                if m and m.group(g):
+                    where.setdefault((g, _adr_tokens(m.group(g))), set()).add(str(f))
+    known = {g: [_adr_tokens(t) for t in v] for g, v in p["text_recognised"].items()}
+    out = {}
+    for (g, tok), fs in where.items():
+        own = tok in known.get(g, [])
+        plus = not own and (any(g2 == g and _within(t2, tok) for g2, t2 in where)
+                            or any(_within(t2, tok) for t2 in known.get(g, [])))
+        out[(g, tok)] = "fact" if own and not plus else "open"
+    _TEXT_CACHE[key] = out
+    return out
+
+
+def _pairs(line: str) -> list[tuple[str, str]]:
+    pairs = [(m.group(1), m.group(2)) for m in _PAIR_AFTER.finditer(line)]
+    first = _PAIR_FIRST.match(line)
+    if first:
+        pairs.append((first.group(2), first.group(1)))
+    return pairs
+
+
+def _not_its_own(line: str, known: dict[str, set[str]]) -> bool:
+    """A name beside an identifier that is not its own known name (v2.0.6), or beside an identifier whose own name
+    the corpus does not know (v2.0.7, D36: it cannot be checked)."""
+    return bool(known) and any(" ".join(label.split()) not in known.get(i, ()) for i, label in _pairs(line))
+
+
+def _is_own(text: str, line: str, known: dict[str, set[str]]) -> bool:
+    """The text is the own known name of an identifier of its line (v2.0.7): a name whatever its words."""
+    return any(" ".join(text.split()) in known.get(i, ()) for i, _ in _pairs(line))
+
+
+def _known_inside(text: str, known: dict[str, set[str]]) -> bool:
+    """A name known to the corpus (a person's, or a company's without its legal form) inside an address (v2.0.7)."""
+    plain = " ".join(text.split())
+    return any(re.search(r"(?<![^\W_])" + re.escape(b) + r"(?![^\W_])", plain, re.I)
+               for i, names in known.items() for n in names
+               for b in [_bare_name(n) if i.startswith("E-") else n] if b)
+
+
+def _list_row(line: str, fld: str, words: _Words, unread_share: re.Pattern,
+              known: dict[str, set[str]] | None = None) -> bool:
+    """A line of a list by the audit's own grammar: a director, or a holder (or the Total) whose share is read as a
+    share or a number, or is a figure without words; the name beside the identifier has no figure and names
+    nothing but a name, a legal form or the field of the list (its own known name passes whatever its words,
+    v2.0.7)."""
+    if fld == "directors":
+        if not _PERSON_LINE.match(line):
+            return False
+        rest = line
+    else:
+        m, f, t = _SHARE_IN_LINE.match(line), _SHARE_FIRST_LINE.match(line), _TOTAL_LINE.match(line)
+        if m:
+            share, rest = m.group(3), line[:m.start(3)]
+        elif f:
+            share, rest = f.group(1), re.sub(r"^[\s:|\-–—.]+", "", line[f.end(1):])
+        elif t:
+            share, rest = t.group(1), ""
+        else:
+            return False
+        share = share.strip()
+        if not share or (parse_share(share)[0] is None and not _COUNT_IN_LINE.match(share)
+                         and not unread_share.fullmatch(share)):
+            return False
+    labels = [x.group(1) for x in _LABEL_AFTER.finditer(rest)]
+    before = _LABEL_BEFORE.match(rest)
+    if before:
+        labels.append(before.group(1))
+    return all(_is_own(x, line, known or {}) or (
+        not re.search(r"[0-9]", x) and words.name(x, names=True) <= {"name", "legal_form", _topic_of(fld)})
+               for x in labels)
+
+
+def classified_scope(d: dict, record: dict, input_dir: Path | str, rules: Rules,
+                     words: _Words | None = None) -> dict:
+    """What one document of a recognised type may change beyond the fields its rules read, read again from the
+    source by the audit: a second implementation of rules/extract.json classified_lines over the assertions of the
+    record. A body line is closed when it has no letter or digit; when it is a line of a list (a heading of a list
+    rule - holders in every kind, directors in the kinds of their rule - or a row of the audit's own grammar after
+    it); when it is the whole of a shape of its kind whose free words name only the fields of the shape; or when it is
+    a label and a typed value (CLS-250) whose label names fields of its kind only, and the fields both the label and
+    the type of the value name. A closed line whose field is not read from it (no assertion of the record covers it,
+    or its kind does not read the field) may change that field; any other line, every field ("*")."""
+    path = Path(input_dir) / d["file"]
+    out = {"scope": set(), "open": [], "restated": set(), "holding": False, "problems": [], "addresses": [],
+           "partners": [], "lines": {}, "own": ""}
+    if not path.exists():
+        out["scope"], out["problems"] = {"*"}, [f"{d['doc_id']}: source file not found"]
+        return out
+    words = words or _Words(rules)
+    ident = _ident(rules)
+    known = own_names(input_dir, ident)
+    p = rules.extract["parameters"]
+    lines = jsonio.read_bytes(path).decode("utf-8").replace("\r\n", "\n").split("\n")
+    start = next((i for i in range(1, len(lines)) if not lines[i].strip()), len(lines))
+    fy = next((m.group(1) for x in lines[1:start] for m in [_FY_HEADER.match(x.strip())] if m), "")
+    kind = d["kind"]
+    own = next((m.group(1) for x in lines[1:start] for m in [_ENTITY_HEADER.match(x.strip())] if m), "")
+    out["own"] = " ".join(own.split())
+    texts = corpus_texts(input_dir, rules)
+    expected = {t.replace("{fy}", fy) for t in rules.extract["expected_fields"][kind]}
+    spans: dict[str, list[tuple[int, int]]] = {}
+    for a in record["assertions"]:
+        if (a["source_doc"] == d["doc_id"] and a["source_file"] == d["file"] and a["line"] is not None
+                and not a["field"].endswith(".previous")):
+            spans.setdefault(a["field"], []).append((a["line"], a["line_end"]))
+    check = next((c for c in record.get("classified_checks", []) if c["doc_id"] == d["doc_id"]
+                  and c["file"] == d["file"]), None)
+    hc = (check or {}).get("holders_check") or {}
+    for t in hc.get("tables") or [] if hc.get("status") == "read" else []:
+        if _holder_lines("\n".join(lines[t["line"] - 1:t["line_end"]])) != {
+                r["holder"]: parse_frac(r["share"]) for r in t["value"]}:
+            out["problems"].append(f"{d['doc_id']}: the holders' table at line {t['line']} is not the one its "
+                                   "source states")
+    unread_share = re.compile(_expand_all(p["slot_share_unread"], p), re.I)
+    rows_of: dict[int, str] = {}
+    every_head = [rx(_expand_all(r[k], p)) for r in rules.extract["field_rules"]
+                  if r["extractor"] in ("holders", "directors") for k in ("line_matches", "line_matches_bare") if r.get(k)]
+    sentence = rx(_expand_all(p["list_end_sentence"], p))
+
+    def ends(x: str) -> bool:     # a heading or a full sentence ends a list and is read on its own (v2.0.7, D36)
+        x = x.strip()
+        return not re.search(r"P-\d{3}|E-\d{4}", x) and (any(h.search(x) for h in every_head)
+                                                          or sentence.search(x) is not None)
+
+    for r in rules.extract["field_rules"]:
+        if r["extractor"] != "holders" and not (r["extractor"] == "directors" and kind in r["kinds"]):
+            continue
+        heads = [rx(_expand_all(r[k], p)) for k in ("line_matches", "line_matches_bare") if r.get(k)]
+        for no in range(start + 1, len(lines) + 1):
+            if not any(h.search(lines[no - 1].strip()) for h in heads):
+                continue
+            rows_of[no] = r["field"]
+            nxt = no + 1
+            while nxt <= len(lines) and lines[nxt - 1].strip() and not ends(lines[nxt - 1]):
+                if (_list_row(lines[nxt - 1], r["field"], words, unread_share, known)
+                        and not _not_its_own(lines[nxt - 1], known)):
+                    rows_of[nxt] = r["field"]
+                nxt += 1
+    kind_topics = {_topic_of(f) for f in expected}
+    shapes = [r for r in rules.extract["classified_lines"]["rules"]
+              if r.get("pattern") and (not r.get("kinds") or kind in r["kinds"])]
+
+    address_part = rx(_expand_all(p["slot_address_part"], p))
+    address_word = rx(_expand_all(p["slot_address_word"], p))
+
+    def address_form(v: str) -> bool:
+        m = address_part.match(" ".join(v.split()))
+        return bool(m) and all(address_word.match(w) for w in re.findall(r"[^\W\d_]+", m["street"] + " " + m["town"]))
+
+    def names_of(k: str, v: str, line: str) -> set[str]:
+        """The fields the words of one slot may name. Since v2.0.9 (D38) a free-text slot (identification_slot_classes)
+        names nothing when the audit identifies every word of it (and an address holds no known name), every field
+        otherwise; no topic word is applied to it. Any other slot: as in v2.0.7."""
+        cls = ident.classes.get(k)
+        if cls is not None:
+            return set() if ident.ok(v, cls) and not (k in p["slot_address_groups"] and _known_inside(v, known)) \
+                else {"*"}
+        if k in p["slot_address_groups"] and (not address_form(v) or _known_inside(v, known)):
+            return {"*"}
+        own_value = (bool(own) and _bare_name(v) == _bare_name(own)) if k in p["slot_own_name_groups"] \
+            else _is_own(v, line, known)
+        return words.name(v, names=k in words.name_groups and not own_value)
+    any_address = rx(_expand_all("{slot_address}", p))
+    compiled = [(r, rx(_expand_all(r["pattern"], p))) for r in shapes]
+
+    def quantity(line: str) -> bool:
+        """A free-text slot of a shape of its kind holds a numeral: the line may state a quantity (v2.0.9, D38)."""
+        return any(v and k in ident.classes and ident.numeral(v, ident.classes[k])
+                   for _, pat in compiled for m in [pat.search(line)] if m for k, v in m.groupdict().items())
+    for no in range(start + 1, len(lines) + 1):
+        line = lines[no - 1].strip()
+        if not any(ch.isalnum() for ch in line):
+            continue
+        out["lines"][no] = line
+        # every address of the slot grammar in the line: compared with the addresses of the entity (v2.0.8, D37)
+        out["partners"].extend((no, a.start(), a.end(), a.group(0)) for a in any_address.finditer(line))
+        fields = [rows_of[no]] if no in rows_of else None
+        if fields is None and _not_its_own(line, known):    # a name beside an identifier that is not its own (v2.0.6)
+            out["open"].append(no)
+            out["holding"] = out["holding"] or words.holding(line) or quantity(line)
+            continue
+        for r in shapes if fields is None else []:
+            m = rx(_expand_all(r["pattern"], p)).search(line)
+            if not m:
+                continue
+            if own and any(v and _bare_name(v) != _bare_name(own) for k, v in m.groupdict().items()
+                           if k in p["slot_own_name_groups"]):
+                continue          # the entity's own name slot is not the name of its header (v2.0.6)
+            if r["when"] == "label":      # a label and a typed value: the fields both name, by the audit's words
+                g = m.groupdict()
+                label = words.name(g["w_label"])
+                typed = next((k for k in r["value_topics"] if k and g.get(k)), "")
+                both = label & set(r["value_topics"][typed]) if label <= kind_topics else set()
+                if not both or any(v and not names_of(k, v, line) <= both for k, v in g.items()
+                                   if k.startswith("w_") and k != "w_label"):
+                    continue
+                fields = sorted(f for f in expected if _topic_of(f) in both)
+            else:
+                may = r.get("slots_may_name", r["fields"])
+                allowed = kind_topics if may == "kind" else {_topic_of(f) for f in may}
+                if any(v and not names_of(k, v, line) <= allowed
+                       for k, v in m.groupdict().items() if k.startswith("w_")):
+                    continue
+                fields = [f.replace("{fy}", fy) for f in r["fields"]]
+            # the addresses of the registered office of a closed line (v2.0.8, D37): mentions of the entity
+            out["addresses"].extend((no, k, m.start(k), m.end(k), m.group(k)) for k in p["slot_address_groups"]
+                                    if k in m.re.groupindex and m.group(k))
+            # a title or a label that is not corroborated (v2.0.8, D37, text_corroboration): read by no rule
+            if any(texts.get((g, _adr_tokens(m.group(g)))) != "fact" for g in p["slot_text_groups"]
+                   if g in m.re.groupindex and m.group(g)):
+                fields = None
+            break
+        if fields is None:
+            out["open"].append(no)
+            out["holding"] = out["holding"] or words.holding(line) or quantity(line)
+            continue
+        for f in fields:          # a field its kind does not read, not read at all, or read from another line
+            if f not in expected or not spans.get(f) or any(not first <= no <= last for first, last in spans[f]):
+                out["restated"].add(f)
+    out["scope"] = {"*"} if out["open"] else set(out["restated"])
+    return out
+
+
+# ----------------------------------------------------------------------------------------------
+# 4. the DOCX, read back
+
+def read_docx(path: Path) -> dict:
+    doc = Document(jsonio.ext(path))
+    tables: dict[str, list[list[str]]] = {}
+    for t in doc.tables:
+        rows = [[c.text for c in r.cells] for r in t.rows]
+        tables.setdefault("|".join(rows[0]), []).extend(rows[1:])
+    paragraphs = [p.text for p in doc.paragraphs]
+    for s in doc.sections:
+        paragraphs.extend(p.text for p in s.header.paragraphs)
+        paragraphs.extend(p.text for p in s.footer.paragraphs)
+    return {"tables": tables, "paragraphs": paragraphs}
+
+
+def audit_dossier(dossier_dir: Path | str, input_dir: Path | str, record: dict | None = None,
+                  names: tuple[str, str] = ("dossier.docx", "provenance.json"), rules: Rules | None = None) -> dict:
+    d = Path(dossier_dir)
+    problems: list[str] = []
+    prov = jsonio.load(d / names[1])
+    figures = prov["figures"]
+    docs = {x["doc_id"]: x for x in prov["documents"]}
+    docs.update(prov.get("upstream_documents", {}))
+    sourced = 0
+    cache: dict[str, tuple[str, list[str]]] = {}
+    for f in figures:
+        if any(f.get(k) in (None, "", []) for k in ("value", "source_doc", "source_date", "edition")):
+            problems.append(f"{f.get('id')}: figure without value, source document, date or edition")
+            continue
+        sourced += 1
+        meta = docs.get(f["source_doc"])
+        if meta is None:
+            problems.append(f"{f['id']}: source {f['source_doc']} is not a document of the record")
+            continue
+        if f["source_date"] != meta["date"] or f["edition"] != meta["edition"]:
+            problems.append(f"{f['id']}: date or edition differs from the source document's own")
+        if f["source_file"] not in cache:
+            path = Path(input_dir) / f["source_file"]
+            if not path.exists():
+                problems.append(f"{f['id']}: source file of {f['source_doc']} not found")
+                continue
+            data = jsonio.read_bytes(path)
+            cache[f["source_file"]] = (jsonio.sha256_bytes(data), data.decode("utf-8").replace("\r\n", "\n").split("\n"))
+        sha, lines = cache[f["source_file"]]
+        if sha != meta["sha256"]:
+            problems.append(f"{f['id']}: source {f['source_doc']} changed since the record was built")
+        if "\n".join(lines[f["line"] - 1:f["line_end"]]) != f["quote"]:
+            problems.append(f"{f['id']}: quoted lines are not in {f['source_doc']} at lines {f['line']}-{f['line_end']}")
+        elif not supported_by_quote(f):
+            problems.append(f"{f['id']}: value {f['display']} is not supported by the quoted source lines")
+        if f["display"] != b.display("share" if f["section"] in ("cap_table", "chain") else _display_field(f), f["value"]):
+            problems.append(f"{f['id']}: displayed text does not match the value")
+
+    for t in prov["to_confirm"]:
+        if "value" in t or t.get("marker") != TO_CONFIRM:
+            problems.append(f"{t['field']}: a field to confirm carries a value")
+        if any(f["field"] == t["field"] and f["section"] in ("facts", "cap_table") for f in figures):
+            problems.append(f"{t['field']}: shown both as a fact and as to confirm")
+
+    if record is not None:
+        by_field: dict[str, list[dict]] = {}
+        for a in record["assertions"]:
+            if not a["field"].endswith(".previous"):
+                by_field.setdefault(a["field"], []).append(a)
+        if rules is None:
+            rules = rules_engine.load()
+        scopes = [(u, *unread_scope(u, input_dir, rules)) for u in record.get("unclassified_documents", [])]
+        words = _Words(rules)
+        read = [(meta, classified_scope(meta, record, input_dir, rules, words)) for meta in record["documents"]]
+        adr = address_audit(read)
+        ident = _ident(rules)
+        nam = name_audit(read, ident)
+        for meta, got in read:
+            problems.extend(got["problems"])
+            check = next((c for c in record.get("classified_checks", []) if c["doc_id"] == meta["doc_id"]
+                          and c["file"] == meta["file"]), None)
+            said = set(check["fields_check"]["may_change"]) if check else set()
+            left_out = (check or {}).get("fields_check", {}).get("except") or []
+            if "*" in said and left_out:     # every field but those (v2.0.8): an address no second document states
+                said = (said - {"*"}) | {"*~" + ",".join(sorted(left_out))}
+            plus = sorted(n for (d, n), o in adr["lines"].items() if d == meta["doc_id"] and o == "plus")
+            alone = sorted(n for (d, n), o in adr["lines"].items() if d == meta["doc_id"] and o == "alone")
+            if plus and "*" not in said:
+                problems.append(f"{meta['doc_id']}: line(s) {plus[:5]} give an address that is another address of the "
+                                "entity plus words, and the record does not say the document may change every field")
+            elif alone and not any(m == "*" or m.startswith("*~") for m in said):
+                problems.append(f"{meta['doc_id']}: line(s) {alone[:5]} give an address that no second document "
+                                "states alike, and the record does not say the document may change every other field")
+            if (any(words.holding(got["lines"][n]) for n in plus)
+                    and (check is None or check["holders_check"]["status"] != "not_read")):
+                problems.append(f"{meta['doc_id']}: a line with an address that is not corroborated may state a holding, "
+                                "and its holders are not marked unread")
+            head = nam["docs"].get(meta["doc_id"])      # v2.0.8 (D37): the company's name of the header, read again
+            if head == "plus" and "*" not in said:
+                problems.append(f"{meta['doc_id']}: the company's name of its header is another name of the entity plus "
+                                "words, and the record does not say the document may change every field")
+            elif head == "unidentified" and "*" not in said:      # v2.0.9 (D38)
+                problems.append(f"{meta['doc_id']}: the company's name of its header is not identified word by word, "
+                                "and the record does not say the document may change every field")
+            elif head == "alone" and not any(m == "*" or m.startswith("*~") for m in said):
+                problems.append(f"{meta['doc_id']}: no second document of the entity states the company's name of its "
+                                "header alike, and the record does not say the document may change every other field")
+            if (head in ("plus", "unidentified") and (words.holding(got["own"]) or ident.numeral(got["own"]))
+                    and (check is None or check["holders_check"]["status"] != "not_read")):
+                problems.append(f"{meta['doc_id']}: the company's name of its header, not corroborated, may state a "
+                                "holding, and its holders are not marked unread")
+            own = (got["scope"] | ({"*"} if plus or head in ("plus", "unidentified") else set())
+                   | ({"*~registered_office"} if alone else set()) | ({"*~name"} if head == "alone" else set()))
+            got = dict(got, scope=own)
+            if got["open"] and "*" not in said:
+                problems.append(f"{meta['doc_id']}: line(s) {got['open'][:5]} read by no rule of its kind, and the record "
+                                "does not say the document may change every field")
+            elif [f for f in got["restated"] if not _in_scope(said, f)]:
+                problems.append(f"{meta['doc_id']}: it states {sorted(f for f in got['restated'] if not _in_scope(said, f))}"
+                                " on lines that no rule read, and the record does not say the document may change them")
+            if got["holding"] and (check is None or check["holders_check"]["status"] != "not_read"):
+                problems.append(f"{meta['doc_id']}: a line read by no rule of its kind may state a holding, and its "
+                                "holders are not marked unread")
+            if got["scope"] | said:
+                scopes.append(({"date": meta["date"], "doc_id": meta["doc_id"]}, got["scope"] | said, []))
+        clash = form_clash(by_field)
+        for fld, assertions in sorted(by_field.items()):
+            values, any_current, unreadable, cutoff = current_values(assertions)
+            shown = [f for f in figures if f["field"] == fld and f["section"] in ("facts", "cap_table")]
+            disc = {_key(f["value"]) for f in figures if f["field"] == fld and f["section"] == "discrepancies"}
+            if fld == "registered_office":         # v2.0.8 (D37): corroboration and equality, read again
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:
+                    if isinstance(v, str) and _adr_tokens(v) in adr["plus"]:
+                        problems.append("registered_office: an address that is another address of the entity plus "
+                                        "words is shown")
+                if shown and not (isinstance(shown[0]["value"], str)
+                                  and _adr_tokens(shown[0]["value"]) in adr["corroborated"]):
+                    problems.append("registered_office: shown as fact although no second document of the entity "
+                                    "states the same address")
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:      # v2.0.9 (D38)
+                    if not (isinstance(v, str) and ident.ok(v, "address")):
+                        problems.append("registered_office: an address not identified word by word is shown")
+            if fld == "name":                      # v2.0.8 (D37): the header names, corroboration and equality
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:
+                    if isinstance(v, str) and _adr_tokens(_bare_name(v)) in nam["plus"]:
+                        problems.append("name: a name that is another name of the entity plus words is shown")
+                if shown and not (isinstance(shown[0]["value"], str)
+                                  and _adr_tokens(_bare_name(shown[0]["value"])) in nam["corroborated"]):
+                    problems.append("name: shown as fact although no second document of the entity states the same "
+                                    "name in its header")
+                for v in [f["value"] for f in shown] + [json.loads(k) for k in disc]:      # v2.0.9 (D38)
+                    if not (isinstance(v, str) and ident.ok(v, "company")):
+                        problems.append("name: a name not identified word by word is shown")
+            unread = []
+            for u, scope, tables in scopes:
+                if cutoff and _ISO_DATE.fullmatch(u.get("date") or "") and u["date"] < cutoff:
+                    continue
+                if not _in_scope(scope, fld):
+                    continue
+                if (fld == "shareholders" and len(tables) == 1 and len(values) == 1 and not unreadable
+                        and _key(sorted(tables[0], key=lambda r: r["holder"])) in values):
+                    continue                  # its table, re-read by the audit, is the one current table
+                unread.append(u)
+            if unread:
+                if shown or disc:
+                    problems.append(f"{fld}: shown as fact or as a conflict although an unread document may change it")
+            elif len(values) >= 2:
+                if shown:
+                    problems.append(f"{fld}: sources disagree but one value is shown as fact")
+                if disc != values:
+                    problems.append(f"{fld}: not every conflicting value is shown side by side")
+            elif unreadable:
+                if shown:
+                    problems.append(f"{fld}: a value is shown as fact although a current source could not be read")
+            elif clash and fld in ("name", "legal_form") and len(values) == 1:
+                if shown:
+                    problems.append(f"{fld}: shown as fact although the legal form in the name differs from the legal "
+                                    "form stated")
+            elif len(values) == 1:
+                if fld == "shareholders" and shown:
+                    table = sorted(({"holder": f["holder"], "share": f["value"]} for f in shown),
+                                   key=lambda r: r["holder"])
+                    if _key(table) not in values:
+                        problems.append("shareholders: the table shown is not the one the current sources state")
+                elif shown and _key(shown[0]["value"]) not in values:
+                    problems.append(f"{fld}: the value shown is not the one the current sources state")
+                if not shown and not (fld == "registered_office" and not any(   # v2.0.8: DISC-038
+                        isinstance(json.loads(k), str) and _adr_tokens(json.loads(k)) in adr["corroborated"]
+                        for k in values)) and not (fld == "name" and not any(
+                        isinstance(json.loads(k), str) and _adr_tokens(_bare_name(json.loads(k))) in nam["corroborated"]
+                        for k in values)):
+                    problems.append(f"{fld}: a readable current value is not shown")
+            elif shown:
+                problems.append(f"{fld}: a value is shown but no current source could be read")
+
+    # the DOCX
+    got = read_docx(d / names[0])
+    by_id = {f["id"]: f for f in figures}
+    seen_ids: set[str] = set()
+    for section, header in FIGURE_SECTIONS.items():
+        for row in got["tables"].get("|".join(header), []):
+            if section == "cap_table" and row[0] == "" and row[1] == "Sum":
+                continue
+            f = by_id.get(row[0])
+            if f is None or f["section"] != section:
+                problems.append(f"DOCX row {row[0]!r} in {section} has no provenance entry")
+                continue
+            seen_ids.add(row[0])
+            if row[-3:] != [f["source_doc"], f["source_date"], f["edition"]] or not all(row[-3:]):
+                problems.append(f"{f['id']}: DOCX row lacks or alters the source, date or edition")
+            if f["display"] not in row:
+                problems.append(f"{f['id']}: DOCX value differs from provenance")
+    missing = sorted(set(by_id) - seen_ids)
+    if missing:
+        problems.append(f"{len(missing)} provenance figure(s) are not in the DOCX: {missing[:5]}")
+    for row in got["tables"].get("|".join(b.H_TOCONFIRM), []):
+        if row[1] != TO_CONFIRM:
+            problems.append(f"{row[0]}: the to-confirm row does not carry the marker")
+    cap_rows = [r for r in got["tables"].get("|".join(b.H_CAP), []) if r[0]]
+    if cap_rows:
+        total = sum((parse_frac(r[2].split(" ")[0]) for r in cap_rows), Fraction(0))
+        if total != 1:
+            problems.append(f"the cap table in the DOCX sums to {total}, not to the whole")
+    for p in got["paragraphs"]:
+        if _ORPHAN.search(p):
+            problems.append(f"figure outside a sourced table: {p[:80]!r}")
+    return {"ok": not problems, "figures_total": len(figures), "figures_with_source": sourced,
+            "derived_total": len(prov["derived"]), "to_confirm_total": len(prov["to_confirm"]),
+            "problems": problems}
+
+
+def _display_field(f: dict) -> str:
+    if f["section"] == "history" and f["field"] == "share_capital":
+        return "share_capital."
+    return f["field"]
+
+
+# ----------------------------------------------------------------------------------------------
+# outgoing documents that still carry a superseded value
+
+_DOC_DATE = re.compile(r"^(?:Document date|Date):\s*(\d{4}-\d{2}-\d{2})\s*$", re.M)
+
+
+def _amounts_in(line: str, currency: str) -> list[tuple[int, str]]:
+    """(position, canonical amount) of every currency amount in a line, whatever its format."""
+    out = []
+    num = _DIGIT_RUN
+    for m in re.finditer(rf"(?<![A-Za-z])(?:{currency})\s*({num})|({num})\s*(?:{currency})", line, flags=re.I):
+        token = (m.group(1) or m.group(2)).strip(" .,")
+        value, _ = parse_amount(token)
+        if value is None and re.fullmatch(r"\d{1,3}(\.\d{3})+", token):   # 50.000 next to a currency marker
+            value = f"{int(token.replace('.', ''))}.00"
+        if value is not None:
+            out.append((m.start(), value))
+    return out
+
+
+def _has_cue(line: str, field_root: str, params: dict) -> bool:
+    """The cue of the field is in the line, outside the expressions that only look like it."""
+    excluded = params.get("field_cue_exclusions", {}).get(field_root)
+    if excluded:
+        line = rx(excluded).sub(" ", line)
+    return rx(params["field_cues"][field_root]).search(line) is not None
+
+
+def scan_outgoing(outgoing_dir: Path | str, superseded: list[dict], entity_names: dict[str, str],
+                  target: str, rules: Rules) -> dict:
+    """Find, in outgoing text documents, amounts of the target entity that were superseded.
+
+    ``superseded`` is the register of stage 3; ``entity_names`` maps entity id -> name without legal form.
+    """
+    cfg = rules.discrepancy["outgoing_scan"]
+    p = cfg["parameters"]
+    lookback = int(p["entity_lookback_lines"])
+    findings, ignored = [], []
+    root = Path(outgoing_dir)
+    files = sorted(f for f in root.rglob("*") if f.is_file() and f.suffix.lower() in (".txt", ".md"))
+    for f in files:
+        rel = f.relative_to(root).as_posix()
+        text = jsonio.read_text(f).replace("\r\n", "\n")
+        lines = text.split("\n")
+        m = _DOC_DATE.search(text)
+        doc_date = m.group(1) if m else ""
+        for entry in superseded:
+            field_root = entry["field"].split(".")[0]
+            cue = p["field_cues"].get(field_root)
+            if cue is None or not isinstance(entry["old_value"], str):
+                continue
+            for no, line in enumerate(lines, 1):
+                for pos, value in _amounts_in(line, p["currency_markers"]):
+                    if value != entry["old_value"]:
+                        continue
+                    nearest = _nearest_entity(lines, no, pos, entity_names, lookback)
+                    facts = {
+                        "document_dated_before_change": bool(doc_date) and doc_date < entry["since"],
+                        "no_field_cue_in_line": not _has_cue(line, field_root, p),
+                        "historical_marker_before_amount": False,
+                        "line_is_about_another_entity": nearest is not None and nearest != target,
+                        "line_is_not_about_the_entity": nearest is None,
+                        "always": True,
+                    }
+                    rule = first_match(cfg["rules"], lambda r: _scan_fact(r, facts, line[:pos]))
+                    hit = {"file": rel, "line": no, "text": line.strip(), "field": field_root,
+                           "old_value": entry["old_value"], "new_value": entry["new_value"],
+                           "new_edition": entry["new_edition"], "new_source_doc": entry["new_source_doc"],
+                           "changed_on": entry["since"], "changed_by_doc": entry.get("changed_by_doc", ""),
+                           "changed_by_edition": entry.get("changed_by_edition", ""), "rule": rule["id"]}
+                    (findings if rule["action"] == "flag" else ignored).append(hit)
+    uniq = {(h["file"], h["line"]): h for h in findings}
+    return {"files_scanned": len(files), "findings": [uniq[k] for k in sorted(uniq)],
+            "ignored": sorted(ignored, key=lambda h: (h["file"], h["line"], h["rule"]))}
+
+
+def _scan_fact(rule: dict, facts: dict, before_amount: str) -> bool:
+    if rule["when"] == "historical_marker_before_amount":
+        return rx(rule["pattern"]).search(before_amount) is not None
+    return facts[rule["when"]]
+
+
+def _nearest_entity(lines: list[str], no: int, pos: int, names: dict[str, str], lookback: int) -> str | None:
+    """The entity named closest before the amount: in the line itself, else in the lines just above."""
+    best: tuple[int, str] | None = None
+    line = lines[no - 1]
+    for eid, name in names.items():
+        for m in re.finditer(re.escape(name), line, flags=re.I):
+            dist = abs(pos - m.start())
+            if best is None or dist < best[0]:
+                best = (dist, eid)
+    if best:
+        return best[1]
+    for back in range(1, lookback + 1):
+        if no - 1 - back < 0:
+            break
+        found = [eid for eid, name in names.items() if re.search(re.escape(name), lines[no - 1 - back], flags=re.I)]
+        if len(found) == 1:
+            return found[0]
+        if found:
+            return None
+    return None
+
+
+def run_scan_tests(rules: Rules) -> tuple[int, list[str]]:
+    """Inline tests of the outgoing-scan guards."""
+    n, bad = 0, []
+    cfg = rules.discrepancy["outgoing_scan"]
+    entry = {"field": "share_capital.resolved", "old_value": "50000.00", "new_value": "80000.00",
+             "new_edition": "RESOLUTION/1", "new_source_doc": "DOC-T", "since": "2026-01-15"}
+    names = {"E-0001": "Fornace Aurelia", "E-0002": "Holding Aurelia Partecipazioni"}
+    for r in cfg["rules"]:
+        for t in r.get("tests", []):
+            n += 1
+            lines = t["text"].split("\n")
+            doc_date = t.get("doc_date", "")
+            got = None
+            for no, line in enumerate(lines, 1):
+                for pos, value in _amounts_in(line, cfg["parameters"]["currency_markers"]):
+                    if value != entry["old_value"]:
+                        continue
+                    nearest = _nearest_entity(lines, no, pos, names, int(cfg["parameters"]["entity_lookback_lines"]))
+                    facts = {"document_dated_before_change": bool(doc_date) and doc_date < entry["since"],
+                             "no_field_cue_in_line": not _has_cue(line, "share_capital", cfg["parameters"]),
+                             "historical_marker_before_amount": False,
+                             "line_is_about_another_entity": nearest is not None and nearest != "E-0001",
+                             "line_is_not_about_the_entity": nearest is None, "always": True}
+                    got = first_match(cfg["rules"], lambda x: _scan_fact(x, facts, line[:pos]))["id"]
+            if got != r["id"]:
+                bad.append(f"{r['id']}: test text decided by {got}")
+    return n, bad

@@ -1,0 +1,19 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-02
+Document type: Test registry extract
+Document date: 2025-11-03
+Edition: EXTRACT/1
+Entity: Fonderie Pontefinto S.r.l. (test registry no. TEST-REG-000002)
+
+Name: Fonderie Pontefinto S.r.l.
+Legal form: S.r.l.
+Registered office: Corso dei Fantasmi 3, Pontefinto (ZZ)
+Share capital: resolved EUR 100.000,00; subscribed and paid in EUR 100.000,00
+Quotaholders, registered:
+(a) Ada Simulacri (P-001) - 1/2
+(b) Clelia Posticcia (P-003) - 1/4
+(c) Dino Apocrifi (P-004) - 1/4
+
+Directors:
+- P-003 (Clelia Posticcia)
+- P-004 (Dino Apocrifi)

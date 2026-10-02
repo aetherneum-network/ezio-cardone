@@ -1,0 +1,20 @@
+{
+  "P-004": {
+    "born": "1959-04-12",
+    "email": "dora.campione@persons.example",
+    "name": "Dora Campione",
+    "tax_code": "SYN-CF-P004"
+  },
+  "P-005": {
+    "born": "1980-09-08",
+    "email": "elio.simulati@persons.example",
+    "name": "Elio Simulati",
+    "tax_code": "SYN-CF-P005"
+  },
+  "P-006": {
+    "born": "1977-01-25",
+    "email": "fulvia.posticci@persons.example",
+    "name": "Fulvia Posticci",
+    "tax_code": "SYN-CF-P006"
+  }
+}

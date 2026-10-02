@@ -1,0 +1,5 @@
+{
+  "file": "ownership.json",
+  "parameter": "cycle_policy",
+  "value": "closure"
+}

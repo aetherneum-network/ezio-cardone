@@ -1,0 +1,16 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0034-01
+Document type: Deed of incorporation
+Document date: 2025-02-17
+Edition: DEED/1
+Entity: Officine Montefinto S.r.l. (test registry no. TEST-REG-000034)
+
+1. Name and form. The company is named Officine Montefinto S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Collaudo 4, Pievetorta (ZZ).
+3. Share capital. The share capital is EUR 40.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-037 (Piero Fantasmi): 50%
+- P-038 (Rita Simulati): 50%
+
+5. Directors.
+- P-037 (Piero Fantasmi)

@@ -1,0 +1,12 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0002-03
+Document type: Share transfer notice
+Document date: 2025-09-09
+Edition: TRANSFER/1
+Entity: Cooperativa Agricola Valinventata S.p.A. (test registry no. TEST-REG-000002)
+
+Notice of a transfer of shares (synthetic).
+Holders after the transfer:
+- P-003 (Zeno Provetti): 50%
+- P-004 (Ada Campionari): 30%
+- P-006 (Clea Inventari): 15%

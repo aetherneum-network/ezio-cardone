@@ -1,0 +1,15 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0026-01
+Document type: Deed of incorporation
+Document date: 2023-02-14
+Edition: DEED/1
+Entity: Tipografie Torremodello S.r.l. (test registry no. TEST-REG-000026)
+
+1. Name and form. The company is named Tipografie Torremodello S.r.l.; its legal form is S.r.l.
+2. Registered office. The registered office is at Via del Segnaposto 8, Torremodello (ZZ).
+3. Share capital. The share capital is EUR 22.000,00, fully subscribed and fully paid in.
+4. Holders.
+- P-051 (Carlo Fittizi): 100%
+
+5. Directors.
+- P-051 (Carlo Fittizi)

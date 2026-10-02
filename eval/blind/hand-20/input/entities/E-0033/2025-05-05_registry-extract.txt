@@ -1,0 +1,17 @@
+SYNTHETIC TEST DOCUMENT - fictitious entity, invented test registry, not an official record.
+Document id: DOC-E0033-02
+Document type: Test registry extract
+Document date: 2025-05-05
+Edition: EXTRACT/1
+Entity: Vetreria Lago Fasullo S.r.l. (test registry no. TEST-REG-000033)
+
+Name: Vetreria Lago Fasullo S.r.l.
+Legal form: S.r.l.
+Registered office: Via dei Modellini 27, Lago Fasullo (ZZ)
+Share capital: resolved EUR 23.000,00; subscribed and paid in EUR 23.000,00
+Holders:
+- P-009 (Nilo Burleschi): 60%
+- P-010 (Ada Mendaci): 40%
+
+Directors:
+- P-009 (Nilo Burleschi)
