@@ -1,7 +1,9 @@
-# Runner probe, on a diagnostic branch only (never merged): what the hosted runner gives the test suite. It prints
-# the CPU topology the job sees, the start-up cost of the worker processes, and the time of the sweeps of siblings
-# with 1, 2, 3 and 4 workers on the same machine (4 first and last, to see drift), with 4 workers once more on another
-# temporary folder, then the whole suite with per-test times. Nothing here changes the pack; ci.yml runs as usual.
+# Runner probe, on a diagnostic branch only (never merged): what the hosted runner gives the test suite.
+# Round 1 (commit 17dfc3e) measured the CPU topology, the start-up of the workers and the sweeps with 1 to 4 workers.
+# Round 2, on one machine per system: the suite of v2.0.13 and the suite of this commit (sweeps submitted when their
+# module is loaded), each with the job's default temporary folder and with a folder under the runner's temporary
+# folder; then the scenarios, the development evaluation and the rebuild with each of the two folders, with the
+# entries each step leaves behind. Nothing here changes the pack; ci.yml runs as usual.
 name: probe
 on:
   push:
@@ -27,6 +29,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
@@ -34,22 +37,25 @@ jobs:
         run: python -m pip install --require-hashes -r requirements.txt
       - name: Topology
         run: python probe/runner_probe.py topology
-      - name: Start-up of worker processes
-        run: python probe/runner_probe.py spawn
-      - name: Sweeps, 4 workers (first)
-        run: EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4a.json" - sweeps
-      - name: Sweeps, 1 worker
-        run: EZIO_TEST_JOBS=1 python probe/tim.py "$RUNNER_TEMP/sweeps-1.json" - sweeps
-      - name: Sweeps, 2 workers
-        run: EZIO_TEST_JOBS=2 python probe/tim.py "$RUNNER_TEMP/sweeps-2.json" - sweeps
-      - name: Sweeps, 3 workers
-        run: EZIO_TEST_JOBS=3 python probe/tim.py "$RUNNER_TEMP/sweeps-3.json" - sweeps
-      - name: Sweeps, 4 workers (last)
-        run: EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4b.json" - sweeps
-      - name: Sweeps, 4 workers, temporary folder on another volume
-        run: |
-          if [ "$RUNNER_OS" = "Windows" ]; then d="$RUNNER_TEMP\eziotmp"; else d=/dev/shm/eziotmp; fi
-          mkdir -p "$d"
-          TEMP="$d" TMP="$d" TMPDIR="$d" EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4t.json" - sweeps
-      - name: Whole suite, default workers, per-test times
-        run: python probe/tim.py "$RUNNER_TEMP/suite.json" -
+      - name: The code of v2.0.13 in a folder of its own (main 7dde2ff, no git metadata)
+        run: mkdir -p "$RUNNER_TEMP/v2013" && git archive 7dde2ff | tar -x -C "$RUNNER_TEMP/v2013"
+      - name: Suite of v2.0.13, default temporary folder
+        run: bash probe/round2.sh suite13 s13-system system
+      - name: Suite of this commit, default temporary folder
+        run: bash probe/round2.sh suite14 s14-system system
+      - name: Suite of v2.0.13, runner temporary folder
+        run: bash probe/round2.sh suite13 s13-work work
+      - name: Suite of this commit, runner temporary folder
+        run: bash probe/round2.sh suite14 s14-work work
+      - name: Scenarios, default temporary folder
+        run: bash probe/round2.sh scenarios scen-system system
+      - name: Scenarios, runner temporary folder
+        run: bash probe/round2.sh scenarios scen-work work
+      - name: Development evaluation, default temporary folder
+        run: bash probe/round2.sh eval eval-system system
+      - name: Development evaluation, runner temporary folder
+        run: bash probe/round2.sh eval eval-work work
+      - name: Rebuild, default temporary folder
+        run: bash probe/round2.sh rebuild rebuild-system system
+      - name: Rebuild, runner temporary folder
+        run: bash probe/round2.sh rebuild rebuild-work work

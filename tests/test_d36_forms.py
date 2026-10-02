@@ -620,6 +620,12 @@ class D36_ResidualWordList(unittest.TestCase):
         self.assertEqual(published, [])
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D36_TypedSlotSiblings.test_every_sibling_is_safe", _run, [(docs,) for _, _, docs, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     import json
     got = tally()

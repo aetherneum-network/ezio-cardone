@@ -299,6 +299,13 @@ class D37_NameEqualityPremise(unittest.TestCase):
         self.assertTrue(all(f["status"] != "STATED" for f in view["fields"].values()), view["fields"])
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D37_SlotSiblings.test_no_sibling_is_published_wrongly", _run,
+            [(docs,) for _, docs, _, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     import json
     json.dump(tally(), sys.stdout, indent=1, ensure_ascii=False)

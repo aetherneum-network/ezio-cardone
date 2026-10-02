@@ -358,6 +358,12 @@ class D37_DeclaredForms(unittest.TestCase):
                 self.assertEqual(view["fields"]["shareholders"]["status"], "STATED")
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D37_AddressSiblings.test_every_sibling_is_safe", _run, [(docs,) for _, docs, _, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     import json
     json.dump(tally(), sys.stdout, indent=1, ensure_ascii=False)
