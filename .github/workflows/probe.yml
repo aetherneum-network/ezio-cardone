@@ -4,6 +4,7 @@
 # module is loaded), each with the job's default temporary folder and with a folder under the runner's temporary
 # folder; then the scenarios, the development evaluation and the rebuild with each of the two folders, with the
 # entries each step leaves behind. Nothing here changes the pack; ci.yml runs as usual.
+# Fix of round 2: GNU tar reads a path with a drive letter as a remote host, so it extracts in the current folder.
 name: probe
 on:
   push:
@@ -15,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest]
+        os: [windows-latest]  # round 2 fix: the ubuntu-latest job of 06ec94f ran in full
     runs-on: ${{ matrix.os }}
     timeout-minutes: 150
     defaults:
@@ -38,7 +39,7 @@ jobs:
       - name: Topology
         run: python probe/runner_probe.py topology
       - name: The code of v2.0.13 in a folder of its own (main 7dde2ff, no git metadata)
-        run: mkdir -p "$RUNNER_TEMP/v2013" && git archive 7dde2ff | tar -x -C "$RUNNER_TEMP/v2013"
+        run: mkdir -p "$RUNNER_TEMP/v2013" && cd "$RUNNER_TEMP/v2013" && git -C "$GITHUB_WORKSPACE" archive 7dde2ff | tar -x
       - name: Suite of v2.0.13, default temporary folder
         run: bash probe/round2.sh suite13 s13-system system
       - name: Suite of this commit, default temporary folder
