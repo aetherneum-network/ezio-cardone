@@ -2,6 +2,68 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.13] - 2026-10-02 (freeze tag `v2.0.13-freeze`; the CI workflow and documents only)
+
+The CI workflow and documents only. No code, rule, schema, corpus generator, scenario, test or tool changed, so
+`MANIFEST.sha256` is unchanged, the generator still names `dossier 2.0.10` and the rebuild hashes of the README do
+not change. This is the first freeze tag that carries pull requests #1 and #3 (merge commits `468cbd6` and
+`44b6793`): the reviewed profile text of the README and its hash in `tests/test_hygiene.py`, described in the entry
+"[Unreleased]" below, which keeps its heading as written. Against `v2.0.12-freeze` the manifest differs in that one
+line. `eval/history.json`, `eval/BLIND_PROTOCOL.md` and `eval/blind/` are unchanged. Not run blind; no outcome
+changes.
+
+### 1. The first CI runs on the code of v2.0.12
+
+Five runs, 2026-10-02, images `windows-2025-vs2026` and `ubuntu-24.04` (both 20260901.588), CPython 3.12.10 and
+3.12.14. The suite is the time printed by `Ran ... in`; the rebuild step, which v2.0.12 did not change, is shown for
+Windows as a reference for the hardware:
+
+| Run | Commit, event | Windows suite | Windows job | Windows rebuild step | Ubuntu suite | Ubuntu job |
+|---|---|---|---|---|---|---|
+| 37034844975 | `65a1ce4`, push of the branch | 412.4 s | 11.4 min | 145 s | 507.1 s | 12.5 min |
+| 37034848055 | `65a1ce4`, push of `v2.0.12-freeze` | 690.6 s | 19.2 min | 264 s | 400.6 s | 9.9 min |
+| 37037008601 | `63ad1ce`, push of the branch | 709.0 s | 19.3 min | 259 s | 505.0 s | 12.4 min |
+| 37037013111 | `63ad1ce`, pull request #4 | 662.4 s | 18.0 min | 239 s | 499.5 s | 12.3 min |
+| 37040018524 | `3e806f0`, push of `main` | 745.0 s | 20.0 min | 234 s | 511.7 s | 12.6 min |
+
+Every job: 364 tests OK, scenarios 10/10 PASS, the development evaluation with 0 never-events, `REBUILD OK` with
+the four SHA-256 values of the README. The pull request run of `65a1ce4` (37035048034, merged with the `main` of
+that moment) ran the suite in 681.9 s and 278.6 s with one failure in both jobs,
+`test_the_profile_text_is_untouched`, the profile hash that pull request #3 corrects; the later steps did not run.
+
+- **The estimate.** 2.0.12 section 4 expected a Windows suite of about 515 to 535 s and a job of about 17 minutes.
+  No run fell in that range: one was faster (412.4 s, 11.4 minutes), five slower (662.4 to 745.0 s, the failed run
+  included; jobs 18.0 to 20.0 minutes). The rebuild step took 145 s in the fast run and 234 to 264 s in the others:
+  the hardware behind `windows-latest` differs from run to run, as 2.0.12 section 1 found for `ubuntu-latest`.
+- **Before and after on comparable runners.** Runs 37039082115 (`44b6793`, `main` with pull request #3: the suite
+  of v2.0.11, one process) and 37040018524 (`3e806f0`: the suite of v2.0.12) started eight minutes apart (17:12
+  and 17:20 UTC) on the same images; their Windows rebuild steps took 265 s and 234 s. Windows: suite from
+  1328.8 s to 745.0 s (1.78 times faster), job from 30.3 to 20.0 minutes. Ubuntu: suite from 886.5 s to 511.7 s
+  (1.73 times), job from 19.0 to 12.6 minutes. Both jobs of run 37039082115 printed the same four rebuild values.
+  On the builder's machine 4 workers made the suite 2.45 times faster (790.6 s to 322.2 s); why a runner with 4
+  CPUs gains less was not measured: `[TO CONFIRM]`.
+
+### 2. The workflow
+
+- **Actions by commit digest.** `actions/checkout` v7.0.1 (`3d3c42e5aac5ba805825da76410c181273ba90b1`) and
+  `actions/setup-python` v7.0.0 (`5fda3b95a4ea91299a34e894583c3862153e4b97`), read from the tags of the two
+  repositories on 2026-10-02; the release is in a comment. Until v2.0.12 they were referenced by tag (`v4`, `v5`),
+  their digests `[TO CONFIRM]`. Every run of section 1 carried a warning from GitHub: both actions targeted
+  Node.js 20, which is deprecated, and were forced to run on Node.js 24. Both new releases declare `node24`.
+- **What the releases in between change for this workflow.** checkout v6 keeps the credentials in a file of their
+  own instead of the repository configuration; checkout v7 refuses to check out the pull request of a fork under
+  `pull_request_target` and `workflow_run`, triggers this workflow does not use. setup-python v6 moved to
+  Node.js 24; setup-python v7 removes the `pip-install` input, which this workflow does not use. Both v7 releases
+  moved to ES modules. The workflow still asks for `"3.12"`; the CPython the runner installs is in each job's log.
+- **No token left on disk.** The checkout step gets `persist-credentials: false`: no command of the job finds the
+  job's token on disk or in its environment; the default read-only token goes to the two actions only. No step
+  uses git with credentials. The comment of the workflow said "the job carries no credential"; it now says how.
+- **`timeout-minutes` stays 60**: the longest job on the code of v2.0.12 took 20.0 minutes, a third of it, and the
+  same step differs up to about 1.8 times between runners (the rebuild step 145 to 265 s).
+- **`ubuntu-latest`.** The runs also carried a notice: the label moves to Ubuntu 26 from 2026-10-19. The workflow
+  keeps the label; each job's log records its image, so a run on the new image is one more observation, not a
+  change of claim. Whether that image provides CPython 3.12 as this one does is `[TO CONFIRM]` by its first run.
+
 ## [Unreleased] - 2026-10-02 (main after pull requests #1 and #2; no freeze tag; one test constant and the manifest)
 
 Pull request #1 (week-1 review of 2026-09-30, merge commit `468cbd6`) corrected the thesis title in the profile

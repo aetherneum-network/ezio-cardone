@@ -1,11 +1,14 @@
 # Offline CI of the proof pack. After the one install step from the hashed lockfile nothing touches the
-# network: the tests block sockets, no model and no API is called, and the job carries no credential.
+# network: the tests block sockets, no model and no API is called, and the job carries no credential of its own:
+# the default read-only token of the job goes to the two actions only and is not left on disk
+# (persist-credentials: false, since v2.0.13).
 #
 # Status: published on 2026-10-02 as pull request #2 of this repository; the workflow runs on GitHub-hosted
 # runners and its results are on the pull request. On the code of v2.0.10-freeze the ubuntu-latest job of run
 # 37013193685 (ubuntu-24.04, CPython 3.12.14) passed - 364 tests OK in 446.2 s - and printed the same rebuild
 # hashes as the README, measured on Windows 11: one observation, not a claim of identity between operating
-# systems. The two actions are referenced by tag; their commit digests are [TO CONFIRM].
+# systems. Until v2.0.12 the two actions were referenced by tag, their commit digests [TO CONFIRM]; since v2.0.13
+# they are referenced by commit digest, the release in a comment (CHANGELOG.md 2.0.13).
 #
 # timeout-minutes is 60 since v2.0.11 (it was 20). On the code of v2.0.10-freeze the six windows-latest jobs
 # of 2026-10-02 were all cancelled at 20 minutes, before the rebuild step. The test suite is the step that grew
@@ -20,6 +23,11 @@
 # (EZIO_TEST_JOBS, else the CPU count, at most 8; the standard runners of a public repository have 4 CPUs). The
 # command below is unchanged. timeout-minutes stays 60 until a Windows run on that code is read (CHANGELOG.md
 # 2.0.12).
+#
+# Read in v2.0.13 (CHANGELOG.md 2.0.13): on the code of v2.0.12 five runs took 412.4 to 745.0 s for the Windows
+# suite and 11.4 to 20.0 minutes for the Windows job. Two pushes to main eight minutes apart: 1328.8 s and 30.3
+# minutes with the suite of v2.0.11, 745.0 s and 20.0 minutes with that of v2.0.12. timeout-minutes stays 60,
+# three times the longest job.
 name: ci
 on:
   push:
@@ -38,8 +46,10 @@ jobs:
       PYTHONIOENCODING: utf-8
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
       - name: Install from the hashed lockfile (the only step that uses the network)
