@@ -206,10 +206,11 @@ class D37_SlotSiblings(unittest.TestCase):
     def test_no_sibling_is_published_wrongly(self):
         """No sibling publishes wrongly; the only FAILED is the fail-closed class, refused by the leak check."""
         n = n_failed = 0
-        for key, docs, changes, w in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, docs, _, _ in cases()])
+        for (key, docs, changes, w), outcome in zip(cases(), outcomes):
             with self.subTest(case=" | ".join(key)):
                 n += 1
-                why = unsafe(*_run(docs), changes, w)
+                why = unsafe(*outcome.result(), changes, w)
                 if why.startswith("FAILED"):
                     n_failed += 1
                     self.assertTrue(fail_closed(key) and LEAK in why, why)

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import atexit
+import concurrent.futures
 import datetime
 import io
 import json
+import multiprocessing
 import os
 import re
 import shutil
@@ -177,6 +179,47 @@ def child(args: list[str], cwd: Path = ROOT, timeout: int = 600, **env_extra: st
     env = {**offline_env(), "TEMP": own, "TMP": own, "TMPDIR": own, **env_extra}
     return subprocess.run([sys.executable, *args], cwd=str(cwd), env=env,
                           capture_output=True, text=True, encoding="utf-8", timeout=timeout)
+
+
+# v2.0.12: the seven sweeps of siblings (one whole pipeline run per constructed case, up to 624 cases per test) took
+# 600 of the 791 s of the v2.0.11 suite on Windows 11, every case in one process. Their cases are independent, so they
+# run in worker processes and the test reads each outcome inside the case's own subTest, with the same assertions, in
+# the same order.
+_POOL: concurrent.futures.ProcessPoolExecutor | None = None
+
+
+def jobs() -> int:
+    """Worker processes of a sweep: EZIO_TEST_JOBS when it is set, else the CPU count, at most 8. With 1 every case
+    runs in this process when the test reads it, as until v2.0.11."""
+    value = os.environ.get("EZIO_TEST_JOBS", "").strip()
+    return max(1, int(value)) if value else max(1, min(8, os.cpu_count() or 1))
+
+
+class _HereWhenRead:
+    """The outcome of one case run in this process, at the moment the test reads it (jobs() == 1)."""
+
+    def __init__(self, fn, args):
+        self._fn, self._args = fn, args
+
+    def result(self):
+        return self._fn(*self._args)
+
+
+def sweep(fn, cases) -> list:
+    """One future per case, in the order given: ``fn(*args)`` for every ``args`` of ``cases``, run in worker processes.
+    ``fn`` is a module-level function of a test module (the workers import it by name, and with it the socket block of
+    this package). ``future.result()`` returns the outcome, or raises the case's exception, where the test reads it:
+    inside that case's subTest, as a call of ``fn`` there would."""
+    global _POOL
+    cases = list(cases)
+    n = jobs()
+    if n == 1 or len(cases) < 2:
+        return [_HereWhenRead(fn, args) for args in cases]
+    if _POOL is None:
+        # spawn on every system: a worker starts clean and removes its own tmp() folders when it ends (atexit)
+        _POOL = concurrent.futures.ProcessPoolExecutor(n, mp_context=multiprocessing.get_context("spawn"))
+        atexit.register(_POOL.shutdown)     # before _remove_created (atexit runs last-registered first)
+    return [_POOL.submit(fn, *args) for args in cases]
 
 
 def nodes_of(tables: dict, whole: Fraction = Fraction(1)) -> dict[str, dict]:

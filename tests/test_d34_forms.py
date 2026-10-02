@@ -150,10 +150,11 @@ def unsafe(status: str, view: dict, prov: dict | None, changes) -> str:
 class D34_RecognisedTypeSiblings(unittest.TestCase):
     def test_every_sibling_with_every_title_is_safe(self):
         n = 0
-        for cls, wording, tname, docs, changes in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, _, _, docs, _ in cases()])
+        for (cls, wording, tname, docs, changes), outcome in zip(cases(), outcomes):
             with self.subTest(cls=cls, wording=wording, title=tname):
                 n += 1
-                self.assertEqual(unsafe(*_run(docs), changes), "")
+                self.assertEqual(unsafe(*outcome.result(), changes), "")
         self.assertEqual(n, sum(len(w) * (len(TITLE_NOUNS) + 1 + (KINDS[k][1] is not None))
                                 for _, k, w, _ in CLASSES))
 

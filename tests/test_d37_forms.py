@@ -190,10 +190,11 @@ N_GENUINE = sum(1 for _ in genuine_cases())
 class D37_AddressSiblings(unittest.TestCase):
     def test_every_sibling_is_safe(self):
         n = 0
-        for key, docs, changes, w in cases():
+        outcomes = s.sweep(_run, [(docs,) for _, docs, _, _ in cases()])
+        for (key, docs, changes, w), outcome in zip(cases(), outcomes):
             with self.subTest(case=" | ".join(key)):
                 n += 1
-                self.assertEqual(unsafe(*_run(docs), changes, w), "")
+                self.assertEqual(unsafe(*outcome.result(), changes, w), "")
         self.assertEqual(n, N_CASES)
 
     def test_genuine_difference_side_by_side(self):

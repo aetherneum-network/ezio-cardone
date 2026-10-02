@@ -140,15 +140,11 @@ def _judge(fields, allowed) -> list[str]:
 
 
 def table() -> list[dict]:
+    setups = [(cid, name, docs, alw, cls) for cid, clause, holders, allowed, cls in CASES
+              for name, docs, alw in _setups(_deed(clause, holders), allowed)] + list(_special())
     rows = []
-    for cid, clause, holders, allowed, cls in CASES:
-        for name, docs, alw in _setups(_deed(clause, holders), allowed):
-            code, fields = _capital(docs)
-            rows.append({"case": cid, "setup": name, "class": cls, "exit": code, "unsafe": _judge(fields, alw),
-                         "facts": sum(1 for n in C if fields[n]["status"] == "STATED"),
-                         "shown": {n: fields[n].get("value", fields[n]["status"]) for n in C}})
-    for cid, name, docs, alw, cls in _special():
-        code, fields = _capital(docs)
+    for (cid, name, docs, alw, cls), outcome in zip(setups, s.sweep(_capital, [(d,) for _, _, d, _, _ in setups])):
+        code, fields = outcome.result()
         rows.append({"case": cid, "setup": name, "class": cls, "exit": code, "unsafe": _judge(fields, alw),
                      "facts": sum(1 for n in C if fields[n]["status"] == "STATED"),
                      "shown": {n: fields[n].get("value", fields[n]["status"]) for n in C}})

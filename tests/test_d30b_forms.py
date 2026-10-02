@@ -121,11 +121,13 @@ class S_UnreadScopeAdversarialSiblings(unittest.TestCase):
 
     def test_every_sibling_with_every_title_keeps_every_field(self):
         n = 0
-        for cls, own, sentence, changes in SIBLINGS:
-            for title, label in _titles(own):
-                with self.subTest(cls=cls, title=title):
-                    n += 1
-                    self._assert_safe(*_run([DEED, EXTRACT, _sibling(title, sentence, label)]), changes)
+        cases = [(cls, title, [DEED, EXTRACT, _sibling(title, sentence, label)], changes)
+                 for cls, own, sentence, changes in SIBLINGS for title, label in _titles(own)]
+        outcomes = s.sweep(_run, [(docs,) for _, _, docs, _ in cases])
+        for (cls, title, docs, changes), outcome in zip(cases, outcomes):
+            with self.subTest(cls=cls, title=title):
+                n += 1
+                self._assert_safe(*outcome.result(), changes)
         self.assertEqual(n, len(SIBLINGS) * (2 + len(FEV920_NOUNS)))
 
     def test_a_sibling_with_a_holders_table_of_the_same_holders_keeps_the_holders(self):
