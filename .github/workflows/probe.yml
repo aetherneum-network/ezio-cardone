@@ -1,0 +1,55 @@
+# Runner probe, on a diagnostic branch only (never merged): what the hosted runner gives the test suite. It prints
+# the CPU topology the job sees, the start-up cost of the worker processes, and the time of the sweeps of siblings
+# with 1, 2, 3 and 4 workers on the same machine (4 first and last, to see drift), with 4 workers once more on another
+# temporary folder, then the whole suite with per-test times. Nothing here changes the pack; ci.yml runs as usual.
+name: probe
+on:
+  push:
+    branches: [aetherneum/runner-probe-2026-10-02]
+permissions:
+  contents: read
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 150
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONIOENCODING: utf-8
+      PYTHONDONTWRITEBYTECODE: "1"
+      PROBE_PRINT: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install from the hashed lockfile
+        run: python -m pip install --require-hashes -r requirements.txt
+      - name: Topology
+        run: python probe/runner_probe.py topology
+      - name: Start-up of worker processes
+        run: python probe/runner_probe.py spawn
+      - name: Sweeps, 4 workers (first)
+        run: EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4a.json" - sweeps
+      - name: Sweeps, 1 worker
+        run: EZIO_TEST_JOBS=1 python probe/tim.py "$RUNNER_TEMP/sweeps-1.json" - sweeps
+      - name: Sweeps, 2 workers
+        run: EZIO_TEST_JOBS=2 python probe/tim.py "$RUNNER_TEMP/sweeps-2.json" - sweeps
+      - name: Sweeps, 3 workers
+        run: EZIO_TEST_JOBS=3 python probe/tim.py "$RUNNER_TEMP/sweeps-3.json" - sweeps
+      - name: Sweeps, 4 workers (last)
+        run: EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4b.json" - sweeps
+      - name: Sweeps, 4 workers, temporary folder on another volume
+        run: |
+          if [ "$RUNNER_OS" = "Windows" ]; then d="$RUNNER_TEMP\eziotmp"; else d=/dev/shm/eziotmp; fi
+          mkdir -p "$d"
+          TEMP="$d" TMP="$d" TMPDIR="$d" EZIO_TEST_JOBS=4 python probe/tim.py "$RUNNER_TEMP/sweeps-4t.json" - sweeps
+      - name: Whole suite, default workers, per-test times
+        run: python probe/tim.py "$RUNNER_TEMP/suite.json" -
