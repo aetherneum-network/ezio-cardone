@@ -330,3 +330,14 @@ order, as in v2.0.13, so the code under test is that of `v2.0.10-freeze`. No out
 stays downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10). Why a runner
 with 4 CPUs gained less from v2.0.12 than the builder's machine, and the time of the suite before and after, are in
 `CHANGELOG.md` 2.0.14.
+
+## 17. v2.0.15
+
+v2.0.15 changes what the scenarios, the evaluation and the rebuild leave behind, adds one test, and documents: each
+of the three removes, when its process ends, the temporary folders it made (`scenarios/_common.py`, `eval/score.py`,
+`tools/rebuild.py`). The pipeline, the rules, the schema and the corpus generator are those of `v2.0.10-freeze`, and
+the scorer, the scenario checks and the rebuild print and write what they did in v2.0.14: the same lines, the same
+results and the same four hashes. The 364 tests of v2.0.14 make the same assertions; the new one
+(`tests/test_temporary_folders.py`) checks that the three commands leave their temporary folder empty. No outcome of
+this file changes. Row A2 stays downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8
+and 10). The numbers before and after are in `CHANGELOG.md` 2.0.15.

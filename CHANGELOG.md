@@ -2,6 +2,90 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.15] - 2026-10-03 (freeze tag `v2.0.15-freeze`; the tools remove their temporary folders, a test, and documents)
+
+The scenarios, the development evaluation and the rebuild remove, when their process ends, the temporary folders
+they made; one test checks it; documents. The pipeline, the rules, the schema and the corpus generator are those of
+`v2.0.10-freeze`, and no output changes: the same lines, the same results files, the same exit codes and the same
+rebuild hashes, so the generator still names `dossier 2.0.10`. `MANIFEST.sha256` is rewritten: three entries change
+(`scenarios/_common.py`, `eval/score.py`, `tools/rebuild.py`) and one is added (`tests/test_temporary_folders.py`),
+194 files. The suite has 365 tests: the 364 of v2.0.14, unchanged, and the new one. `eval/history.json`,
+`eval/BLIND_PROTOCOL.md` and `eval/blind/` are unchanged. Not run blind; no outcome changes.
+
+### 1. What the commands left behind
+
+Until v2.0.14 every run of `python scenarios/run_all.py`, of `python -m eval.score` without `--work` and of
+`python tools/rebuild.py` left its work folders in the temporary folder. On the builder's machine, each command with
+an empty temporary folder of its own (Windows 11, the code of v2.0.14):
+
+| Command | Time | Left behind |
+|---|---|---|
+| `python scenarios/run_all.py` | 7 s | 18 folders, 268 files, about 6 MB |
+| `python -m eval.score --suite dev` | 73 s | 1 folder, 2,175 files, about 37 MB |
+| `python tools/rebuild.py` | 148 s | 5 folders, 3,472 files, about 70 MB |
+
+The same counts of folders were left in the diagnostic jobs of 2.0.14 section 4, on both systems and with either
+temporary folder. No command prints these folders, and nothing reads them once the command has ended. The test suite
+removes its own since v2.0.10 (`tests/support.py`), and gives each child process a temporary folder of its own; the
+commands run by themselves, as the CI workflow and the README run them, did not.
+
+### 2. The change
+
+Each of the three modules keeps the list of the folders it made - `workdir()` of `scenarios/_common.py`, `_made()`
+of `tools/rebuild.py`, and `evaluate()` of `eval/score.py` when it is given no work folder - and removes them when
+the process ends (`atexit`), as `tests/support.py` does for the tests:
+
+- with the extended-length prefix, so that a folder under a deep temporary folder is removed whole;
+- at the end of the process, not of the check or of the evaluation, so that a caller in the same process can still
+  read a folder after the function returns, as the tests do;
+- a folder that cannot be removed is said on stderr (`... temporary folder(s) of this process not removed`) and
+  changes no line, no result and no exit code;
+- a folder given with `--work`, or by a caller of `evaluate()`, is the caller's and is kept.
+
+### 3. Before and after
+
+Same machine and method as section 1, the code of v2.0.15: `python scenarios/run_all.py` 7 s, `python -m eval.score
+--suite dev` 75 s, `python tools/rebuild.py` 148 s, nothing left behind by any of them; the same lines,
+`Scenarios: 10/10 PASS`, 0 never-events, `REBUILD OK` with the four SHA-256 values of the README. Removing the
+folders does not change the time of a command beyond the spread between runs.
+
+### 4. The test
+
+`tests/test_temporary_folders.py` runs three commands - the scenarios, the evaluation of the hand corpus `hand-24`
+of the blind runs, and the rebuild with `--quick` - each in a child process with an empty temporary folder of its
+own, and requires exit code 0, no folder said not removed on stderr, and that temporary folder empty when the
+command ends. On the code of v2.0.14 its three cases fail (18, 1 and 2 folders left behind); on the code of v2.0.15
+they pass. It adds about 16 s to the suite on the builder's machine.
+
+### 5. What it does not change
+
+No printed line, no results file, no rebuild hash and no exit code changes, and the 364 tests of v2.0.14 make the
+same assertions on the same cases. The pipeline, the rules, the schema, the corpus generator, the checks of the
+scenarios and what the scorer measures are those of v2.0.14. On the runners of the CI workflow the temporary folders
+went away with the job already; the change matters where the commands are run by hand.
+
+### 6. The first CI run on the code of v2.0.14
+
+Run 37080993613, 2026-10-03, push of the branch at `05bbc12` (the commit of `v2.0.14-freeze`), images
+`windows-2025-vs2026` 20260925.250.1 and `ubuntu-24.04` 20260927.320.1, CPython 3.12.10 and 3.12.14. The suite is
+the time printed by `Ran ... in`, the other columns the times of the workflow's steps and of the job:
+
+| Job | Suite | Scenarios step | Evaluation step | Rebuild step | Job |
+|---|---|---|---|---|---|
+| Windows | 558.3 s | 10 s | 100 s | 199 s | 15.0 min |
+| Ubuntu | 423.6 s | 7 s | 61 s | 123 s | 10.4 min |
+
+Both jobs: 364 tests OK, scenarios 10/10 PASS, the development evaluation with 0 never-events, `REBUILD OK` with
+the four SHA-256 values of the README. On Windows the step of 2.0.14 section 4 set `TEMP` and `TMP` to the folder
+under the runner's temporary folder for each of the five steps after it. One run does not measure the change: the
+Windows rebuild step took 199 s here and 152.5 s in the diagnostic job of 2.0.14 section 4, with the same code and
+the same temporary folder, because the hardware behind `windows-latest` differs from run to run (2.0.13 section 1);
+the measures of the change are the runs alternated in the same job, 2.0.14 sections 4 and 5.
+
+2.0.13 section 1 gave 20260901.588 as the version of both images: that is the version of the runner image
+provisioner, printed above the image in the job log. The images of the five runs in its table are those of this
+run, `windows-2025-vs2026` 20260925.250.1 and `ubuntu-24.04` 20260927.320.1.
+
 ## [2.0.14] - 2026-10-03 (freeze tag `v2.0.14-freeze`; how the test suite runs, the Windows temporary folder, and documents)
 
 When the test suite computes its sweeps, where the Windows job of the CI workflow keeps its temporary files, and

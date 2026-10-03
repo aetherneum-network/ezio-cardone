@@ -6,8 +6,11 @@ the salt of the shareable layer live in ``input/.../config.json``.
 """
 from __future__ import annotations
 
+import atexit
 import io
 import json
+import os
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -22,6 +25,25 @@ from dossier.lib import jsonio  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
+# v2.0.15: until v2.0.14 the folders of workdir() stayed in TEMP, 18 for one run of the ten scenarios
+_CREATED: list[str] = []
+
+
+def _remove_created() -> None:
+    """Remove, when the process ends, every folder made by workdir() in this process, and nothing else. A folder that
+    cannot be removed is said on stderr; it never changes the line of a check."""
+    left = []
+    for path in reversed(_CREATED):
+        shutil.rmtree(jsonio.ext(path), ignore_errors=True)
+        if os.path.exists(jsonio.ext(path)):
+            left.append(path)
+    if left:
+        print(f"scenarios: {len(left)} temporary folder(s) of this process not removed, e.g. {left[0]}",
+              file=sys.stderr)
+
+
+atexit.register(_remove_created)
+
 
 def scenario_dir(sid: str) -> Path:
     return HERE / sid
@@ -34,8 +56,11 @@ def expected(sid: str) -> dict:
 def workdir(sid: str) -> Path:
     """A fresh temporary folder for the outputs of one check. Since v2.0.10 (D39) it carries the extended-length prefix,
     as the pipeline's work folder does, so that every check reads a build under a deep TEMP whole: a plain path there
-    made 'no DOCX written' and 'not published' true by not reading (scenario S02)."""
-    return Path(jsonio.ext(tempfile.mkdtemp(prefix=f"ezio-{sid}-")))
+    made 'no DOCX written' and 'not published' true by not reading (scenario S02). Since v2.0.15 it is removed when
+    the process ends, so a check and the caller of a check can still read it after the check returns."""
+    path = tempfile.mkdtemp(prefix=f"ezio-{sid}-")
+    _CREATED.append(path)
+    return Path(jsonio.ext(path))
 
 
 def run(input_dir: Path, work: Path, as_of: str | None = None, **kw) -> tuple[int, str, dict]:
