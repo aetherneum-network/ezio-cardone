@@ -28,6 +28,16 @@
 # suite and 11.4 to 20.0 minutes for the Windows job. Two pushes to main eight minutes apart: 1328.8 s and 30.3
 # minutes with the suite of v2.0.11, 745.0 s and 20.0 minutes with that of v2.0.12. timeout-minutes stays 60,
 # three times the longest job.
+#
+# Since v2.0.14 a sweep starts when the loader reads its module, so the workers compute while the rest of the suite
+# runs in the test process; CHANGELOG.md 2.0.14 also measures why a runner with 4 CPUs gained less than the builder's
+# machine with 4 workers. The command below is unchanged.
+#
+# Since v2.0.14 the Windows job keeps its temporary files in a folder under the runner's temporary folder, on the
+# runner's work volume, instead of the default one on the system volume: in one diagnostic job the suite took 393.6 s
+# instead of 524.8 s, the scenarios 7.5 s instead of 19.8 s, the development evaluation 80.3 s instead of 105.4 s and
+# the rebuild 152.5 s instead of 212.6 s, with the same four hashes (CHANGELOG.md 2.0.14). The Ubuntu job keeps its
+# default: there the same change measured no difference.
 name: ci
 on:
   push:
@@ -54,6 +64,14 @@ jobs:
           python-version: "3.12"
       - name: Install from the hashed lockfile (the only step that uses the network)
         run: python -m pip install --require-hashes -r requirements.txt
+      - name: Temporary folder on the runner's work volume (Windows only, since v2.0.14)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          d="$RUNNER_TEMP\tmp"
+          mkdir -p "$d"
+          echo "TEMP=$d" >> "$GITHUB_ENV"
+          echo "TMP=$d" >> "$GITHUB_ENV"
       - name: Pack manifest, generated documents, synthetic corpus
         run: |
           python tools/manifest.py --check

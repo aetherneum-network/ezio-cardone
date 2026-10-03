@@ -318,3 +318,15 @@ code under test is that of `v2.0.10-freeze`. No outcome of this file changes; th
 "Deterministic document build" (section 1) adds the CI runs of 2026-10-02 on that code and keeps "demonstrated
 on Windows only". Row A2 stays downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections
 7, 8 and 10). The time of those runs, before and after v2.0.12, is in `CHANGELOG.md` 2.0.13.
+
+## 16. v2.0.14
+
+v2.0.14 changes when the test suite computes its sweeps, where the Windows job of the CI workflow keeps its
+temporary files, and documents only: a module with a sweep submits its cases to the worker processes when the loader
+reads it (`tests/support.py`, `ahead()`), and the Windows job writes its temporary files on the runner's work
+volume, where in a diagnostic job the rebuild printed the same four hashes. No code, rule, schema, corpus
+generator, scenario or tool changed, and every test makes the same assertions on the same cases, read in the same
+order, as in v2.0.13, so the code under test is that of `v2.0.10-freeze`. No outcome of this file changes. Row A2
+stays downgraded for `v2.0.3-freeze`, `v2.0.7-freeze` and `v2.0.8-freeze` (sections 7, 8 and 10). Why a runner
+with 4 CPUs gained less from v2.0.12 than the builder's machine, and the time of the suite before and after, are in
+`CHANGELOG.md` 2.0.14.

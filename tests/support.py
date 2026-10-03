@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import unittest
 from fractions import Fraction
 from functools import lru_cache
 from pathlib import Path
@@ -205,21 +206,69 @@ class _HereWhenRead:
         return self._fn(*self._args)
 
 
+def _submit(fn, cases: list) -> list:
+    global _POOL
+    if _POOL is None:
+        # spawn on every system: a worker starts clean and removes its own tmp() folders when it ends (atexit)
+        _POOL = concurrent.futures.ProcessPoolExecutor(jobs(), mp_context=multiprocessing.get_context("spawn"))
+        atexit.register(_end_pool)  # before _remove_created (atexit runs last-registered first)
+    return [_POOL.submit(fn, *args) for args in cases]
+
+
 def sweep(fn, cases) -> list:
     """One future per case, in the order given: ``fn(*args)`` for every ``args`` of ``cases``, run in worker processes.
     ``fn`` is a module-level function of a test module (the workers import it by name, and with it the socket block of
     this package). ``future.result()`` returns the outcome, or raises the case's exception, where the test reads it:
-    inside that case's subTest, as a call of ``fn`` there would."""
-    global _POOL
+    inside that case's subTest, as a call of ``fn`` there would. Since v2.0.14, when ahead() already submitted ``fn``
+    with equal cases, those futures are returned (once) instead of new ones."""
     cases = list(cases)
-    n = jobs()
-    if n == 1 or len(cases) < 2:
+    if jobs() == 1 or len(cases) < 2:
         return [_HereWhenRead(fn, args) for args in cases]
-    if _POOL is None:
-        # spawn on every system: a worker starts clean and removes its own tmp() folders when it ends (atexit)
-        _POOL = concurrent.futures.ProcessPoolExecutor(n, mp_context=multiprocessing.get_context("spawn"))
-        atexit.register(_POOL.shutdown)     # before _remove_created (atexit runs last-registered first)
-    return [_POOL.submit(fn, *args) for args in cases]
+    early = _AHEAD.get((fn.__module__, fn.__qualname__), [])
+    for i, (submitted, futures) in enumerate(early):
+        if submitted == cases:
+            del early[i]
+            return futures
+    return _submit(fn, cases)
+
+
+# v2.0.14: with the sweeps in workers, the rest of the suite runs in one process (about 175 s of a run with 4 workers
+# on Windows 11: of 322 s on 4 cores, of 399 s on 2 cores of two threads each), and the workers waited for it. A module
+# with a sweep now submits its cases when the loader reads the whole module (load_tests, before the first test runs),
+# so the workers compute them while this process runs the other tests. The test still builds its cases, calls sweep()
+# and reads each outcome inside the case's own subTest, with the same assertions, in the same order; only the moment
+# of the computation moves.
+_AHEAD: dict[tuple[str, str], list[tuple[list, list]]] = {}
+
+
+def _ids(suite):
+    for test in suite:
+        if isinstance(test, unittest.TestSuite):
+            yield from _ids(test)
+        else:
+            yield test.id()
+
+
+def ahead(tests, reader: str, fn, cases) -> None:
+    """Submit ``fn(*args)`` for every ``args`` of ``cases`` now, when the sweep runs in workers and the loaded ``tests``
+    hold the test that reads it (an id that contains ``reader``: a test, or a class whose set-up reads the sweep). The
+    reader's own sweep() gets these futures if its cases are equal; if not, it submits its own, as without ahead(), and
+    the ones submitted here are said at the end of the process."""
+    cases = list(cases)
+    if jobs() == 1 or len(cases) < 2 or not any(reader in tid for tid in _ids(tests)):
+        return
+    _AHEAD.setdefault((fn.__module__, fn.__qualname__), []).append((cases, _submit(fn, cases)))
+
+
+def _end_pool() -> None:
+    """At the end of the process: what ahead() submitted and no test read is said on stderr, and its cases not yet
+    started are cancelled instead of computed (a run of some tests of a module, or an interrupted run). It never
+    changes a test's outcome."""
+    unread = sum(len(early) for early in _AHEAD.values())
+    if unread:
+        print(f"tests/support.py: {unread} sweep(s) submitted ahead and not read by a test; their cases not yet "
+              f"started are cancelled", file=sys.stderr)
+    _POOL.shutdown(wait=True, cancel_futures=True)
 
 
 def nodes_of(tables: dict, whole: Fraction = Fraction(1)) -> dict[str, dict]:

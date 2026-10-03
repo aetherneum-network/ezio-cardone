@@ -385,5 +385,14 @@ class H_ScorerCountsWhatIsNotPublished(unittest.TestCase):
         self.assertEqual(m["blocked_entities_gold_to_confirm"] - m["blocked_wrongly_entities_gold_to_confirm"], gb)
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    docs = [[DEED, EXTRACT, _sibling(title, sentence, label)] for _, own, sentence, _ in SIBLINGS
+            for title, label in _titles(own)]
+    s.ahead(tests, "S_UnreadScopeAdversarialSiblings.test_every_sibling_with_every_title_keeps_every_field", _run,
+            [(d,) for d in docs])
+    return tests
+
+
 if __name__ == "__main__":
     unittest.main()

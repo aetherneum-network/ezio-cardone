@@ -205,6 +205,14 @@ class D39_Hand22(unittest.TestCase):
                 self.assertEqual(view[fld]["value"], self.gold["entities"][eid]["fields"][fld]["value"], (eid, fld))
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead()); the
+    set-up of D39_CountForm reads them (table())."""
+    docs = [d for _, clause, holders, allowed, _ in CASES for _, d, _ in _setups(_deed(clause, holders), allowed)]
+    s.ahead(tests, ".D39_CountForm.", _capital, [(d,) for d in docs + [d for _, _, d, _, _ in _special()]])
+    return tests
+
+
 if __name__ == "__main__":
     for r in table():
         print(r["case"], r["setup"], "exit", r["exit"], "facts", r["facts"], "UNSAFE " + ",".join(r["unsafe"])

@@ -393,5 +393,11 @@ class D35_HandCorpus14(unittest.TestCase):
         self.assertEqual(dossier_run.EXIT[got["pipeline_status"]], got["exit_code"])
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D35_TypedSlotSiblings.test_every_sibling_is_safe", _run, [(docs,) for _, _, docs, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     unittest.main()

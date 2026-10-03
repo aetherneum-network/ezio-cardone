@@ -442,6 +442,13 @@ class D38_DeclaredLimits(unittest.TestCase):
         self.assertTrue(all(view["fields"][f]["status"] == "STATED" for f in OTHER), view["fields"])
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D38_IdentificationSiblings.test_no_sibling_is_published_wrongly", _run,
+            [(docs,) for _, docs, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     json.dump(tally(), sys.stdout, indent=1, ensure_ascii=False)
     print()
