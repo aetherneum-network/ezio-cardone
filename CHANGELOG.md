@@ -2,6 +2,166 @@
 
 SYNTHETIC - proof pack of a synthetic AI agent; every entity, person, deed and registry extract is invented.
 
+## [2.0.14] - 2026-10-03 (freeze tag `v2.0.14-freeze`; how the test suite runs, the Windows temporary folder, and documents)
+
+When the test suite computes its sweeps, where the Windows job of the CI workflow keeps its temporary files, and
+documents. No code, rule, schema, corpus generator, scenario or tool changed, and no test checks anything else than
+before: the same 364 tests, the same assertions on the same cases, read in the same order. The version string of the
+generator stays `dossier 2.0.10`, so the rebuild hashes of the README do not change. `MANIFEST.sha256` is rewritten,
+because the test files are in the frozen part of the pack: nine entries change (`tests/support.py` and the eight
+files of section 3), no file is added or removed. `eval/history.json`, `eval/BLIND_PROTOCOL.md` and `eval/blind/`
+are unchanged. Not run blind; no outcome changes. Section 1 answers the `[TO CONFIRM]` of 2.0.13 section 1, which
+keeps its text.
+
+### 1. Why a runner with 4 CPUs gained less than the builder's machine with 4 workers
+
+- **Not the spread of the runners.** The hardware behind a label differs from job to job, so each job's suite is
+  compared with a step of the same job that runs in one process and whose code has not changed since v2.0.10: the
+  rebuild step, and the development evaluation. The suite of v2.0.11 (one process) took 4.78 times the rebuild step
+  of its job on Windows (mean of 6 jobs, 4.40 to 5.44) and 5.94 times on Ubuntu (6 jobs); the suite of v2.0.12 took
+  2.70 times (9 jobs, 2.43 to 3.18) and 3.39 times (9 jobs). Against the evaluation step: 9.43 and 5.19 on Windows,
+  11.92 and 6.80 on Ubuntu. The gain on runners is 1.75 to 1.82 times whichever reference is used: the 1.78 of
+  2.0.13 was not a pair of unequal machines.
+- **What the runner gives the job.** A diagnostic workflow, on a branch that is not merged, read it in both jobs
+  (Windows Server 2025 with CPython 3.12.10, Ubuntu 24.04 with CPython 3.12.14): 4 logical CPUs, all four in the
+  job's affinity, which are 2 cores of two threads each (simultaneous multithreading). The processor was an AMD EPYC
+  9V45 in the first Windows job, an AMD EPYC 7763 in the first Ubuntu job and an AMD EPYC 9V74 in both jobs of the
+  second round (sections 4 and 5), always 2 cores of two threads. The builder's machine of 2.0.13 gave each of the
+  4 workers a core of its own; the runner gives the 4 workers 2.
+- **The same machine with 1 to 4 workers.** The seven sweep tests and the set-up of `D39_CountForm` alone, code of
+  v2.0.13, with `EZIO_TEST_JOBS` from 1 to 4, one after the other in one job per system:
+
+  | Workers | Ubuntu | Windows |
+  |---|---|---|
+  | 1 | 682.7 s | 666.7 s |
+  | 2 | 347.5 s (1.96 times) | 443.4 s (1.50 times) |
+  | 3 | 335.5 s (2.03 times) | 387.5 s (1.72 times) |
+  | 4 | 322.9 and 320.8 s (2.11 and 2.13 times) | 332.6 and 364.4 s (2.00 and 1.83 times) |
+  | 4, another temporary folder | 319.6 s (a folder in memory) | 190.8 s (on the runner's work volume) |
+
+  On Ubuntu two workers on the two cores take almost all of the gain, and the two other threads add 8 percent. On
+  Windows the gain is lower still: each case of a sweep runs the pipeline in a temporary folder of its own, and the
+  job's default temporary folder is on the system volume of the runner. With the folder on the runner's work volume
+  the same sweeps, on the same machine, took 190.8 s instead of 332.6 and 364.4 s. On Ubuntu a folder in memory
+  changed nothing.
+- **The same shape on the builder's machine.** Windows 11, Intel Core i7-13700K (8 cores of two threads and 8 of
+  one), the suite of v2.0.13 with per-test times and an empty temporary folder per run, the process and its workers
+  held on chosen logical CPUs (processor affinity, which spawned workers inherit):
+
+  | Logical CPUs | Workers | Suite | Sweeps | The rest |
+  |---|---|---|---|---|
+  | 4, one per core | 1 | 773.0 s | 598.5 s | 174.5 s |
+  | 4, one per core | 4 | 322.3 s (2.40 times) | 148.4 s (4.03 times) | 173.8 s |
+  | 4, two cores of two threads | 4 | 399.1 s (1.94 times) | 218.4 s (2.74 times) | 180.7 s |
+
+  "Sweeps" is the seven sweep tests and the set-up of `D39_CountForm`; "the rest" is everything else, set-ups
+  included. On one core per thread the sweeps scale with the workers; on two cores of two threads, four workers
+  compute about 2.7 times as fast as one, and the suite gains 1.94 times.
+- **Starting the workers costs nothing that matters.** The pool starts once per run. On the builder's machine a
+  worker starts in 0.17 to 0.22 s and imports a sweep's test module in 0.36 to 0.42 s; on the runners a worker
+  starts in 0.07 to 0.14 s and imports the module in 0.19 to 0.41 s (1, 2 and 4 workers, both systems).
+- **So:** the 4 CPUs of the runner are 2 cores, and a sweep is computation in Python, which the second thread of a
+  core speeds up little: on Ubuntu 4 workers compute the sweeps 2.1 times as fast as one (on the builder's machine
+  held to the same shape, 2.7 times), not about 4 times; on Windows the temporary folder on the system volume takes
+  more. With the rest of the suite in one process (section 2), the suite gained 1.78 times. This closes the
+  `[TO CONFIRM]` of 2.0.13, for the runners and processors of these jobs.
+
+### 2. Where the time of the suite goes after v2.0.12
+
+With the sweeps in workers, the rest of the suite runs in the test process, one test after the other: about 175 s on
+the builder's machine (173.5 to 180.7 s in the runs of sections 1 and 5), more than the sweeps once they run on 4
+workers or more (148.4 s on 4 cores, 96.5 s on the default 8 workers). The workers waited for it: from the end of one
+sweep to the start of the next, they had nothing to do. On the runners it is the other way round: in the first round
+of the diagnostic jobs the suite of v2.0.13 with its default 4 workers took 463.0 s on Windows, 298.4 s of them in
+the sweeps and 164.6 s the rest, and 507.8 s on Ubuntu, 317.1 s and 190.7 s. There the test process waited for the
+sweeps; in both cases the workers waited for the rest before each sweep.
+
+### 3. The sweeps start when their module is loaded
+
+`tests/support.py` gains `ahead(tests, reader, fn, cases)`, and each of the eight files with a sweep gains a
+`load_tests` function, which the loader of `unittest` calls when it reads the whole module, before the first test of
+the suite runs. It submits that file's cases to the workers at once, so they compute while the test process runs the
+other tests. Nothing else in those files changes: the test still builds its cases, calls `sweep()` and reads each
+outcome inside the case's own `subTest`, with the same assertion, in the same order; `sweep()` returns the futures
+`ahead()` submitted when the function and the cases are equal (compared value by value), else it submits its own, as
+in v2.0.12. The files and the cases: `test_d30b_forms.py` 160, `test_d34_forms.py` 379, `test_d35_forms.py` 192,
+`test_d36_forms.py` 600, `test_d37_forms.py` 420, `test_d37_slots.py` 300, `test_d38_identification.py` 624,
+`test_d39_capital_count.py` 78 (built in the set-up of `D39_CountForm`): 2,753 pipeline runs.
+
+- `ahead()` submits nothing when the sweep runs in the test process (`EZIO_TEST_JOBS=1`, or fewer than 2 cases), or
+  when the loaded tests do not hold the test that reads the sweep (a run of some tests of a module, selected by
+  name or by `-k`).
+- At the end of the process, a sweep submitted ahead that no test read is said on stderr (`tests/support.py: N
+  sweep(s) submitted ahead and not read by a test`), and its cases not yet started are cancelled instead of
+  computed: a run interrupted, or a `load_tests` whose cases differ from the test's own. In every run of section 5
+  the line did not appear: each sweep was read with the cases submitted ahead.
+- The workers, their number and `EZIO_TEST_JOBS` are those of v2.0.12; the command is unchanged:
+  `python -m unittest discover -s tests -t .`.
+- While the workers compute, the test process shares the CPUs with them: on 4 logical CPUs the rest of the suite
+  takes longer (section 5), and the sum is still shorter. Two variants were measured and not kept, on two cores of
+  two threads: workers at a lower priority (349.1 s: the rest gains what the sweeps lose) and 3 workers (383.6 s).
+
+### 4. The temporary folder of the Windows job
+
+The workflow gains one step, on Windows only, after the install: it makes a folder under the runner's temporary
+folder of the job and sets `TEMP` and `TMP` to it for the steps that follow, so the checks, the tests, the
+scenarios, the evaluation and the rebuild have their temporary folder on the runner's work volume instead of the
+system volume, where the default temporary folder of the Windows runner is; the runner empties its temporary folder
+at the start and at the end of each job. The Ubuntu job keeps its default. Measured in the second round of the
+diagnostic workflow, one job per system, each step run with the default folder and then with a folder under the
+runner's temporary folder, the whole command as the workflow runs it:
+
+| Step | Windows, default folder | Windows, runner's work volume | Ubuntu, default folder | Ubuntu, runner's folder |
+|---|---|---|---|---|
+| Suite of v2.0.13 | 578.8 s | 431.4 s (25.5 percent shorter) | 347.5 s | 345.9 s |
+| Suite of v2.0.14 | 524.8 s | 393.6 s (25.0 percent shorter) | 320.7 s | 321.4 s |
+| Scenarios S01-S10 | 19.8 s | 7.5 s | 5.8 s | 5.7 s |
+| Development evaluation | 105.4 s | 80.3 s | 53.8 s | 55.6 s |
+| Rebuild | 212.6 s | 152.5 s | 106.8 s | 110.9 s |
+
+On Windows the four steps took 633.9 s instead of 862.6 s with the code of v2.0.14 (916.6 s with that of v2.0.13
+and the default folder). Every run, with either folder: 364 tests OK, scenarios 10/10 PASS, 0 never-events,
+`REBUILD OK` with the four SHA-256 values of the README; each step left the same entries in its folder with either
+one (none for the suite, 18 for the scenarios, 1 for the evaluation, 5 for the rebuild). The runs on the runner's
+folder came second each time; a later run is not faster for being later: in the first round the sweeps with 4
+workers on the default folder took 332.6 s and then, later in the same job, 364.4 s. `timeout-minutes` stays 60.
+
+### 5. Before and after, measured
+
+Same machine and method as section 1, the code of v2.0.13 (A) and of v2.0.14 (B), runs alternated:
+
+| Logical CPUs | Workers | A: suite (sweeps, rest) | B: suite (sweeps, rest) | B against A |
+|---|---|---|---|---|
+| 4, two cores of two threads | 4 | 395.4 s (216.4, 179.0) | 339.8 s (126.8, 213.1) | |
+| same, again | 4 | 390.6 s (215.4, 175.2) | 345.7 s (132.5, 213.2) | 12.8 percent shorter (means) |
+| all 24 | 8 (default) | 270.0 s (96.5, 173.5) | 211.2 s (25.7, 185.5) | 21.8 percent shorter |
+
+Here "sweeps" is the time the test process waited in the sweep tests. Every run: 364 tests, no temporary folder left
+behind, nothing on stderr. B was measured before its manifest was rewritten and in a second working tree of the
+clone; the two tests that look at those two things failed there (the pack manifest, and the `.git` file of a second
+working tree, which holds a local path), and pass on the commit of the tag.
+
+On the runners, the jobs of section 4 (the whole command; sweeps and rest by per-test times):
+
+| Job | v2.0.13: suite (sweeps, rest) | v2.0.14: suite (sweeps, rest) | v2.0.14 against v2.0.13 |
+|---|---|---|---|
+| Ubuntu, default folder | 347.5 s (208.7, 134.5) | 320.7 s (123.9, 192.0) | |
+| Ubuntu, runner's folder | 345.9 s (208.1, 133.3) | 321.4 s (125.6, 190.8) | 7.4 percent shorter (means) |
+| Windows, default folder | 578.8 s (307.2, 243.0) | 524.8 s (204.5, 293.6) | 9.3 percent shorter |
+| Windows, runner's work volume | 431.4 s (254.2, 171.4) | 393.6 s (155.3, 231.7) | 8.8 percent shorter |
+
+On 2 cores the test process shares them with the workers: it waits in the sweeps 83 to 103 s less, and the
+rest takes 51 to 60 s more. With section 4, the Windows suite of the workflow goes from 578.8 s to 393.6 s in
+that job, 32.0 percent shorter. No run printed the line of section 3 on stderr.
+
+### 6. What it does not change
+
+No outcome, no assertion, no case and no order of reading changes; `EZIO_TEST_JOBS=1` runs every case in the test
+process at the moment the test reads it, as until v2.0.11. A worker that dies breaks the pool as in v2.0.12: every
+case not yet finished fails with that error, and so does every later sweep; none passes. The code of the scenarios,
+the evaluation and the rebuild is unchanged: on Windows they write in another folder (section 4), and they still
+leave their folders there when they end, as before.
+
 ## [2.0.13] - 2026-10-02 (freeze tag `v2.0.13-freeze`; the CI workflow and documents only)
 
 The CI workflow and documents only. No code, rule, schema, corpus generator, scenario, test or tool changed, so

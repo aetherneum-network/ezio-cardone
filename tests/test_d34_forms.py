@@ -216,5 +216,12 @@ class D34_PlainDocumentsStillPublish(unittest.TestCase):
             self.assertEqual(view["fields"][f]["rule"], "DISC-030", f)
 
 
+def load_tests(loader, tests, pattern):
+    """v2.0.14: the sweep's cases go to the workers now, while the other tests run (tests/support.py ahead())."""
+    s.ahead(tests, "D34_RecognisedTypeSiblings.test_every_sibling_with_every_title_is_safe", _run,
+            [(docs,) for _, _, _, docs, _ in cases()])
+    return tests
+
+
 if __name__ == "__main__":
     unittest.main()

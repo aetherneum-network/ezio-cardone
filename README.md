@@ -96,7 +96,8 @@ never-event, and since v2.0.10 3 when it could not measure (the reason on stderr
 `OK (expected failures=1)` after 300 tests; until v2.0.6 it was `OK` after 286 tests.
 Since v2.0.12 the sweeps of siblings in the suite run their cases in worker processes: the variable
 `EZIO_TEST_JOBS` sets how many (by default the CPU count, at most 8), and `EZIO_TEST_JOBS=1` runs every
-case in the test process, as until v2.0.11 (`CHANGELOG.md` 2.0.12).
+case in the test process, as until v2.0.11 (`CHANGELOG.md` 2.0.12). Since v2.0.14 a sweep starts when the loader
+reads its module, so the workers compute while the other tests run (`CHANGELOG.md` 2.0.14).
 
 ## The numbers, with their seed and date
 
@@ -470,7 +471,8 @@ and 1310.4 s, scenarios 10/10 PASS, `REBUILD OK` - and all four printed the same
 table above: two runner images agreeing with one Windows machine, still not a claim of identity between
 operating systems. `v2.0.12` changes how the test suite runs, nothing that the rebuild runs (`CHANGELOG.md`
 2.0.12). On the same code six more runs of 2026-10-02, twelve jobs, printed the same four values
-(`CHANGELOG.md` 2.0.13).
+(`CHANGELOG.md` 2.0.13). Since `v2.0.14` the Windows job keeps its temporary files on the runner's work volume;
+in a diagnostic job the rebuild printed the same four values with either temporary folder (`CHANGELOG.md` 2.0.14).
 
 ## What is NOT demonstrated
 
