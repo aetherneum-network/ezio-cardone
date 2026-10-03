@@ -87,9 +87,10 @@ Python 3.12; four commands, offline after the first one. Tests block every socke
     python scenarios/run_all.py
     python tools/rebuild.py
 
-Expected last lines: `OK` after 364 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. In v2.0.9 the line was `OK`
-after 339 tests. `python -m eval.score` exits 0 when it measured with no never-event, 1 when a result has a
-never-event, and since v2.0.10 3 when it could not measure (the reason on stderr). In v2.0.8 the line was
+Expected last lines: `OK` after 365 tests, `Scenarios: 10/10 PASS`, `REBUILD OK`. From v2.0.10 to v2.0.14 the line
+was `OK` after 364 tests, in v2.0.9 `OK` after 339 tests. `python -m eval.score` exits 0 when it measured with no
+never-event, 1 when a result has a never-event, and since v2.0.10 3 when it could not measure (the reason on
+stderr). In v2.0.8 the line was
 `OK (expected failures=1)` after 321 tests: the expected failure was the premise of corroboration of
 `CHANGELOG.md` 2.0.8 section 4 - an address written alike, words and all, in two documents is read as written
 (`tests/test_d36_forms.py`, `D36_ResidualWordList`) -, which passes since v2.0.9. In v2.0.7 the line was

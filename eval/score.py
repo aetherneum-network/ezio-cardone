@@ -46,8 +46,11 @@ line; it wins over 1, because a count that was not measured is not a count). A r
 from __future__ import annotations
 
 import argparse
+import atexit
 import io
 import json
+import os
+import shutil
 import sys
 import tempfile
 from fractions import Fraction
@@ -62,6 +65,26 @@ from dossier import run as dossier_run  # noqa: E402
 from dossier.lib import jsonio  # noqa: E402
 
 SUITES = generate.SUITES
+
+# v2.0.15: until v2.0.14 a run without --work left its folder in TEMP (the development suite: 2,175 files, 37 MB); a
+# folder given with --work, or by a caller of evaluate(), is kept
+_CREATED: list[str] = []
+
+
+def _remove_created() -> None:
+    """Remove, when the process ends, every folder that evaluate() made in this process for want of a work folder,
+    and nothing else. A folder that cannot be removed is said on stderr; it never changes a measurement."""
+    left = []
+    for path in reversed(_CREATED):
+        shutil.rmtree(jsonio.ext(path), ignore_errors=True)
+        if os.path.exists(jsonio.ext(path)):
+            left.append(path)
+    if left:
+        print(f"eval.score: {len(left)} temporary folder(s) of this process not removed, e.g. {left[0]}",
+              file=sys.stderr)
+
+
+atexit.register(_remove_created)
 
 
 def _key(v) -> str:
@@ -308,7 +331,10 @@ def evaluate(label: str, *, seed: int | None = None, perturb: bool = False, corp
     """Generate (or take) a corpus, build every dossier, score. Nothing is read from the network."""
     # v2.0.10 (D39): every folder carries the extended-length prefix (jsonio.ext), the generated corpus included, so
     # that a deep --work folder is written, built and read whole; the pipeline derives its paths from the same prefix
-    base = Path(jsonio.ext(work if work else tempfile.mkdtemp(prefix=f"eval-{label}-")))
+    if not work:
+        work = tempfile.mkdtemp(prefix=f"eval-{label}-")
+        _CREATED.append(work)   # v2.0.15: removed when the process ends
+    base = Path(jsonio.ext(work))
     if corpus is None:
         files = generate.build_files(seed, entities=entities, perturb=perturb)
         generate.write(files, base / "corpus")

@@ -10,8 +10,11 @@ Offline; no clock, no environment variable.
 from __future__ import annotations
 
 import argparse
+import atexit
 import hashlib
 import io
+import os
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -23,6 +26,32 @@ if str(ROOT) not in sys.path:
 from corpus import generate  # noqa: E402
 from dossier import run as runner  # noqa: E402
 from dossier.lib import jsonio  # noqa: E402
+
+# v2.0.15: until v2.0.14 a run left its five folders in TEMP (two builds of S03, the development corpus and its
+# two builds, about 70 MB)
+_CREATED: list[str] = []
+
+
+def _remove_created() -> None:
+    """Remove, when the process ends, every folder made by _made() in this process, and nothing else. A folder that
+    cannot be removed is said on stderr; it never changes the hashes or the exit code."""
+    left = []
+    for path in reversed(_CREATED):
+        shutil.rmtree(jsonio.ext(path), ignore_errors=True)
+        if os.path.exists(jsonio.ext(path)):
+            left.append(path)
+    if left:
+        print(f"tools/rebuild.py: {len(left)} temporary folder(s) of this process not removed, e.g. {left[0]}",
+              file=sys.stderr)
+
+
+atexit.register(_remove_created)
+
+
+def _made(prefix: str) -> Path:
+    path = tempfile.mkdtemp(prefix=prefix)
+    _CREATED.append(path)
+    return Path(jsonio.ext(path))
 
 
 class NothingRead(RuntimeError):
@@ -48,7 +77,7 @@ def digest(hashes: dict[str, str]) -> str:
 def build_twice(input_dir: Path) -> tuple[dict[str, str], dict[str, str]]:
     out = []
     for name in ("first build", "second build in another folder"):
-        work = Path(jsonio.ext(tempfile.mkdtemp(prefix="ezio-rebuild-"))) / name
+        work = _made("ezio-rebuild-") / name
         runner.run(input_dir, work, out=io.StringIO())
         out.append(tree(work))
     return out[0], out[1]
@@ -70,7 +99,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not a.quick:
         suite = generate.SUITES["dev"]
-        base = Path(jsonio.ext(tempfile.mkdtemp(prefix="ezio-rebuild-corpus-")))
+        base = _made("ezio-rebuild-corpus-")
         generate.write(generate.build_files(suite["seed"]), base)
         first, second = build_twice(base / "input")
         same &= first == second
